@@ -30,9 +30,9 @@ Dependencies:
     pip install pysimdjson httpx
 """
 
-import argparse
 import bz2
 import json
+import os
 import sys
 import time
 from collections import defaultdict, deque
@@ -94,6 +94,7 @@ class NDJSONWriter:
     def __init__(self, path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         self._fh = path.open("w", encoding="utf-8")
+        print(f"[FILE] Created {path}", file=sys.stderr, flush=True)
 
     def write(self, row: Dict[str, Any]) -> None:
         self._fh.write(json.dumps(row, ensure_ascii=False, separators=(",", ":")) + "\n")
@@ -153,42 +154,109 @@ def iter_bz2_lines_from_http(url: str, chunk_size: int = 8 * 1024 * 1024) -> Gen
     decompressor = bz2.BZ2Decompressor()
     buffered = bytearray()
 
-    with httpx.stream("GET", url, timeout=120.0, follow_redirects=True) as response:
-        response.raise_for_status()
-        for compressed_chunk in response.iter_bytes(chunk_size=chunk_size):
-            if not compressed_chunk:
-                continue
-            data = decompressor.decompress(compressed_chunk)
-            if not data:
-                continue
+    user_agent = os.environ.get("WIKIMEDIA_USER_AGENT", "python-httpx")
+    print(f"[HTTP] Connecting to {url}", file=sys.stderr, flush=True)
+    print(f"[HTTP] User-Agent: {user_agent}", file=sys.stderr, flush=True)
 
-            buffered.extend(data)
-            start = 0
-            while True:
-                nl = buffered.find(b"\n", start)
-                if nl == -1:
-                    if start > 0:
-                        del buffered[:start]
-                    break
-                yield bytes(buffered[start:nl + 1])
-                start = nl + 1
+    try:
+        with httpx.stream("GET", url, timeout=120.0, follow_redirects=True, headers={"User-Agent": user_agent}) as response:
+            print(f"[HTTP] Connected — status {response.status_code}", file=sys.stderr, flush=True)
+            response.raise_for_status()
 
-        if buffered:
-            yield bytes(buffered)
+            chunks_received = 0
+            total_compressed = 0
+            total_decompressed = 0
+            lines_yielded = 0
+
+            for compressed_chunk in response.iter_bytes(chunk_size=chunk_size):
+                if not compressed_chunk:
+                    continue
+
+                chunks_received += 1
+                total_compressed += len(compressed_chunk)
+
+                try:
+                    data = decompressor.decompress(compressed_chunk)
+                except Exception as exc:
+                    print(f"[HTTP] bz2 decompression error on chunk {chunks_received}: {exc}", file=sys.stderr, flush=True)
+                    raise
+
+                if not data:
+                    print(f"[HTTP] chunk {chunks_received}: {len(compressed_chunk):,} compressed bytes → 0 decompressed (bz2 header/padding)", file=sys.stderr, flush=True)
+                    continue
+
+                total_decompressed += len(data)
+                if chunks_received % 10 == 0 or chunks_received <= 3:
+                    print(
+                        f"[HTTP] chunk {chunks_received}: "
+                        f"compressed={total_compressed/1024/1024:.1f} MB  "
+                        f"decompressed={total_decompressed/1024/1024:.1f} MB  "
+                        f"lines={lines_yielded:,}",
+                        file=sys.stderr, flush=True,
+                    )
+
+                buffered.extend(data)
+                start = 0
+                while True:
+                    nl = buffered.find(b"\n", start)
+                    if nl == -1:
+                        if start > 0:
+                            del buffered[:start]
+                        break
+                    lines_yielded += 1
+                    yield bytes(buffered[start:nl + 1])
+                    start = nl + 1
+
+            if buffered:
+                yield bytes(buffered)
+
+            print(f"[HTTP] Stream complete — {chunks_received} chunks, {total_compressed/1024/1024:.1f} MB compressed, {lines_yielded:,} lines", file=sys.stderr, flush=True)
+
+    except httpx.HTTPStatusError as exc:
+        print(f"[HTTP] HTTP error: {exc.response.status_code} — {exc}", file=sys.stderr, flush=True)
+        raise
+    except httpx.RequestError as exc:
+        print(f"[HTTP] Connection error: {exc}", file=sys.stderr, flush=True)
+        raise
 
 
 def iter_bz2_lines_from_file(path: Path, chunk_size: int = 8 * 1024 * 1024) -> Generator[bytes, None, None]:
     decompressor = bz2.BZ2Decompressor()
     buffered = bytearray()
 
+    print(f"[FILE] Opening {path}", file=sys.stderr, flush=True)
+    chunks_read = 0
+    total_compressed = 0
+    total_decompressed = 0
+    lines_yielded = 0
+
     with path.open("rb") as fh:
         while True:
             compressed_chunk = fh.read(chunk_size)
             if not compressed_chunk:
                 break
-            data = decompressor.decompress(compressed_chunk)
+
+            chunks_read += 1
+            total_compressed += len(compressed_chunk)
+
+            try:
+                data = decompressor.decompress(compressed_chunk)
+            except Exception as exc:
+                print(f"[FILE] bz2 decompression error on chunk {chunks_read}: {exc}", file=sys.stderr, flush=True)
+                raise
+
             if not data:
                 continue
+
+            total_decompressed += len(data)
+            if chunks_read % 10 == 0 or chunks_read <= 3:
+                print(
+                    f"[FILE] chunk {chunks_read}: "
+                    f"compressed={total_compressed/1024/1024:.1f} MB  "
+                    f"decompressed={total_decompressed/1024/1024:.1f} MB  "
+                    f"lines={lines_yielded:,}",
+                    file=sys.stderr, flush=True,
+                )
 
             buffered.extend(data)
             start = 0
@@ -198,11 +266,14 @@ def iter_bz2_lines_from_file(path: Path, chunk_size: int = 8 * 1024 * 1024) -> G
                     if start > 0:
                         del buffered[:start]
                     break
+                lines_yielded += 1
                 yield bytes(buffered[start:nl + 1])
                 start = nl + 1
 
-        if buffered:
-            yield bytes(buffered)
+    if buffered:
+        yield bytes(buffered)
+
+    print(f"[FILE] Read complete — {chunks_read} chunks, {total_compressed/1024/1024:.1f} MB, {lines_yielded:,} lines", file=sys.stderr, flush=True)
 
 
 def get_label(doc: Any, lang: str = "en") -> Optional[str]:
@@ -592,7 +663,14 @@ class WikidataDumpETL:
             yield from iter_bz2_lines_from_file(self.dump_file)
 
     def run(self) -> None:
-        parser = simdjson.Parser()
+        # simdjson.loads() is used instead of a reusable Parser because
+        # Parser.parse() returns a lazy object tied to the parser's internal
+        # buffer; reusing the parser while any previous Object/Array is still
+        # alive raises a RuntimeError. simdjson.loads() converts each entity
+        # to plain Python dicts/lists immediately, avoiding the lifetime issue.
+
+        print(f"[ETL] Starting pass={self.pass_name} out_dir={self.out_dir}", file=sys.stderr, flush=True)
+        first_entity_logged = False
 
         for raw_line in self.iter_lines():
             entity_json = normalize_wikidata_entity_line(raw_line)
@@ -600,18 +678,28 @@ class WikidataDumpETL:
                 continue
 
             try:
-                doc = parser.parse(entity_json)
-            except Exception:
+                doc = simdjson.loads(entity_json)
+            except Exception as exc:
                 self.stats.parse_errors += 1
+                if self.stats.parse_errors <= 5:
+                    print(f"[ETL] Parse error #{self.stats.parse_errors}: {exc} — line[:120]={raw_line[:120]}", file=sys.stderr, flush=True)
                 continue
 
             self.stats.entities_seen += 1
 
+            if not first_entity_logged:
+                first_entity_logged = True
+                try:
+                    print(f"[ETL] First entity: id={doc.get('id')} type={doc.get('type')}", file=sys.stderr, flush=True)
+                except Exception:
+                    pass
+
             try:
                 entity_id = doc.get("id")
                 entity_type = doc.get("type")
-            except Exception:
+            except Exception as exc:
                 self.stats.parse_errors += 1
+                print(f"[ETL] Error reading id/type: {exc}", file=sys.stderr, flush=True)
                 continue
 
             if entity_type == "property":
@@ -621,7 +709,7 @@ class WikidataDumpETL:
                 self.stats.items_seen += 1
                 self.process_item(doc, entity_id)
 
-            if self.stats.entities_seen % 100_000 == 0:
+            if self.stats.entities_seen % 10_000 == 0:
                 elapsed = self.stats.elapsed()
                 rate = self.stats.entities_seen / elapsed if elapsed > 0 else 0.0
                 print(
@@ -892,49 +980,39 @@ class WikidataDumpETL:
                 )
 
 
-def build_arg_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Stream Wikidata dump and generate MariaDB staging files.")
-
-    source = parser.add_mutually_exclusive_group(required=True)
-    source.add_argument("--dump-url", help="Remote .bz2 Wikidata dump URL")
-    source.add_argument("--dump-file", type=Path, help="Local .bz2 Wikidata dump file")
-
-    parser.add_argument("--out-dir", type=Path, required=True, help="Output staging directory")
-    parser.add_argument(
-        "--pass-name",
-        choices=["pass1", "pass2", "item_cache"],
-        required=True,
-        help="ETL pass to run",
-    )
-    parser.add_argument("--class-roots-json", type=Path, help="class_roots.jsonl produced by pass1")
-    parser.add_argument("--core-entity-ids", type=Path, help="core_entity_ids.txt produced by pass1")
-    parser.add_argument("--referenced-item-ids", type=Path, help="referenced_item_ids.txt produced by pass2")
-    parser.add_argument(
-        "--candidate-person-ids",
-        type=Path,
-        help="candidate_person_ids.txt produced by pass1 (all Q5 instances); required by pass2 to identify persons referenced in movie/series statements",
-    )
-    parser.add_argument(
-        "--referenced-person-ids",
-        type=Path,
-        help="referenced_person_ids.txt produced by pass2 (rule-2 persons); required by item_cache to emit them to T_WC_WIKIDATA_PERSON",
-    )
-    return parser
+def _env_path(name: str) -> Optional[Path]:
+    value = os.environ.get(name)
+    return Path(value) if value else None
 
 
 def main() -> int:
-    args = build_arg_parser().parse_args()
+    dump_url = os.environ.get("DUMP_URL")
+    dump_file = _env_path("DUMP_FILE")
+
+    if not dump_url and not dump_file:
+        print("ERROR: set DUMP_URL or DUMP_FILE in the environment.", file=sys.stderr)
+        return 1
+    if dump_url and dump_file:
+        print("ERROR: set only one of DUMP_URL or DUMP_FILE, not both.", file=sys.stderr)
+        return 1
+
+    pass_name = os.environ.get("PASS_NAME")
+    if pass_name not in ("pass1", "pass2", "item_cache"):
+        print(f"ERROR: PASS_NAME must be pass1, pass2, or item_cache (got {pass_name!r}).", file=sys.stderr)
+        return 1
+
+    out_dir = Path(os.environ.get("OUT_DIR", "/shared"))
 
     etl = WikidataDumpETL(
-        out_dir=args.out_dir,
-        pass_name=args.pass_name,
-        dump_url=args.dump_url,
-        dump_file=args.dump_file,
-        class_roots_json=args.class_roots_json,
-        core_entity_ids_path=args.core_entity_ids,
-        referenced_item_ids_path=args.referenced_item_ids,
-        candidate_person_ids_path=args.candidate_person_ids,
-        referenced_person_ids_path=args.referenced_person_ids,
+        out_dir=out_dir,
+        pass_name=pass_name,
+        dump_url=dump_url,
+        dump_file=dump_file,
+        class_roots_json=_env_path("CLASS_ROOTS_JSON"),
+        core_entity_ids_path=_env_path("CORE_ENTITY_IDS"),
+        referenced_item_ids_path=_env_path("REFERENCED_ITEM_IDS"),
+        candidate_person_ids_path=_env_path("CANDIDATE_PERSON_IDS"),
+        referenced_person_ids_path=_env_path("REFERENCED_PERSON_IDS"),
     )
     etl.run()
     return 0

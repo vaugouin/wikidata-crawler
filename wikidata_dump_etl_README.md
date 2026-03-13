@@ -2,14 +2,11 @@
 
 ## Overview
 
-`wikidata_dump_etl.py` is a production-oriented Python ETL script for streaming the official Wikidata JSON dump and generating staging files for your MariaDB Wikidata schema.
+`wikidata_dump_etl.py` is a production-oriented Python ETL script for streaming the official Wikidata JSON dump and generating NDJSON staging files for a MariaDB Wikidata schema.
 
 It implements:
 
-- `P31/P279*` classification for:
-  - movies
-  - series
-  - persons
+- `P31/P279*` classification for movies, series, and persons
 - property metadata extraction
 - staging-file generation for:
   - `T_WC_WIKIDATA_PROPERTY_METADATA`
@@ -25,7 +22,9 @@ It implements:
   - `T_WC_WIKIDATA_TIME_VALUE`
   - `T_WC_WIKIDATA_QUANTITY_VALUE`
 
-The script intentionally does **not** resolve Commons / Internet Archive / YouTube URLs. It only emits raw claims that can later feed your media-resolution workflow.
+The script does **not** resolve Commons / Internet Archive / YouTube URLs. It only emits raw claims that feed your media-resolution workflow.
+
+---
 
 ## Dependencies
 
@@ -33,23 +32,162 @@ The script intentionally does **not** resolve Commons / Internet Archive / YouTu
 pip install pysimdjson httpx
 ```
 
+---
+
+## Configuration — environment variables
+
+The script reads **all parameters from environment variables**. There are no command-line arguments.
+
+| Variable | Required | Description |
+|---|---|---|
+| `DUMP_URL` | see below | Remote `.bz2` Wikidata dump URL |
+| `DUMP_FILE` | see below | Local `.bz2` file path inside the container |
+| `PASS_NAME` | yes | ETL pass: `pass1`, `pass2`, or `item_cache` (set by `run_etl.sh`) |
+| `OUT_DIR` | no | Output directory (default: `/shared`; set by `run_etl.sh`) |
+| `CLASS_ROOTS_JSON` | pass2 | `class_roots.jsonl` produced by pass1 (set by `run_etl.sh`) |
+| `CORE_ENTITY_IDS` | pass2, item_cache | `core_entity_ids.txt` produced by pass1 (set by `run_etl.sh`) |
+| `CANDIDATE_PERSON_IDS` | pass2 | `candidate_person_ids.txt` produced by pass1 (set by `run_etl.sh`) |
+| `REFERENCED_ITEM_IDS` | item_cache | `referenced_item_ids.txt` produced by pass2 (set by `run_etl.sh`) |
+| `REFERENCED_PERSON_IDS` | item_cache | `referenced_person_ids.txt` produced by pass2 (set by `run_etl.sh`) |
+
+### DUMP_URL vs DUMP_FILE
+
+`DUMP_URL` and `DUMP_FILE` are **not related** — they are independent alternatives for supplying the dump. `DUMP_FILE` is never auto-created from `DUMP_URL` by the Python script itself.
+
+In both cases the `.bz2` is read **chunk by chunk** using a streaming `BZ2Decompressor`. The full decompressed dump is never stored on disk or held entirely in memory.
+
+| Combination in `.env` | Behaviour |
+|---|---|
+| `DUMP_URL` only | Dump is streamed from HTTP for each of the 3 passes. No local file is written. |
+| `DUMP_FILE` only | Local `.bz2` is read for each pass. File must already exist on the shared volume. |
+| `DUMP_URL` + `DUMP_FILE` | `run_etl.sh` downloads from `DUMP_URL` to `DUMP_FILE` if the file does not yet exist, then all 3 passes read from the local file. If the file already exists, `DUMP_URL` is ignored. |
+
+**Recommended setup for minimum bandwidth usage:** set both `DUMP_URL` and `DUMP_FILE`. The first run downloads the compressed file once; subsequent runs reuse it.
+
+Copy `.env.example` to `.env` and configure the combination that fits your setup.
+
+---
+
+## Running in Docker
+
+The script is designed to run inside the Docker container defined by `Dockerfile`.
+The host path `/home/debian/docker/shared_data` is mounted as `/shared` inside the container.
+
+### Normal full run (all three passes in sequence)
+
+The container's default command is `run_etl.sh`, which runs all three passes automatically:
+
+```bash
+./wikidata-crawler.sh
+```
+
+`run_etl.sh` manages the per-pass env vars internally. The only variable you need in `.env` is `DUMP_URL` (or `DUMP_FILE`). Intermediate files and final staging files are written to:
+
+```
+/shared/pass1/       → pass1 output
+/shared/pass2/       → pass2 output
+/shared/item_cache/  → item_cache output
+```
+
+Which map to the host at:
+
+```
+/home/debian/docker/shared_data/pass1/
+/home/debian/docker/shared_data/pass2/
+/home/debian/docker/shared_data/item_cache/
+```
+
+### Running a single pass manually
+
+Override `DUMP_URL` or any env var with `-e`:
+
+```bash
+docker run --rm --network=host \
+  --env-file .env \
+  -e PASS_NAME=pass1 \
+  -e OUT_DIR=/shared/pass1 \
+  -v /home/debian/docker/shared_data:/shared \
+  wikidata-crawler-python-app \
+  python /app/wikidata_dump_etl.py
+```
+
+To resume from pass2 without re-running pass1 (pass1 output already in `/shared/pass1`):
+
+```bash
+docker run --rm --network=host \
+  --env-file .env \
+  -e PASS_NAME=pass2 \
+  -e OUT_DIR=/shared/pass2 \
+  -e CLASS_ROOTS_JSON=/shared/pass1/class_roots.jsonl \
+  -e CORE_ENTITY_IDS=/shared/pass1/core_entity_ids.txt \
+  -e CANDIDATE_PERSON_IDS=/shared/pass1/candidate_person_ids.txt \
+  -v /home/debian/docker/shared_data:/shared \
+  wikidata-crawler-python-app \
+  python /app/wikidata_dump_etl.py
+```
+
+---
+
 ## Output format
 
-The script generates **NDJSON staging files**.
-
-Each output file name matches the target table name, for example:
+Each output file is **NDJSON** (one JSON object per line), named after its target table:
 
 - `T_WC_WIKIDATA_PROPERTY_METADATA.jsonl`
+- `T_WC_WIKIDATA_MOVIE.jsonl`
+- `T_WC_WIKIDATA_SERIE.jsonl`
+- `T_WC_WIKIDATA_PERSON.jsonl`
+- `T_WC_WIKIDATA_ITEM.jsonl`
 - `T_WC_WIKIDATA_STATEMENT.jsonl`
 - `T_WC_WIKIDATA_ITEM_VALUE.jsonl`
+- `T_WC_WIKIDATA_STRING_VALUE.jsonl`
+- `T_WC_WIKIDATA_EXTERNAL_ID_VALUE.jsonl`
+- `T_WC_WIKIDATA_MEDIA_VALUE.jsonl`
+- `T_WC_WIKIDATA_TIME_VALUE.jsonl`
+- `T_WC_WIKIDATA_QUANTITY_VALUE.jsonl`
 
-Additional helper files are also produced:
+Helper/intermediate files:
 
 - `subclass_edges.jsonl`
-- `class_roots.jsonl`
-- `core_entity_ids.txt`
-- `referenced_item_ids.txt`
+- `class_roots.jsonl` (pass1 output, pass2 input)
+- `core_entity_ids.txt` (pass1 output, pass2/item_cache input)
+- `candidate_person_ids.txt` (pass1 output, pass2 input)
+- `referenced_item_ids.txt` (pass2 output, item_cache input)
+- `referenced_person_ids.txt` (pass2 output, item_cache input)
 - `run_summary.json`
+
+---
+
+## Passes
+
+### Pass 1
+
+Streams the full dump once to:
+- emit `T_WC_WIKIDATA_PROPERTY_METADATA`
+- build the `P279` subclass graph
+- classify movies / series / persons using `P31/P279*`
+- produce `core_entity_ids.txt` (movies + series + persons with IMDb ID)
+- produce `candidate_person_ids.txt` (all Q5 instances, used in pass2 to identify persons referenced by movies/series)
+- produce `class_roots.jsonl` (subclass descendants of the root Q-ids)
+
+### Pass 2
+
+Streams the full dump a second time to:
+- emit entity rows for in-scope movies, series, and persons
+- emit statements and typed values for those entities
+- produce `referenced_item_ids.txt` (distinct items referenced via item-valued claims)
+- produce `referenced_person_ids.txt` (persons from `candidate_person_ids` that appear in movie/series statements — these go to `T_WC_WIKIDATA_PERSON`, not `T_WC_WIKIDATA_ITEM`)
+
+Requires pass1 outputs: `class_roots.jsonl`, `core_entity_ids.txt`, `candidate_person_ids.txt`.
+
+### Item-cache pass
+
+Streams the full dump a third time to:
+- emit `T_WC_WIKIDATA_ITEM` rows for items referenced from movie/series/person statements (but not themselves in scope)
+- emit additional `T_WC_WIKIDATA_PERSON` rows for rule-2 persons (persons referenced in movie/series statements who lack an IMDb ID but were cast/crew)
+
+Requires pass1 + pass2 outputs: `core_entity_ids.txt`, `referenced_item_ids.txt`, `referenced_person_ids.txt`.
+
+---
 
 ## Classification roots
 
@@ -62,56 +200,68 @@ Additional helper files are also produced:
 - `Q1259759` miniseries
 - `Q526877` web series
 
+Excluded from series classification:
+- `Q15416` television program (too broad)
+
 ### Persons
 - `Q5` human
 
-Excluded from series root usage:
-- `Q15416` television program
+Person filtering rules:
+1. **Core entities** (emitted in pass2): must have an IMDb ID (`P345`)
+2. **Referenced persons** (emitted in item_cache): persons found as item-valued claims in any movie or series statement — included even without IMDb ID
 
-## Passes
+---
 
-### Pass 1
-Builds:
-- property metadata staging
-- subclass edges
-- root descendant support data
-- `core_entity_ids.txt`
+## Loading staging files into MariaDB
 
-Example:
+After the ETL completes, load the NDJSON staging files into the `STG_*` staging tables, then run the bulk-load SQL.
 
-```bash
-python wikidata_dump_etl.py   --dump-url https://dumps.wikimedia.org/wikidatawiki/entities/latest-all.json.bz2   --out-dir /data/wikidata/staging/pass1   --pass-name pass1
+### Recommended workflow
+
+1. Run `01_create_schema.sql` (once, to create tables)
+2. Run `02_staging_and_triggers.sql` (once, to create staging tables)
+3. Run the ETL (`./wikidata-crawler.sh`) — produces NDJSON in `/shared/pass1`, `/shared/pass2`, `/shared/item_cache`
+4. Load NDJSON files into `STG_*` tables (see below)
+5. Run `03_bulk_load_from_staging_FULL.sql` to merge staging into final tables
+
+### How to load NDJSON into staging tables
+
+MariaDB does not natively import NDJSON. Use a Python loader script with `mysql.connector` (or `PyMySQL`):
+
+```python
+import json, mysql.connector
+
+conn = mysql.connector.connect(
+    host=os.environ["MARIADB_HOST"],
+    user=os.environ["MARIADB_USER"],
+    password=os.environ["MARIADB_PASSWORD"],
+    database=os.environ["MARIADB_DATABASE"],
+)
+cursor = conn.cursor()
+
+with open("/shared/pass2/T_WC_WIKIDATA_MOVIE.jsonl") as f:
+    rows = [json.loads(line) for line in f]
+
+# Build a parameterized INSERT for the STG_ table
+# columns = list(rows[0].keys())
+# cursor.executemany(f"INSERT INTO STG_MOVIE ({','.join(columns)}) VALUES ...", rows)
+conn.commit()
 ```
 
-### Pass 2
-Builds:
-- movie / serie / person staging
-- statement staging
-- typed value staging
-- `referenced_item_ids.txt`
-
-Example:
+Alternatively, convert NDJSON to CSV with `jq` and use `LOAD DATA LOCAL INFILE`:
 
 ```bash
-python wikidata_dump_etl.py   --dump-url https://dumps.wikimedia.org/wikidatawiki/entities/latest-all.json.bz2   --out-dir /data/wikidata/staging/pass2   --pass-name pass2   --class-roots-json /data/wikidata/staging/pass1/class_roots.jsonl   --core-entity-ids /data/wikidata/staging/pass1/core_entity_ids.txt
+jq -r '[.[]] | @csv' /shared/pass2/T_WC_WIKIDATA_MOVIE.jsonl > /tmp/movie.csv
+mysql --local-infile=1 -u ... -e "LOAD DATA LOCAL INFILE '/tmp/movie.csv' INTO TABLE STG_MOVIE ..."
 ```
 
-### Item-cache replay pass
-Builds:
-- `T_WC_WIKIDATA_ITEM.jsonl`
+Add `MARIADB_HOST`, `MARIADB_USER`, `MARIADB_PASSWORD`, `MARIADB_DATABASE`, and `MARIADB_IMPORT_BATCH_ID` to your `.env` file (see `.env.example`) so the loader script can read them from the environment.
 
-using only the distinct `ID_ITEM` values referenced in pass 2.
-
-Example:
-
-```bash
-python wikidata_dump_etl.py   --dump-url https://dumps.wikimedia.org/wikidatawiki/entities/latest-all.json.bz2   --out-dir /data/wikidata/staging/item_cache   --pass-name item_cache   --referenced-item-ids /data/wikidata/staging/pass2/referenced_item_ids.txt   --core-entity-ids /data/wikidata/staging/pass1/core_entity_ids.txt
-```
+---
 
 ## Notes
 
-- The script is designed for **limited disk space** and streams the `.bz2` dump.
-- It avoids storing the decompressed dump.
-- It uses a single reused `simdjson.Parser()` for speed.
-- It is best used with a downstream MariaDB bulk-load process.
-- It does not create SQL and does not load MariaDB directly.
+- The script streams the `.bz2` dump without writing the decompressed content to disk.
+- A single reused `simdjson.Parser()` is used throughout for performance.
+- `T_WC_WIKIDATA_ITEM` is a referenced-item cache only — it does not mirror all Wikidata items.
+- No FK is assumed from `ITEM_VALUE.ID_ITEM` to `T_WC_WIKIDATA_ITEM`.

@@ -5,4 +5,6 @@ COPY requirements.txt /app/
 # RUN pip uninstall spacy
 RUN pip install --upgrade pip && pip install -r requirements.txt
 COPY . /app/
-CMD ["/bin/bash", "./run_etl.sh"]
+# Full 3-pass run via shell script (pass1 → pass2 → item_cache):
+# CMD ["/bin/bash", "./run_etl.sh"]
+CMD ["python", "wikidata_dump_etl.py"]

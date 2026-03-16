@@ -37,11 +37,16 @@ import sys
 import time
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Generator, Iterable, Optional, Set, Tuple
 
 import httpx
 import simdjson
+
+# Prefix for all server variable names written to MariaDB SERVER_VARIABLE table.
+# Mirrors the pattern used by citizenphil.f_setservervariable in sparql-crawler.py.
+_SV_PREFIX = "strwikidatacrawler"
 
 MOVIE_ROOTS = {"Q11424", "Q506240"}  # film, television film
 SERIES_ROOTS = {"Q5398426", "Q1259759", "Q526877"}  # television series, miniseries, web series
@@ -118,6 +123,96 @@ class WriterRegistry:
             writer.close()
 
 
+class ServerVariableWriter:
+    """
+    Optional MariaDB writer for live ETL progress variables.
+    Mirrors citizenphil.f_setservervariable / f_getservervariable.
+    Silently disabled when MARIADB_HOST is not set or connection fails.
+    """
+
+    def __init__(self) -> None:
+        self._conn: Any = None
+        self._table: str = ""
+        self._enabled: bool = False
+        try:
+            import pymysql
+            import pymysql.cursors as _cursors  # type: ignore[import]
+            host = os.environ.get("MARIADB_HOST", "")
+            if not host:
+                print("[DB] MARIADB_HOST not set — server variable tracking disabled", file=sys.stderr, flush=True)
+                return
+            port = int(os.environ.get("MARIADB_PORT", "3306"))
+            prefix = os.environ.get("MARIADB_TABLE_PREFIX", "")
+            self._table = f"{prefix}SERVER_VARIABLE"
+            self._conn = pymysql.connect(
+                host=host,
+                port=port,
+                user=os.environ.get("MARIADB_USER", ""),
+                password=os.environ.get("MARIADB_PASSWORD", ""),
+                database=os.environ.get("MARIADB_DATABASE", ""),
+                cursorclass=_cursors.DictCursor,
+                autocommit=True,
+            )
+            self._enabled = True
+            print(f"[DB] Connected — server variable table: {self._table}", file=sys.stderr, flush=True)
+        except Exception as exc:
+            print(f"[DB] Server variable tracking disabled: {exc}", file=sys.stderr, flush=True)
+
+    @property
+    def enabled(self) -> bool:
+        return self._enabled
+
+    def get(self, name: str) -> str:
+        if not self._enabled:
+            return ""
+        try:
+            with self._conn.cursor() as cursor:
+                cursor.execute(
+                    f"SELECT VAR_VALUE FROM {self._table} WHERE DELETED=0 AND VAR_NAME=%s",
+                    (name,),
+                )
+                row = cursor.fetchone()
+                return row["VAR_VALUE"] if row else ""
+        except Exception as exc:
+            print(f"[DB] Error reading {name}: {exc}", file=sys.stderr, flush=True)
+            return ""
+
+    def set(self, name: str, value: Any, description: str = "") -> None:
+        """Mirror of citizenphil.f_setservervariable — upserts a row in SERVER_VARIABLE."""
+        if not self._enabled:
+            return
+        try:
+            str_value = "" if value is None else str(value)
+            with self._conn.cursor() as cursor:
+                cursor.execute(
+                    f"SELECT VAR_NAME FROM {self._table} WHERE DELETED=0 AND VAR_NAME=%s",
+                    (name,),
+                )
+                if cursor.fetchone():
+                    cursor.execute(
+                        f"UPDATE {self._table} SET VAR_VALUE=%s, LONG_DESC=%s"
+                        f" WHERE DELETED=0 AND VAR_NAME=%s",
+                        (str_value, description, name),
+                    )
+                else:
+                    cursor.execute(
+                        f"INSERT INTO {self._table}"
+                        f" (VAR_NAME, VAR_VALUE, DESCRIPTION, LONG_DESC, ID_LANG, DELETED)"
+                        f" VALUES (%s, %s, %s, %s, 0, 0)",
+                        (name, str_value, name, description),
+                    )
+        except Exception as exc:
+            print(f"[DB] Error setting {name}: {exc}", file=sys.stderr, flush=True)
+
+    def close(self) -> None:
+        self._enabled = False
+        if self._conn:
+            try:
+                self._conn.close()
+            except Exception:
+                pass
+
+
 def write_id_set(path: Path, values: Iterable[str]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8") as fh:
@@ -150,74 +245,112 @@ def normalize_wikidata_entity_line(raw_line: bytes) -> Optional[bytes]:
     return line or None
 
 
-def iter_bz2_lines_from_http(url: str, chunk_size: int = 8 * 1024 * 1024) -> Generator[bytes, None, None]:
-    decompressor = bz2.BZ2Decompressor()
-    buffered = bytearray()
+def iter_bz2_lines_from_http(
+    url: str,
+    chunk_size: int = 8 * 1024 * 1024,
+    max_retries: int = 20,
+) -> Generator[bytes, None, None]:
+    """Stream-decompress a remote .bz2 file line by line with automatic retry.
 
+    On connection drop, reconnects from byte 0 and skips already-yielded lines,
+    so the caller receives a seamless uninterrupted stream.
+    Wikimedia servers frequently drop large downloads mid-stream.
+    """
     user_agent = os.environ.get("WIKIMEDIA_USER_AGENT", "python-httpx")
-    print(f"[HTTP] Connecting to {url}", file=sys.stderr, flush=True)
-    print(f"[HTTP] User-Agent: {user_agent}", file=sys.stderr, flush=True)
+    headers = {"User-Agent": user_agent}
+    # No read timeout: Wikimedia can be very slow; individual chunk reads may
+    # take minutes.  Connect timeout is kept short to fail fast on bad address.
+    timeout = httpx.Timeout(connect=30.0, read=None, write=None, pool=30.0)
 
-    try:
-        with httpx.stream("GET", url, timeout=120.0, follow_redirects=True, headers={"User-Agent": user_agent}) as response:
-            print(f"[HTTP] Connected — status {response.status_code}", file=sys.stderr, flush=True)
-            response.raise_for_status()
+    lines_emitted = 0  # total lines yielded to caller across all attempts
 
-            chunks_received = 0
-            total_compressed = 0
-            total_decompressed = 0
-            lines_yielded = 0
+    for attempt in range(max_retries + 1):
+        if attempt > 0:
+            wait = min(120, 10 * (2 ** (attempt - 1)))
+            print(
+                f"[HTTP] Retry {attempt}/{max_retries} in {wait}s "
+                f"(will skip first {lines_emitted:,} already-processed lines)...",
+                file=sys.stderr, flush=True,
+            )
+            time.sleep(wait)
 
-            for compressed_chunk in response.iter_bytes(chunk_size=chunk_size):
-                if not compressed_chunk:
-                    continue
+        print(f"[HTTP] Connecting to {url} (attempt {attempt + 1})", file=sys.stderr, flush=True)
+        if attempt == 0:
+            print(f"[HTTP] User-Agent: {user_agent}", file=sys.stderr, flush=True)
 
-                chunks_received += 1
-                total_compressed += len(compressed_chunk)
+        decompressor = bz2.BZ2Decompressor()
+        buffered = bytearray()
+        chunks_received = 0
+        total_compressed = 0
+        total_decompressed = 0
+        lines_this_attempt = 0
 
-                try:
-                    data = decompressor.decompress(compressed_chunk)
-                except Exception as exc:
-                    print(f"[HTTP] bz2 decompression error on chunk {chunks_received}: {exc}", file=sys.stderr, flush=True)
-                    raise
+        try:
+            with httpx.stream("GET", url, timeout=timeout, follow_redirects=True, headers=headers) as response:
+                print(f"[HTTP] Connected — status {response.status_code}", file=sys.stderr, flush=True)
+                response.raise_for_status()
 
-                if not data:
-                    print(f"[HTTP] chunk {chunks_received}: {len(compressed_chunk):,} compressed bytes → 0 decompressed (bz2 header/padding)", file=sys.stderr, flush=True)
-                    continue
+                for compressed_chunk in response.iter_bytes(chunk_size=chunk_size):
+                    if not compressed_chunk:
+                        continue
 
-                total_decompressed += len(data)
-                if chunks_received % 10 == 0 or chunks_received <= 3:
-                    print(
-                        f"[HTTP] chunk {chunks_received}: "
-                        f"compressed={total_compressed/1024/1024:.1f} MB  "
-                        f"decompressed={total_decompressed/1024/1024:.1f} MB  "
-                        f"lines={lines_yielded:,}",
-                        file=sys.stderr, flush=True,
-                    )
+                    chunks_received += 1
+                    total_compressed += len(compressed_chunk)
 
-                buffered.extend(data)
-                start = 0
-                while True:
-                    nl = buffered.find(b"\n", start)
-                    if nl == -1:
-                        if start > 0:
-                            del buffered[:start]
-                        break
-                    lines_yielded += 1
-                    yield bytes(buffered[start:nl + 1])
-                    start = nl + 1
+                    try:
+                        data = decompressor.decompress(compressed_chunk)
+                    except Exception as exc:
+                        print(f"[HTTP] bz2 decompression error on chunk {chunks_received}: {exc}", file=sys.stderr, flush=True)
+                        raise
 
-            if buffered:
+                    if not data:
+                        continue
+
+                    total_decompressed += len(data)
+                    if chunks_received % 10 == 0 or chunks_received <= 3:
+                        print(
+                            f"[HTTP] chunk {chunks_received}: "
+                            f"compressed={total_compressed/1024/1024:.1f} MB  "
+                            f"decompressed={total_decompressed/1024/1024:.1f} MB  "
+                            f"lines={lines_emitted:,}",
+                            file=sys.stderr, flush=True,
+                        )
+
+                    buffered.extend(data)
+                    start = 0
+                    while True:
+                        nl = buffered.find(b"\n", start)
+                        if nl == -1:
+                            if start > 0:
+                                del buffered[:start]
+                            break
+                        lines_this_attempt += 1
+                        line = bytes(buffered[start:nl + 1])
+                        start = nl + 1
+                        if lines_this_attempt <= lines_emitted:
+                            continue  # skip lines already sent to caller
+                        yield line
+                        lines_emitted += 1
+
+            if buffered and lines_this_attempt >= lines_emitted:
                 yield bytes(buffered)
 
-            print(f"[HTTP] Stream complete — {chunks_received} chunks, {total_compressed/1024/1024:.1f} MB compressed, {lines_yielded:,} lines", file=sys.stderr, flush=True)
+            print(
+                f"[HTTP] Stream complete — {chunks_received} chunks, "
+                f"{total_compressed/1024/1024:.1f} MB compressed, {lines_emitted:,} lines",
+                file=sys.stderr, flush=True,
+            )
+            return  # success — stop retrying
 
-    except httpx.HTTPStatusError as exc:
-        print(f"[HTTP] HTTP error: {exc.response.status_code} — {exc}", file=sys.stderr, flush=True)
-        raise
-    except httpx.RequestError as exc:
-        print(f"[HTTP] Connection error: {exc}", file=sys.stderr, flush=True)
-        raise
+        except httpx.HTTPStatusError as exc:
+            print(f"[HTTP] HTTP error: {exc.response.status_code} — {exc}", file=sys.stderr, flush=True)
+            raise  # 4xx/5xx: retrying won't help
+
+        except Exception as exc:
+            if attempt >= max_retries:
+                print(f"[HTTP] Connection error (giving up after {max_retries} retries): {exc}", file=sys.stderr, flush=True)
+                raise
+            print(f"[HTTP] Connection error (attempt {attempt + 1}/{max_retries + 1}): {exc}", file=sys.stderr, flush=True)
 
 
 def iter_bz2_lines_from_file(path: Path, chunk_size: int = 8 * 1024 * 1024) -> Generator[bytes, None, None]:
@@ -602,6 +735,7 @@ class WikidataDumpETL:
 
         self.stats = Stats()
         self.writers = WriterRegistry(out_dir)
+        self._server_vars = ServerVariableWriter()
         self.subclass_graph = SubclassGraph()
         self.statement_emitter = StatementEmitter(self.writers, self.stats)
 
@@ -670,6 +804,7 @@ class WikidataDumpETL:
         # to plain Python dicts/lists immediately, avoiding the lifetime issue.
 
         print(f"[ETL] Starting pass={self.pass_name} out_dir={self.out_dir}", file=sys.stderr, flush=True)
+        self._sv_start()
         first_entity_logged = False
 
         for raw_line in self.iter_lines():
@@ -726,6 +861,7 @@ class WikidataDumpETL:
                     file=sys.stderr,
                     flush=True,
                 )
+                self._sv_progress(elapsed, rate)
 
         if self.pass_name == "pass1":
             self.movie_descendants = self.subclass_graph.descendants_of_roots(MOVIE_ROOTS)
@@ -742,6 +878,8 @@ class WikidataDumpETL:
             write_id_set(self.out_dir / "referenced_person_ids.txt", self.referenced_person_ids)
 
         self.writers.close()
+        self._sv_end(self.stats.elapsed())
+        self._server_vars.close()
         self._write_summary()
 
     def _write_summary(self) -> None:
@@ -763,6 +901,97 @@ class WikidataDumpETL:
         }
         (self.out_dir / "run_summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
         print(json.dumps(summary, indent=2))
+
+    @staticmethod
+    def _fmt_elapsed(seconds: float) -> str:
+        h, rem = divmod(int(seconds), 3600)
+        m, s = divmod(rem, 60)
+        return f"{h}h {m:02d}m {s:02d}s" if h else f"{m}m {s:02d}s"
+
+    def _sv_start(self) -> None:
+        db = self._server_vars
+        if not db.enabled:
+            return
+        # Preserve previous run's end time and runtime before overwriting
+        db.set(f"{_SV_PREFIX}enddatetimeprevious", db.get(f"{_SV_PREFIX}enddatetime"),
+               "End datetime of the previous Wikidata dump ETL run")
+        db.set(f"{_SV_PREFIX}totalruntimeprevious", db.get(f"{_SV_PREFIX}totalruntime"),
+               "Total runtime of the previous Wikidata dump ETL run")
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+        db.set(f"{_SV_PREFIX}startdatetime", now,
+               "Date and time of the last start of the Wikidata dump ETL")
+        db.set(f"{_SV_PREFIX}enddatetime", "",
+               "Date and time of the last end of the Wikidata dump ETL")
+        db.set(f"{_SV_PREFIX}totalruntime", "",
+               "Total runtime of the last Wikidata dump ETL run")
+        db.set(f"{_SV_PREFIX}currentpass", self.pass_name,
+               "Current pass of the Wikidata dump ETL (pass1 / pass2 / item_cache)")
+        db.set(f"{_SV_PREFIX}entitiesprocessed", "0",
+               "Entities processed so far in the current pass")
+        db.set(f"{_SV_PREFIX}itemsprocessed", "0",
+               "Items processed so far in the current pass")
+        db.set(f"{_SV_PREFIX}propertiesprocessed", "0",
+               "Properties processed so far in the current pass")
+        db.set(f"{_SV_PREFIX}moviesdetected", "0",
+               "Movies detected so far in the current pass")
+        db.set(f"{_SV_PREFIX}seriesdetected", "0",
+               "Series detected so far in the current pass")
+        db.set(f"{_SV_PREFIX}personsdetected", "0",
+               "Persons detected so far in the current pass")
+        db.set(f"{_SV_PREFIX}statementsemitted", "0",
+               "Statements emitted so far in the current pass")
+        db.set(f"{_SV_PREFIX}valuerowsemitted", "0",
+               "Value rows emitted so far in the current pass")
+        db.set(f"{_SV_PREFIX}parseerrors", "0",
+               "Parse errors encountered so far in the current pass")
+        db.set(f"{_SV_PREFIX}rate", "",
+               "Processing speed of the Wikidata dump ETL (entities/s)")
+        db.set(f"{_SV_PREFIX}elapsed", "",
+               "Elapsed time of the current Wikidata dump ETL pass")
+
+    def _sv_progress(self, elapsed: float, rate: float) -> None:
+        db = self._server_vars
+        if not db.enabled:
+            return
+        s = self.stats
+        db.set(f"{_SV_PREFIX}entitiesprocessed", f"{s.entities_seen:,}",
+               "Entities processed so far in the current pass")
+        db.set(f"{_SV_PREFIX}itemsprocessed", f"{s.items_seen:,}",
+               "Items processed so far in the current pass")
+        db.set(f"{_SV_PREFIX}propertiesprocessed", f"{s.properties_seen:,}",
+               "Properties processed so far in the current pass")
+        db.set(f"{_SV_PREFIX}moviesdetected", f"{s.movies_detected:,}",
+               "Movies detected so far in the current pass")
+        db.set(f"{_SV_PREFIX}seriesdetected", f"{s.series_detected:,}",
+               "Series detected so far in the current pass")
+        db.set(f"{_SV_PREFIX}personsdetected", f"{s.persons_detected:,}",
+               "Persons detected so far in the current pass")
+        db.set(f"{_SV_PREFIX}statementsemitted", f"{s.statements_emitted:,}",
+               "Statements emitted so far in the current pass")
+        db.set(f"{_SV_PREFIX}valuerowsemitted", f"{s.value_rows_emitted:,}",
+               "Value rows emitted so far in the current pass")
+        db.set(f"{_SV_PREFIX}parseerrors", f"{s.parse_errors:,}",
+               "Parse errors encountered so far in the current pass")
+        db.set(f"{_SV_PREFIX}rate", f"{rate:,.0f} entities/s",
+               "Processing speed of the Wikidata dump ETL (entities/s)")
+        db.set(f"{_SV_PREFIX}elapsed", self._fmt_elapsed(elapsed),
+               "Elapsed time of the current Wikidata dump ETL pass")
+
+    def _sv_end(self, elapsed: float) -> None:
+        db = self._server_vars
+        if not db.enabled:
+            return
+        rate = self.stats.entities_seen / elapsed if elapsed > 0 else 0.0
+        self._sv_progress(elapsed, rate)
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+        db.set(f"{_SV_PREFIX}enddatetime", now,
+               "Date and time of the last end of the Wikidata dump ETL")
+        db.set(f"{_SV_PREFIX}totalruntime", self._fmt_elapsed(elapsed),
+               "Total runtime of the last Wikidata dump ETL run")
+        db.set(f"{_SV_PREFIX}totalruntimeseconds", str(int(elapsed)),
+               "Total runtime in seconds of the last Wikidata dump ETL run")
+        db.set(f"{_SV_PREFIX}currentpass", "",
+               "Current pass of the Wikidata dump ETL (cleared when complete)")
 
     def process_property(self, doc: Any, entity_id: str) -> None:
         datatype = doc.get("datatype")

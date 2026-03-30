@@ -18,7 +18,12 @@ Goals:
   - YouTube
 - Keep the system scalable and production‑grade
 
-This document contains **no SQL**. It focuses on schema design and responsibilities.
+This document contains **no SQL** and is not the operational ETL runbook. It focuses on schema design, table responsibilities, and the separation between raw Wikidata claims and downstream derived resources.
+
+For operational steps, use:
+
+- `wikidata_dump_etl_README.md` for ETL execution, pass sequencing, staging-load workflow, and Docker commands
+- `README.md` for the top-level documentation map
 
 ---
 

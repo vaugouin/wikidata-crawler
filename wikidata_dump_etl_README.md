@@ -226,36 +226,48 @@ After the ETL completes, load the NDJSON staging files into the `STG_*` staging 
 
 ### How to load NDJSON into staging tables
 
-MariaDB does not natively import NDJSON. Use a Python loader script with `mysql.connector` (or `PyMySQL`):
+MariaDB does not natively import NDJSON. Use `load_staging_jsonl.py`, which reads the ETL `.jsonl` files and batch-inserts them into the matching `STG_*` tables with `PyMySQL`.
 
-```python
-import json, mysql.connector
+The loader reads connection settings from `.env`:
 
-conn = mysql.connector.connect(
-    host=os.environ["MARIADB_HOST"],
-    user=os.environ["MARIADB_USER"],
-    password=os.environ["MARIADB_PASSWORD"],
-    database=os.environ["MARIADB_DATABASE"],
-)
-cursor = conn.cursor()
+- `MARIADB_HOST`
+- `MARIADB_PORT`
+- `MARIADB_USER`
+- `MARIADB_PASSWORD`
+- `MARIADB_DATABASE`
+- `MARIADB_IMPORT_BATCH_ID`
 
-with open("/shared/pass2/T_WC_WIKIDATA_MOVIE.jsonl") as f:
-    rows = [json.loads(line) for line in f]
-
-# Build a parameterized INSERT for the STG_ table
-# columns = list(rows[0].keys())
-# cursor.executemany(f"INSERT INTO STG_MOVIE ({','.join(columns)}) VALUES ...", rows)
-conn.commit()
-```
-
-Alternatively, convert NDJSON to CSV with `jq` and use `LOAD DATA LOCAL INFILE`:
+Run it after ETL completes:
 
 ```bash
-jq -r '[.[]] | @csv' /shared/pass2/T_WC_WIKIDATA_MOVIE.jsonl > /tmp/movie.csv
-mysql --local-infile=1 -u ... -e "LOAD DATA LOCAL INFILE '/tmp/movie.csv' INTO TABLE STG_MOVIE ..."
+python load_staging_jsonl.py --shared-dir /shared --skip-missing
 ```
 
-Add `MARIADB_HOST`, `MARIADB_USER`, `MARIADB_PASSWORD`, `MARIADB_DATABASE`, and `MARIADB_IMPORT_BATCH_ID` to your `.env` file (see `.env.example`) so the loader script can read them from the environment.
+What the script does:
+
+- loads files from `/shared/pass1`, `/shared/pass2`, and `/shared/item_cache`
+- maps each `T_WC_WIKIDATA_*.jsonl` file to its matching `STG_T_WC_WIKIDATA_*` table
+- adds staging metadata columns such as `IMPORT_BATCH_ID`, `SOURCE_FILE`, and `ROW_STATUS` where applicable
+- inserts rows in batches of `100`
+
+Notes about identical filenames across pass folders:
+
+- Some ETL files can appear in more than one folder because multiple passes stream the full dump and may emit the same table-shaped output name.
+- This does not always mean the files are duplicates in purpose. For example, `T_WC_WIKIDATA_PERSON.jsonl` from `pass2` contains core persons, while `T_WC_WIKIDATA_PERSON.jsonl` from `item_cache` contains additional referenced persons that were not part of the core pass.
+- The loader handles this explicitly through per-table specs. It can load the same target staging table from multiple source folders when that is intentional, such as `STG_T_WC_WIKIDATA_PERSON` from both `pass2` and `item_cache`.
+- For `T_WC_WIKIDATA_PROPERTY_METADATA.jsonl`, the loader currently uses only the `pass1` copy and ignores copies from `pass2` and `item_cache`.
+- `SOURCE_FILE` is populated where the staging table supports it so you can trace which folder a loaded row came from.
+
+Examples:
+
+```bash
+python load_staging_jsonl.py --shared-dir /shared
+python load_staging_jsonl.py --shared-dir /shared --skip-missing
+python load_staging_jsonl.py --shared-dir /shared --only-table STG_T_WC_WIKIDATA_MOVIE
+python load_staging_jsonl.py --shared-dir /shared --only-table STG_T_WC_WIKIDATA_STATEMENT --only-table STG_T_WC_WIKIDATA_ITEM_VALUE
+```
+
+If you run the loader inside Docker with the existing volume mapping, `/shared` corresponds to `/home/debian/docker/shared_data` on the host.
 
 ---
 

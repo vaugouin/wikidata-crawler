@@ -2332,9 +2332,10 @@ def f_tmdbseriekeywordstosql(lngserieid):
         intencore = True
         intattemptsremaining = 5
         intsuccess = False
+        response = None
         while intencore:
             try:
-                response = requests.get(strtmdbapifullurl, headers=headers)
+                response = requests.get(strtmdbapifullurl, headers=headers, timeout=30)
                 intencore = False
                 intsuccess = True
             except requests.exceptions.HTTPError as http_err:
@@ -2349,14 +2350,14 @@ def f_tmdbseriekeywordstosql(lngserieid):
                 print(f'An error occurred: {err}')  # Handle any other exceptions
             if intencore:
                 intattemptsremaining = intattemptsremaining - 1
-                if intattemptsremaining >= 0:
+                if intattemptsremaining > 0:
                     time.sleep(1)  # Wait for 1 second before next request
                 else:
                     intencore = False
         if not intsuccess:
-            print(f"f_tmdbseriekeywordstosql({lngkeywordid}) failed!")
+            print(f"f_tmdbseriekeywordstosql({lngserieid}) failed!")
         else:
-            response = requests.get(strtmdbapifullurl, headers=headers)
+            # Reuse the successful response from the retry loop (avoid a second unguarded request)
             strapiseriekeywords = response.text
             jsonseriekeywords = response.json()
             lngseriekeywordsstatuscode = 0

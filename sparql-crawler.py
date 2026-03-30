@@ -35,7 +35,7 @@ try:
             strtotalruntimedesc = "Total runtime of the Wikidata SPARQL crawler"
             strtotalruntimeprevious = cp.f_getservervariable("strsparqlcrawlertotalruntime",0)
             cp.f_setservervariable("strsparqlcrawlertotalruntimeprevious",strtotalruntimeprevious,strtotalruntimedesc + " (previous execution)",0)
-            strtotalruntime = ""
+            strtotalruntime = "RUNNING"
             cp.f_setservervariable("strsparqlcrawlertotalruntime",strtotalruntime,strtotalruntimedesc,0)
 
             # Retrieving instance of values for persons (humans) used in Wikidata Sparql queries

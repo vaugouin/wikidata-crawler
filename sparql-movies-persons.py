@@ -753,7 +753,7 @@ try:
             strtotalruntimedesc = "Total runtime of the Wikidata SPARQL crawler for movies, series and persons"
             strtotalruntimeprevious = cp.f_getservervariable("strsparqlaltcrawlermoviespersonstotalruntime",0)
             cp.f_setservervariable("strsparqlaltcrawlertotalruntimeprevious",strtotalruntimeprevious,strtotalruntimedesc + " (previous execution)",0)
-            strtotalruntime = ""
+            strtotalruntime = "RUNNING"
             cp.f_setservervariable("strsparqlaltcrawlertotalruntime",strtotalruntime,strtotalruntimedesc,0)
             # Request Homer
             #f_sparqlpersonscrawl("Q6691",0)

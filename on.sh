@@ -1,2 +1,2 @@
-mv wikidata-crawler-old.sh wikidata-crawler.sh 
+mv wikidata-crawler-off.sh wikidata-crawler.sh 
 

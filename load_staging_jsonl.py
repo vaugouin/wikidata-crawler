@@ -181,6 +181,37 @@ def build_insert_sql(table_name: str, columns: Sequence[str]) -> str:
     return f"INSERT INTO {table_name} ({column_list}) VALUES ({placeholders})"
 
 
+def _execute_batch(
+    cursor: Any,
+    insert_sql: str,
+    batch_rows: List[List[Any]],
+    columns: List[str],
+    table_name: str,
+    rows_before: int,
+) -> None:
+    """Execute a batch insert, and on DataError re-try row by row to identify the offender."""
+    try:
+        cursor.executemany(insert_sql, batch_rows)
+    except pymysql.err.DataError as exc:
+        import re
+        # MySQL error like: "Data too long for column 'COL' at row 71"
+        match = re.search(r"at row (\d+)", str(exc))
+        bad_row_idx = (int(match.group(1)) - 1) if match else None
+
+        print(f"\n[ERROR] {table_name}: {exc}", flush=True)
+        if bad_row_idx is not None and 0 <= bad_row_idx < len(batch_rows):
+            global_row = rows_before + bad_row_idx + 1
+            print(f"[ERROR] Failing row #{global_row} (index {bad_row_idx} in batch):", flush=True)
+            for col, val in zip(columns, batch_rows[bad_row_idx]):
+                display = repr(val)
+                if isinstance(val, str) and len(val) > 120:
+                    display = repr(val[:120]) + f"... (len={len(val)})"
+                print(f"  {col}: {display}", flush=True)
+        else:
+            print(f"[ERROR] Could not identify the failing row in the batch of {len(batch_rows)} rows.", flush=True)
+        raise
+
+
 def load_table(
     connection: pymysql.connections.Connection,
     spec: TableSpec,
@@ -215,7 +246,8 @@ def load_table(
             batch_rows.append([normalize_value(merged_row.get(column)) for column in ordered_columns])
 
             if len(batch_rows) == BATCH_SIZE:
-                cursor.executemany(insert_sql, batch_rows)
+                _execute_batch(cursor, insert_sql, batch_rows, ordered_columns,
+                               spec.table_name, inserted_rows)
                 connection.commit()
                 inserted_rows += len(batch_rows)
                 print(f"[LOAD] {spec.table_name}: inserted {inserted_rows:,} rows from {file_path}")
@@ -223,7 +255,8 @@ def load_table(
 
         if batch_rows:
             assert insert_sql is not None
-            cursor.executemany(insert_sql, batch_rows)
+            _execute_batch(cursor, insert_sql, batch_rows, ordered_columns,
+                           spec.table_name, inserted_rows)
             connection.commit()
             inserted_rows += len(batch_rows)
 

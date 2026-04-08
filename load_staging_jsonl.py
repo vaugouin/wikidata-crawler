@@ -234,7 +234,7 @@ def load_table(
 
     with connection.cursor() as cursor:
         for row in iter_jsonl_rows(file_path):
-            merged_row = {**additional_columns, **row}
+            merged_row = {**row, **additional_columns}
 
             if ordered_columns is None:
                 ordered_columns = list(merged_row.keys())

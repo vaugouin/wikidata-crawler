@@ -7,4 +7,6 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 COPY . /app/
 # Full 3-pass run via shell script (pass1 → pass2 → item_cache):
 # CMD ["/bin/bash", "./run_etl.sh"]
-CMD ["python", "wikidata_dump_etl.py"]
+#CMD ["python", "wikidata_dump_etl.py"]
+ENTRYPOINT ["python", "wikidata_crawler.py"]
+CMD []

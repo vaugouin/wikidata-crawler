@@ -73,6 +73,35 @@ Copy `.env.example` to `.env` and configure the combination that fits your setup
 The script is designed to run inside the Docker container defined by `Dockerfile`.
 The host path `/home/debian/docker/shared_data` is mounted as `/shared` inside the container.
 
+### Full automation with `wikidata_crawler.py`
+
+If you want the full end-to-end process in one Python entry point, use `wikidata_crawler.py`.
+
+It automates:
+
+- dump source resolution (`DUMP_FILE` and/or `DUMP_URL`)
+- ETL `pass1`
+- ETL `pass2`
+- ETL `item_cache`
+- validation after each pass
+- loading `.jsonl` files into `STG_*` with `load_staging_jsonl.py` logic
+- staging validation
+- running `03_bulk_load_from_staging_FULL.sql`
+- final target-table validation
+- progress/status updates through `citizenphil.f_setservervariable()`
+
+Run it with the same `.env` file used for the ETL and loader:
+
+```bash
+python wikidata_crawler.py
+```
+
+This is the recommended entry point when you want to avoid the previous manual sequence of:
+
+1. running `run_etl.sh`
+2. running `load_staging_jsonl.py`
+3. running `03_bulk_load_from_staging_FULL.sql`
+
 ### Normal full run (all three passes in sequence)
 
 The container's default command is `run_etl.sh`, which runs all three passes automatically:

@@ -160,6 +160,7 @@ And cannot store:
 
 - Statement rank
 - Datatype metadata
+- Statement qualifiers
 - Media resolution metadata
 - URL variants
 - Validation status
@@ -168,9 +169,9 @@ This leads to poor extensibility.
 
 ---
 
-# New Architecture: Statement + Typed Values
+# New Architecture: Statement + Typed Values + Qualifiers
 
-The recommended architecture introduces two layers.
+The recommended architecture introduces three layers.
 
 ## Level 1 – Statement Layer
 
@@ -184,7 +185,7 @@ Each row represents a **single Wikidata statement**.
 
 It contains metadata common to all statements.
 
-## Level 2 – Value Layer
+## Level 2 – Main Value Layer
 
 Typed child tables store the actual value depending on datatype.
 
@@ -201,12 +202,31 @@ T_WC_WIKIDATA_QUANTITY_VALUE
 
 Each statement must have exactly one row in one of these tables.
 
+## Level 3 – Qualifier Layer
+
+Qualifiers attached to a statement are stored in a parallel parent/typed-value structure.
+
+Tables:
+
+```
+T_WC_WIKIDATA_STATEMENT_QUALIFIER
+T_WC_WIKIDATA_QUALIFIER_ITEM_VALUE
+T_WC_WIKIDATA_QUALIFIER_STRING_VALUE
+T_WC_WIKIDATA_QUALIFIER_EXTERNAL_ID_VALUE
+T_WC_WIKIDATA_QUALIFIER_MEDIA_VALUE
+T_WC_WIKIDATA_QUALIFIER_TIME_VALUE
+T_WC_WIKIDATA_QUALIFIER_QUANTITY_VALUE
+```
+
+Each qualifier belongs to exactly one statement and must have exactly one row in one qualifier typed value table.
+
 This separation improves:
 
 - data integrity
 - datatype validation
 - extensibility
 - clarity of the schema
+- support for award/work/date style modeling
 
 ---
 
@@ -215,6 +235,10 @@ This separation improves:
 ## Rule 1 — One statement → one value table
 
 Each statement must have exactly one value row in exactly one typed value table.
+
+## Rule 1B — One qualifier → one qualifier value table
+
+Each qualifier must have exactly one value row in exactly one qualifier typed value table.
 
 ## Rule 2 — Parent declares datatype
 
@@ -237,7 +261,7 @@ quantity
 
 ## Rule 3 — Raw claims vs resolved resources
 
-Typed value tables store **raw Wikidata claim values only**.
+Typed value tables and qualifier typed value tables store **raw Wikidata claim values only**.
 
 Resolved assets such as:
 
@@ -257,6 +281,22 @@ ID_WIKIDATA
 ```
 
 Local business tables remain useful but do not replace the generic claims layer.
+
+## Rule 4B — Qualifiers are anchored on statements
+
+Qualifier rows are anchored on:
+
+```
+ID_STATEMENT
+```
+
+This preserves the original Wikidata structure:
+
+- subject entity
+- property
+- main value
+- qualifier property
+- qualifier value
 
 ## Rule 5 — Use controlled vocabularies
 
@@ -316,6 +356,40 @@ Important conceptual fields:
 - DAT_CREAT
 - TIM_UPDATED
 - IMPORT_BATCH_ID
+
+---
+
+# Qualifier Table
+
+## T_WC_WIKIDATA_STATEMENT_QUALIFIER
+
+Represents a Wikidata qualifier snak attached to a parent statement.
+
+Important conceptual fields:
+
+### Identity
+
+- ID_STATEMENT_QUALIFIER
+- ID_STATEMENT
+- ID_QUALIFIER_PROPERTY
+
+### Typing
+
+- VALUE_TYPE
+- WIKIDATA_DATATYPE
+
+### Qualifier semantics
+
+- DISPLAY_ORDER
+
+### Lifecycle
+
+- DELETED
+- DAT_CREAT
+- TIM_UPDATED
+- IMPORT_BATCH_ID
+
+The qualifier table mirrors the statement table, but its parent is a statement rather than an entity.
 
 ---
 
@@ -459,6 +533,54 @@ Example mapping:
 | quantity | quantity |
 
 This table allows automatic routing of claims to the correct value table.
+
+---
+
+# Qualifier Typed Value Tables
+
+The qualifier typed value tables mirror the main typed value tables, but use `ID_STATEMENT_QUALIFIER` as their parent key.
+
+Examples:
+
+- `T_WC_WIKIDATA_QUALIFIER_ITEM_VALUE`
+- `T_WC_WIKIDATA_QUALIFIER_TIME_VALUE`
+
+These are especially important for award modeling because Wikidata often stores:
+
+- the award itself as the main value of `P166`
+- the award date as qualifier `P585`
+- the related work as qualifier `P1686`
+
+---
+
+# Award Example
+
+To derive an award table with:
+
+- award
+- year
+- work of art
+- person
+
+the relevant modeling pattern is:
+
+## Main statement
+
+- `T_WC_WIKIDATA_STATEMENT.ID_PROPERTY = 'P166'`
+- `T_WC_WIKIDATA_ITEM_VALUE.ID_ITEM = <award QID>`
+
+## Qualifiers
+
+- `P585` → date/year in `T_WC_WIKIDATA_QUALIFIER_TIME_VALUE`
+- `P1686` → work in `T_WC_WIKIDATA_QUALIFIER_ITEM_VALUE`
+
+## Subject
+
+- `T_WC_WIKIDATA_STATEMENT.ID_WIKIDATA`
+  - usually the person when the award is attributed to a person
+  - sometimes a movie or other work when the award is attached directly to the work
+
+This means the V2 model now supports a derived award table without flattening qualifier columns into the statement table itself.
 
 ---
 

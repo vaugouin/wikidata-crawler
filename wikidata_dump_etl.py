@@ -535,6 +535,22 @@ def extract_mainsnak_datatype_and_value(claim: Any) -> tuple[Optional[str], Any]
         return None, None
 
 
+def extract_snak_datatype_and_value(snak: Any) -> tuple[Optional[str], Any]:
+    try:
+        if snak is None:
+            return None, None
+        datatype = snak.get("datatype")
+        snaktype = snak.get("snaktype")
+        if snaktype != "value":
+            return datatype, None
+        datavalue = snak.get("datavalue")
+        if datavalue is None:
+            return datatype, None
+        return datatype, datavalue.get("value")
+    except Exception:
+        return None, None
+
+
 def extract_qid_from_wikibase_value(value: Any) -> Optional[str]:
     try:
         if value is None:
@@ -656,10 +672,15 @@ class StatementEmitter:
         self.writers = writers
         self.stats = stats
         self.statement_counter = 0
+        self.qualifier_counter = 0
 
     def next_statement_id(self) -> int:
         self.statement_counter += 1
         return self.statement_counter
+
+    def next_qualifier_id(self) -> int:
+        self.qualifier_counter += 1
+        return self.qualifier_counter
 
     def emit(
         self,
@@ -670,7 +691,7 @@ class StatementEmitter:
         local_value_type: str,
         wikidata_datatype: Optional[str],
         payload: Dict[str, Any],
-    ) -> None:
+    ) -> int:
         statement_id = self.next_statement_id()
 
         self.writers.write("T_WC_WIKIDATA_STATEMENT", {
@@ -712,6 +733,53 @@ class StatementEmitter:
         if table:
             self.writers.write(table, row)
             self.stats.value_rows_emitted += 1
+        return statement_id
+
+    def emit_qualifier(
+        self,
+        *,
+        statement_id: int,
+        qualifier_property_id: str,
+        local_value_type: str,
+        wikidata_datatype: Optional[str],
+        payload: Dict[str, Any],
+        display_order: int,
+    ) -> int:
+        qualifier_id = self.next_qualifier_id()
+        self.writers.write("T_WC_WIKIDATA_STATEMENT_QUALIFIER", {
+            "ID_STATEMENT_QUALIFIER": qualifier_id,
+            "ID_STATEMENT": statement_id,
+            "ID_QUALIFIER_PROPERTY": qualifier_property_id,
+            "QUALIFIER_HASH": None,
+            "VALUE_TYPE": local_value_type,
+            "WIKIDATA_DATATYPE": wikidata_datatype,
+            "DISPLAY_ORDER": display_order,
+            "DELETED": 0,
+            "DAT_CREAT": None,
+            "TIM_UPDATED": None,
+            "ID_CREATOR": None,
+            "ID_OWNER": None,
+            "ID_USER_UPDATED": None,
+            "IMPORT_SOURCE": "wikidata_json_dump",
+            "IMPORT_BATCH_ID": None,
+            "LAST_SYNC_AT": None,
+            "IS_VALID": None,
+            "VALIDATION_ERROR": None,
+            "RAW_VALUE_TEXT": None,
+        })
+        table_map = {
+            "item": "T_WC_WIKIDATA_QUALIFIER_ITEM_VALUE",
+            "string": "T_WC_WIKIDATA_QUALIFIER_STRING_VALUE",
+            "external_id": "T_WC_WIKIDATA_QUALIFIER_EXTERNAL_ID_VALUE",
+            "media": "T_WC_WIKIDATA_QUALIFIER_MEDIA_VALUE",
+            "time": "T_WC_WIKIDATA_QUALIFIER_TIME_VALUE",
+            "quantity": "T_WC_WIKIDATA_QUALIFIER_QUANTITY_VALUE",
+        }
+        table = table_map.get(local_value_type)
+        if table:
+            self.writers.write(table, {"ID_STATEMENT_QUALIFIER": qualifier_id, **payload})
+            self.stats.value_rows_emitted += 1
+        return qualifier_id
 
 
 class WikidataDumpETL:
@@ -1199,7 +1267,7 @@ class WikidataDumpETL:
                 if payload is None:
                     continue
 
-                self.statement_emitter.emit(
+                statement_id = self.statement_emitter.emit(
                     subject_id=entity_id,
                     property_id=property_id,
                     claim=claim,
@@ -1207,6 +1275,82 @@ class WikidataDumpETL:
                     wikidata_datatype=wikidata_datatype,
                     payload=payload,
                 )
+                qualifiers = claim.get("qualifiers") if isinstance(claim, dict) else None
+                if not isinstance(qualifiers, dict):
+                    continue
+                for qualifier_property_id, snaks in qualifiers.items():
+                    if not isinstance(snaks, list):
+                        continue
+                    for qualifier_index, snak in enumerate(snaks, start=1):
+                        qualifier_datatype, qualifier_value = extract_snak_datatype_and_value(snak)
+                        qualifier_local_value_type = WIKIDATA_DATATYPE_TO_LOCAL.get(qualifier_datatype)
+                        if qualifier_local_value_type not in SUPPORTED_LOCAL_VALUE_TYPES:
+                            continue
+
+                        qualifier_payload: Optional[Dict[str, Any]] = None
+
+                        if qualifier_local_value_type == "item":
+                            id_item = extract_qid_from_wikibase_value(qualifier_value)
+                            if not id_item:
+                                continue
+                            qualifier_payload = {"ID_ITEM": id_item}
+
+                        elif qualifier_local_value_type == "string":
+                            s = extract_string_value(qualifier_value)
+                            if s is None:
+                                continue
+                            qualifier_payload = {
+                                "VALUE_STRING": s,
+                                "VALUE_STRING_NORMALIZED": s,
+                                "LANG_CODE": None,
+                            }
+
+                        elif qualifier_local_value_type == "external_id":
+                            s = extract_string_value(qualifier_value)
+                            if s is None:
+                                continue
+                            qualifier_payload = {
+                                "VALUE_EXTERNAL_ID": s,
+                                "VALUE_EXTERNAL_ID_NORMALIZED": s,
+                                "FORMATTER_URL": None,
+                                "FORMATTER_URI_RDF": None,
+                                "VALIDATION_STATUS": None,
+                            }
+
+                        elif qualifier_local_value_type == "media":
+                            s = extract_string_value(qualifier_value)
+                            if s is None:
+                                continue
+                            qualifier_payload = {
+                                "FILE_NAME": s,
+                                "MEDIA_REPOSITORY": "commons",
+                                "FILE_PAGE_URL": None,
+                                "FILE_DIRECT_URL": None,
+                                "MIME_TYPE": None,
+                                "FILE_EXTENSION": None,
+                            }
+
+                        elif qualifier_local_value_type == "time":
+                            qualifier_payload = extract_time_payload(qualifier_value)
+                            if not qualifier_payload:
+                                continue
+
+                        elif qualifier_local_value_type == "quantity":
+                            qualifier_payload = extract_quantity_payload(qualifier_value)
+                            if not qualifier_payload:
+                                continue
+
+                        if qualifier_payload is None:
+                            continue
+
+                        self.statement_emitter.emit_qualifier(
+                            statement_id=statement_id,
+                            qualifier_property_id=qualifier_property_id,
+                            local_value_type=qualifier_local_value_type,
+                            wikidata_datatype=qualifier_datatype,
+                            payload=qualifier_payload,
+                            display_order=qualifier_index,
+                        )
 
 
 def _env_path(name: str) -> Optional[Path]:

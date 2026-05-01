@@ -102,6 +102,48 @@ TABLE_SPECS: List[TableSpec] = [
         table_name="STG_T_WC_WIKIDATA_QUANTITY_VALUE",
         additional_columns={"IMPORT_BATCH_ID": None, "ROW_STATUS": "NEW"},
     ),
+    TableSpec(
+        stg_file_name="T_WC_WIKIDATA_STATEMENT_QUALIFIER.jsonl",
+        stg_file_location="pass2",
+        table_name="STG_T_WC_WIKIDATA_STATEMENT_QUALIFIER",
+        additional_columns={"IMPORT_BATCH_ID": None, "SOURCE_FILE": None, "ROW_STATUS": "NEW"},
+    ),
+    TableSpec(
+        stg_file_name="T_WC_WIKIDATA_QUALIFIER_ITEM_VALUE.jsonl",
+        stg_file_location="pass2",
+        table_name="STG_T_WC_WIKIDATA_QUALIFIER_ITEM_VALUE",
+        additional_columns={"IMPORT_BATCH_ID": None, "ROW_STATUS": "NEW"},
+    ),
+    TableSpec(
+        stg_file_name="T_WC_WIKIDATA_QUALIFIER_STRING_VALUE.jsonl",
+        stg_file_location="pass2",
+        table_name="STG_T_WC_WIKIDATA_QUALIFIER_STRING_VALUE",
+        additional_columns={"IMPORT_BATCH_ID": None, "ROW_STATUS": "NEW"},
+    ),
+    TableSpec(
+        stg_file_name="T_WC_WIKIDATA_QUALIFIER_EXTERNAL_ID_VALUE.jsonl",
+        stg_file_location="pass2",
+        table_name="STG_T_WC_WIKIDATA_QUALIFIER_EXTERNAL_ID_VALUE",
+        additional_columns={"IMPORT_BATCH_ID": None, "ROW_STATUS": "NEW"},
+    ),
+    TableSpec(
+        stg_file_name="T_WC_WIKIDATA_QUALIFIER_MEDIA_VALUE.jsonl",
+        stg_file_location="pass2",
+        table_name="STG_T_WC_WIKIDATA_QUALIFIER_MEDIA_VALUE",
+        additional_columns={"IMPORT_BATCH_ID": None, "ROW_STATUS": "NEW"},
+    ),
+    TableSpec(
+        stg_file_name="T_WC_WIKIDATA_QUALIFIER_TIME_VALUE.jsonl",
+        stg_file_location="pass2",
+        table_name="STG_T_WC_WIKIDATA_QUALIFIER_TIME_VALUE",
+        additional_columns={"IMPORT_BATCH_ID": None, "ROW_STATUS": "NEW"},
+    ),
+    TableSpec(
+        stg_file_name="T_WC_WIKIDATA_QUALIFIER_QUANTITY_VALUE.jsonl",
+        stg_file_location="pass2",
+        table_name="STG_T_WC_WIKIDATA_QUALIFIER_QUANTITY_VALUE",
+        additional_columns={"IMPORT_BATCH_ID": None, "ROW_STATUS": "NEW"},
+    ),
 ]
 
 

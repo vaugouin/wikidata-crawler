@@ -277,6 +277,13 @@ class WikidataCrawler:
             "STG_T_WC_WIKIDATA_MEDIA_VALUE",
             "STG_T_WC_WIKIDATA_TIME_VALUE",
             "STG_T_WC_WIKIDATA_QUANTITY_VALUE",
+            "STG_T_WC_WIKIDATA_STATEMENT_QUALIFIER",
+            "STG_T_WC_WIKIDATA_QUALIFIER_ITEM_VALUE",
+            "STG_T_WC_WIKIDATA_QUALIFIER_STRING_VALUE",
+            "STG_T_WC_WIKIDATA_QUALIFIER_EXTERNAL_ID_VALUE",
+            "STG_T_WC_WIKIDATA_QUALIFIER_MEDIA_VALUE",
+            "STG_T_WC_WIKIDATA_QUALIFIER_TIME_VALUE",
+            "STG_T_WC_WIKIDATA_QUALIFIER_QUANTITY_VALUE",
         ]
         counts = self._count_rows_by_batch(expected_tables)
         if counts["STG_T_WC_WIKIDATA_STATEMENT"] <= 0:
@@ -335,6 +342,13 @@ class WikidataCrawler:
             "T_WC_WIKIDATA_MEDIA_VALUE",
             "T_WC_WIKIDATA_TIME_VALUE",
             "T_WC_WIKIDATA_QUANTITY_VALUE",
+            "T_WC_WIKIDATA_STATEMENT_QUALIFIER",
+            "T_WC_WIKIDATA_QUALIFIER_ITEM_VALUE",
+            "T_WC_WIKIDATA_QUALIFIER_STRING_VALUE",
+            "T_WC_WIKIDATA_QUALIFIER_EXTERNAL_ID_VALUE",
+            "T_WC_WIKIDATA_QUALIFIER_MEDIA_VALUE",
+            "T_WC_WIKIDATA_QUALIFIER_TIME_VALUE",
+            "T_WC_WIKIDATA_QUALIFIER_QUANTITY_VALUE",
         ]
         counts = self._count_rows(final_tables)
         if counts["T_WC_WIKIDATA_STATEMENT"] <= 0:

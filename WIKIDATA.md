@@ -3,9 +3,9 @@
 
 ## Purpose
 
-This document describes the recommended architecture for storing and processing Wikidata information in a MariaDB database used for movie, series, and person data.
+This document describes the architecture used for storing and processing Wikidata information in a MariaDB database for movie, series, and person data.
 
-The design evolves from a simple relation table toward a **statement‑centric architecture** inspired by Wikidata's internal data model while remaining practical for relational databases.
+The current production design is the **statement‑centric V2 architecture** inspired by Wikidata's internal data model while remaining practical for relational databases. It has been fully loaded by the `wikidata_crawler.py` pipeline. The V1 single‑relation model (`T_WC_WIKIDATA_ITEM_PROPERTY`) is preserved below for historical context only.
 
 Goals:
 
@@ -119,11 +119,13 @@ Role:
 
 ---
 
-# Current Implementation: T_WC_WIKIDATA_ITEM_PROPERTY
+# Legacy V1: T_WC_WIKIDATA_ITEM_PROPERTY
 
-## Current Role
+> **Status:** historical. V2 is the production model. This section documents what V1 was, what it could not do, and why V2 replaced it. The V1 table may still exist in the live database alongside V2 until front-end migration is complete, but no new pipeline writes to it.
 
-The existing table stores simple triplets:
+## V1 Role
+
+The V1 table stored simple triplets:
 
 - `ID_WIKIDATA` – subject entity
 - `ID_PROPERTY` – Wikidata property
@@ -169,9 +171,9 @@ This leads to poor extensibility.
 
 ---
 
-# New Architecture: Statement + Typed Values + Qualifiers
+# V2 Architecture: Statement + Typed Values + Qualifiers
 
-The recommended architecture introduces three layers.
+This is the current production architecture and the one populated by `wikidata_crawler.py`. It introduces three layers.
 
 ## Level 1 – Statement Layer
 
@@ -604,6 +606,8 @@ The system resolves them to:
 
 This data is stored separately.
 
+**Pipeline integration.** The resolution layer is populated by step `112` of `wikidata_crawler.py` (SQL file `07_resolve_media_resources.sql`), with step `113` validating row counts. The step reads from the V2 statement/value tables and is fully downstream — it never re-runs the dump ETL or the bulk load. Steps 112/113 are idempotent (`INSERT ... ON DUPLICATE KEY UPDATE`) and scope themselves to entities present in `T_WC_WIKIDATA_MOVIE` / `SERIE` / `PERSON`. They build URLs from deterministic patterns only; they do not make HTTP calls. `T_WC_WIKIDATA_MEDIA_RESOURCE_CHECK` is intentionally left empty by these steps — it is reserved for a future network-check job.
+
 ---
 
 # Resolution Tables
@@ -760,6 +764,39 @@ Same principle applies to:
 - Internet Archive resources
 
 ---
+
+# Front-end Consumption
+
+The PHP front-end (`tmdb-front`) reads the V2 tables directly through a single rendering function:
+
+```
+f_wikidataallpropertiesv2($struilang, $stritemidwikidata, $strsep, $strexcludedproperties)
+```
+
+Declared in `lib/global-light.inc.php`, alongside the helpers it relies on:
+
+- `f_wikidataitemlabel_v2` — resolves an `ID_WIKIDATA` to a label and (when available) a local URL. The lookup order is `T2S_PERSON` → `T2S_MOVIE` → `T2S_SERIE`, then the V2 entity tables (`T_WC_WIKIDATA_MOVIE` / `SERIE` / `PERSON` / `ITEM`), reading the UI language from `LABELS_JSON` and falling back to `LABEL_EN`.
+- `f_wikidataformattimevalue_v2` — formats a time value using `RAW_TIME_VALUE` / `YEAR_VALUE` / `MONTH_VALUE` / `DAY_VALUE` / `TIME_PRECISION`.
+- `f_wikidataformatqualifiers_v2` — formats the qualifiers attached to a statement (used inline next to each main value).
+
+The main function executes two SQL statements per page:
+
+1. one query joining `T_WC_WIKIDATA_STATEMENT` with all six main typed value tables and `T_WC_WIKIDATA_PROPERTY_METADATA`;
+2. one query joining `T_WC_WIKIDATA_STATEMENT_QUALIFIER` with all six qualifier typed value tables, pre-grouped by `ID_STATEMENT` to avoid N+1 lookups.
+
+Statements with `RANK = 'deprecated'` are excluded. Statements marked `DELETED = 1` are excluded.
+
+It is called from every `lib/*.inc.php` companion that renders a Wikidata block: `movie`, `serie`, `person`, `season`, `episode`, `award`, `death`, `group`, `movement`, `nomination`, `criterion`, `technical`, `list`, `t2scollection`, `t2stopic`, `t2slist`, and `wikidata-query`.
+
+## V1 fallback
+
+Before running the V2 queries, `f_wikidataallpropertiesv2` probes:
+
+```
+SELECT 1 FROM T_WC_WIKIDATA_STATEMENT WHERE ID_WIKIDATA = ? AND DELETED = 0 LIMIT 1
+```
+
+If no row exists — which is the case for entity types that the V2 pipeline has not yet populated (some `technical.php` / `movement.php` records, for example) — the function delegates to the legacy `f_wikidataallproperties` (which reads V1's `T_WC_WIKIDATA_ITEM_PROPERTY`). This keeps pages from rendering an empty Wikidata block while V2 coverage is being completed.
 
 # Final Architectural Principle
 

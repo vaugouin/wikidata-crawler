@@ -41,6 +41,7 @@ ITEM_CACHE_DIR = Path("/shared/item_cache")
 SHARED_DIR = Path("/shared")
 BASE_DIR = Path(__file__).resolve().parent
 DEFAULT_BULK_SQL_NAME = "03_bulk_load_from_staging_FULL.sql"
+DEFAULT_MEDIA_RESOLVE_SQL_NAME = "07_resolve_media_resources.sql"
 CRAWLER_PREFIX = "strwikidatacrawler"
 
 
@@ -79,6 +80,8 @@ class WikidataCrawler:
             (109, "validate staging data"),
             (110, "bulk load target tables"),
             (111, "validate target tables"),
+            (112, "resolve media resources"),
+            (113, "validate media resources"),
         ])
         self.steps = OrderedDict([
             (101, ProcessStep(101, self.arrwikidatascope[101], WikidataCrawler.step_resolve_dump_source)),
@@ -92,6 +95,8 @@ class WikidataCrawler:
             (109, ProcessStep(109, self.arrwikidatascope[109], WikidataCrawler.step_validate_staging)),
             (110, ProcessStep(110, self.arrwikidatascope[110], WikidataCrawler.step_bulk_load)),
             (111, ProcessStep(111, self.arrwikidatascope[111], WikidataCrawler.step_validate_targets)),
+            (112, ProcessStep(112, self.arrwikidatascope[112], WikidataCrawler.step_resolve_media)),
+            (113, ProcessStep(113, self.arrwikidatascope[113], WikidataCrawler.step_validate_media)),
         ])
 
     def run(self) -> None:
@@ -249,6 +254,14 @@ class WikidataCrawler:
         total_rows = 0
         connection = create_staging_connection()
         try:
+            staging_tables = sorted({spec.table_name for spec in TABLE_SPECS})
+            with connection.cursor() as cursor:
+                for table_name in staging_tables:
+                    cursor.execute(
+                        f"DELETE FROM {table_name} WHERE IMPORT_BATCH_ID = %s",
+                        (self.import_batch_id,),
+                    )
+                    connection.commit()
             for spec in TABLE_SPECS:
                 total_rows += load_table(
                     connection=connection,
@@ -361,6 +374,57 @@ class WikidataCrawler:
             raise ValidationError("No staging statements were marked as LOADED for the import batch id")
         cp.f_setservervariable(f"{CRAWLER_PREFIX}targetstatementrows", str(counts["T_WC_WIKIDATA_STATEMENT"]), "Current row count in T_WC_WIKIDATA_STATEMENT", 0)
 
+    def step_resolve_media(self) -> None:
+        sql_path = self._resolve_media_sql_path()
+        sql_text = sql_path.read_text(encoding="utf-8")
+        sql_text = sql_text.replace("SET NAMES utf8mb4;", "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;")
+        sql_text = sql_text.replace(
+            "SET @IMPORT_BATCH_ID = 'BATCH_20260309_001';",
+            f"SET @IMPORT_BATCH_ID = CONVERT('{self.import_batch_id}' USING utf8mb4) COLLATE utf8mb4_unicode_ci;",
+        )
+        statements = self._split_sql_statements(sql_text)
+        connection = self._create_multi_statement_connection()
+        try:
+            with connection.cursor() as cursor:
+                for index, statement in enumerate(statements, start=1):
+                    normalized = statement.strip().upper()
+                    if normalized in ("START TRANSACTION", "COMMIT"):
+                        continue
+                    cursor.execute(statement)
+                    connection.commit()
+                    cp.f_setservervariable(
+                        f"{CRAWLER_PREFIX}mediaresolvelaststatement",
+                        str(index),
+                        "Last successfully committed statement index in the media-resolution process",
+                        0,
+                    )
+        finally:
+            connection.close()
+        cp.f_setservervariable(f"{CRAWLER_PREFIX}mediaresolvebatchid", self.import_batch_id, "Last import batch id used by step 112 (media resolution)", 0)
+
+    def step_validate_media(self) -> None:
+        media_tables = [
+            "T_WC_WIKIDATA_MEDIA_RESOURCE",
+            "T_WC_WIKIDATA_MEDIA_RESOURCE_URL",
+        ]
+        counts = self._count_rows(media_tables)
+        if counts["T_WC_WIKIDATA_MEDIA_RESOURCE"] <= 0:
+            raise ValidationError(
+                "T_WC_WIKIDATA_MEDIA_RESOURCE is empty after step 112. "
+                "Check whether MOVIE/SERIE/PERSON entities have any P10/P18/P1651/P724 statements."
+            )
+        if counts["T_WC_WIKIDATA_MEDIA_RESOURCE_URL"] <= 0:
+            raise ValidationError("T_WC_WIKIDATA_MEDIA_RESOURCE_URL is empty after step 112")
+        per_platform = self._fetch_rows(
+            "SELECT SOURCE_PLATFORM, COUNT(*) AS CNT FROM T_WC_WIKIDATA_MEDIA_RESOURCE WHERE DELETED = 0 GROUP BY SOURCE_PLATFORM"
+        )
+        platform_counts = {row["SOURCE_PLATFORM"]: int(row["CNT"]) for row in per_platform}
+        cp.f_setservervariable(f"{CRAWLER_PREFIX}mediaresourcerows", str(counts["T_WC_WIKIDATA_MEDIA_RESOURCE"]), "Current row count in T_WC_WIKIDATA_MEDIA_RESOURCE", 0)
+        cp.f_setservervariable(f"{CRAWLER_PREFIX}mediaresourceurlrows", str(counts["T_WC_WIKIDATA_MEDIA_RESOURCE_URL"]), "Current row count in T_WC_WIKIDATA_MEDIA_RESOURCE_URL", 0)
+        cp.f_setservervariable(f"{CRAWLER_PREFIX}mediaresourcecommons", str(platform_counts.get("commons", 0)), "Current Commons resource count", 0)
+        cp.f_setservervariable(f"{CRAWLER_PREFIX}mediaresourceyoutube", str(platform_counts.get("youtube", 0)), "Current YouTube resource count", 0)
+        cp.f_setservervariable(f"{CRAWLER_PREFIX}mediaresourcearchive", str(platform_counts.get("internet_archive", 0)), "Current Internet Archive resource count", 0)
+
     def _run_pass(
         self,
         *,
@@ -451,6 +515,27 @@ class WikidataCrawler:
         searched = ", ".join(str(path) for path in candidates)
         raise ValidationError(f"Bulk-load SQL file not found. Searched: {searched}")
 
+    def _resolve_media_sql_path(self) -> Path:
+        candidates = [
+            BASE_DIR / DEFAULT_MEDIA_RESOLVE_SQL_NAME,
+            Path.cwd() / DEFAULT_MEDIA_RESOLVE_SQL_NAME,
+            SHARED_DIR / DEFAULT_MEDIA_RESOLVE_SQL_NAME,
+        ]
+        for candidate in candidates:
+            if candidate.exists():
+                return candidate
+        searched = ", ".join(str(path) for path in candidates)
+        raise ValidationError(f"Media-resolution SQL file not found. Searched: {searched}")
+
+    def _fetch_rows(self, sql: str, params: tuple = ()) -> List[Dict[str, object]]:
+        connection = cp.f_getconnection()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(sql, params)
+                return list(cursor.fetchall())
+        finally:
+            connection.close()
+
     def _split_sql_statements(self, sql_text: str) -> List[str]:
         statements: List[str] = []
         current_lines: List[str] = []
@@ -487,7 +572,7 @@ def parse_args() -> argparse.Namespace:
         "--start-step",
         type=int,
         default=101,
-        help="Workflow step code to start from. Example: 109 to start after staging load, 110 to run only bulk load + final validation.",
+        help="Workflow step code to start from. Examples: 109 to start after staging load, 110 to run only bulk load + final validation, 112 to (re-)run only the media-resolution step.",
     )
     return parser.parse_args()
 

@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -cE '^[A-Z].*;\\\\s*$' \"c:/Users/vaugo/Code/wikidata-crawler/03_bulk_load_from_staging_FULL.sql\")",
+      "Bash(grep -nA 60 'CREATE TABLE.*T_WC_WIKIDATA_STATEMENT_QUALIFIER' \"c:/Users/vaugo/Code/wikidata-crawler/01_create_schema.sql\")"
+    ]
+  }
+}

@@ -152,24 +152,17 @@ def f_sqlupdatearray(strsqltablename, arrpersoncouples, strsqlupdatecondition, i
                 lngnewid = cursor2.lastrowid
                 connectioncp.commit()
                 return lngnewid
-            arrvalues = []
-            for key,value in arrpersoncouples.items():
+            arrsetclauses = []
+            arrupdatevalues = []
+            for key, value in arrpersoncouples.items():
+                arrsetclauses.append(f"{key} = %s")
                 if isinstance(value, bool):
-                    arrvalues.append(f"{key} = {1 if value else 0}")
-                elif isinstance(value, int):
-                    arrvalues.append("{key} = {value}".format(key=key, value=value))
-                elif isinstance(value, float):
-                    arrvalues.append("{key} = {value}".format(key=key, value=value))
-                elif value is None:
-                    arrvalues.append("{key} = NULL".format(key=key))
+                    arrupdatevalues.append(1 if value else 0)
                 else:
-                    value=value.replace("\\\'", "'")
-                    value=value.replace('\\\"', '"')
-                    value=value.replace("'", "\\'")
-                    arrvalues.append("{key} = '{value}'".format(key=key, value=value))
-            strsqlupdatesetclause = ", ".join(arrvalues)
+                    arrupdatevalues.append(value)
+            strsqlupdatesetclause = ", ".join(arrsetclauses)
             strsqlupdate = f"UPDATE {strsqltablename} SET {strsqlupdatesetclause} WHERE {strsqlupdatecondition};"
-            cursor2.execute(strsqlupdate)
+            cursor2.execute(strsqlupdate, arrupdatevalues)
             connectioncp.commit()
             return None
         except pymysql.MySQLError as e:

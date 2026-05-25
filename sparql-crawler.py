@@ -976,5 +976,6 @@ ORDER BY T_WC_TMDB_PERSON.ID_PERSON ASC
     print("Process completed")
 except pymysql.MySQLError as e:
     print(f"❌ MySQL Error: {e}")
-    cp.connectioncp.rollback()
-
+    conn = getattr(cp, "connectioncp", None)
+    if conn is not None and getattr(conn, "open", False):
+        conn.rollback()

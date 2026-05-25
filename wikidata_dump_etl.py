@@ -31,6 +31,7 @@ Dependencies:
 """
 
 import bz2
+import hashlib
 import json
 import os
 import sys
@@ -518,6 +519,34 @@ def extract_statement_guid(claim: Any) -> Optional[str]:
         return None
 
 
+def stable_bigint_from_text(text: str) -> int:
+    digest = hashlib.sha256(text.encode("utf-8")).digest()
+    value = int.from_bytes(digest[:8], "big") & 0x7FFFFFFFFFFFFFFF
+    return value or 1
+
+
+def stable_json_text(value: Any) -> str:
+    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
+def derive_statement_identity(subject_id: str, property_id: str, claim: Any) -> tuple[int, Optional[str]]:
+    statement_guid = extract_statement_guid(claim)
+    identity_text = statement_guid or f"{subject_id}|{property_id}|{stable_json_text(claim)}"
+    return stable_bigint_from_text(f"statement|{identity_text}"), statement_guid
+
+
+def derive_qualifier_identity(statement_guid: Optional[str], qualifier_property_id: str, snak: Any, display_order: int) -> tuple[int, str]:
+    snak_hash = None
+    try:
+        value = snak.get("hash") if isinstance(snak, dict) else None
+        snak_hash = value if isinstance(value, str) else None
+    except Exception:
+        snak_hash = None
+    identity_text = snak_hash or f"{statement_guid or 'no-guid'}|{qualifier_property_id}|{display_order}|{stable_json_text(snak)}"
+    qualifier_hash = f"qualifier|{identity_text}"
+    return stable_bigint_from_text(qualifier_hash), qualifier_hash
+
+
 def extract_mainsnak_datatype_and_value(claim: Any) -> tuple[Optional[str], Any]:
     try:
         mainsnak = claim.get("mainsnak")
@@ -671,16 +700,6 @@ class StatementEmitter:
     def __init__(self, writers: WriterRegistry, stats: Stats) -> None:
         self.writers = writers
         self.stats = stats
-        self.statement_counter = 0
-        self.qualifier_counter = 0
-
-    def next_statement_id(self) -> int:
-        self.statement_counter += 1
-        return self.statement_counter
-
-    def next_qualifier_id(self) -> int:
-        self.qualifier_counter += 1
-        return self.qualifier_counter
 
     def emit(
         self,
@@ -692,13 +711,13 @@ class StatementEmitter:
         wikidata_datatype: Optional[str],
         payload: Dict[str, Any],
     ) -> int:
-        statement_id = self.next_statement_id()
+        statement_id, statement_guid = derive_statement_identity(subject_id, property_id, claim)
 
         self.writers.write("T_WC_WIKIDATA_STATEMENT", {
             "ID_STATEMENT": statement_id,
             "ID_WIKIDATA": subject_id,
             "ID_PROPERTY": property_id,
-            "STATEMENT_GUID": extract_statement_guid(claim),
+            "STATEMENT_GUID": statement_guid,
             "STATEMENT_HASH": None,
             "VALUE_TYPE": local_value_type,
             "WIKIDATA_DATATYPE": wikidata_datatype,
@@ -739,18 +758,20 @@ class StatementEmitter:
         self,
         *,
         statement_id: int,
+        statement_guid: Optional[str],
         qualifier_property_id: str,
+        snak: Any,
         local_value_type: str,
         wikidata_datatype: Optional[str],
         payload: Dict[str, Any],
         display_order: int,
     ) -> int:
-        qualifier_id = self.next_qualifier_id()
+        qualifier_id, qualifier_hash = derive_qualifier_identity(statement_guid, qualifier_property_id, snak, display_order)
         self.writers.write("T_WC_WIKIDATA_STATEMENT_QUALIFIER", {
             "ID_STATEMENT_QUALIFIER": qualifier_id,
             "ID_STATEMENT": statement_id,
             "ID_QUALIFIER_PROPERTY": qualifier_property_id,
-            "QUALIFIER_HASH": None,
+            "QUALIFIER_HASH": qualifier_hash,
             "VALUE_TYPE": local_value_type,
             "WIKIDATA_DATATYPE": wikidata_datatype,
             "DISPLAY_ORDER": display_order,
@@ -1275,6 +1296,7 @@ class WikidataDumpETL:
                     wikidata_datatype=wikidata_datatype,
                     payload=payload,
                 )
+                statement_guid = extract_statement_guid(claim)
                 qualifiers = claim.get("qualifiers") if isinstance(claim, dict) else None
                 if not isinstance(qualifiers, dict):
                     continue
@@ -1345,7 +1367,9 @@ class WikidataDumpETL:
 
                         self.statement_emitter.emit_qualifier(
                             statement_id=statement_id,
+                            statement_guid=statement_guid,
                             qualifier_property_id=qualifier_property_id,
+                            snak=snak,
                             local_value_type=qualifier_local_value_type,
                             wikidata_datatype=qualifier_datatype,
                             payload=qualifier_payload,

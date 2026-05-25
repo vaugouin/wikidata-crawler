@@ -4,23 +4,33 @@ import json
 from datetime import datetime
 import pytz
 import re
+import os
+from pathlib import Path
+from dotenv import load_dotenv
 
 # Import from citizenphil or define locally
 import citizenphil as cp
-from citizenphil import f_sqlupdatearray, f_stringtosql, connectioncp
-import citizenphilsecrets as cps
+from citizenphil import f_sqlupdatearray, f_stringtosql
+
+load_dotenv(Path(__file__).resolve().with_name(".env"))
+
+class _ConnectionProxy:
+    def __getattr__(self, name):
+        return getattr(cp.f_getconnection(), name)
+
+connectioncp = _ConnectionProxy()
 
 # Global variables
-strtmdbapidomainurl = cps.strtmdbapidomainurl
-strtmdbapitoken = cps.strtmdbapitoken
-strsqlns = cps.strsqlns
+strtmdbapidomainurl = os.environ.get("TMDB_API_DOMAIN_URL", "")
+strtmdbapitoken = os.environ.get("TMDB_API_TOKEN", "")
+strsqlns = os.environ.get("DB_NAMESPACE", "")
 
 headers = {
     "accept": "application/json",
     "Authorization": "Bearer " + strtmdbapitoken
 }
 
-paris_tz = pytz.timezone(cps.strusertimezone)
+paris_tz = pytz.timezone(os.environ.get("USER_TIMEZONE", "Europe/Paris"))
 strdatepattern = r"^\d{4}-\d{2}-\d{2}$"
 strlanguagecountry = "en-US"
 strlanguage = "en"
@@ -64,6 +74,40 @@ def f_tmdbjsonremovekeys(strjson,strbegin,strend,strreplace):
                 strjson = strjson[0:lngposbegin] + strreplace + strjson[lngposend + lnglenend:]
     return strjson
 
+def f_tmdbfetchjson(strtmdbapifullurl, strcontext):
+    intencore = True
+    intattemptsremaining = 5
+    response = None
+    while intencore:
+        try:
+            response = requests.get(strtmdbapifullurl, headers=headers, timeout=30)
+            if not response.text or response.text.strip() == "":
+                raise ValueError("Empty response body")
+            return response.json()
+        except requests.exceptions.HTTPError as http_err:
+            print(f'HTTP error occurred: {http_err}')
+        except requests.exceptions.ConnectionError as conn_err:
+            print(f'Connection error occurred: {conn_err}')
+        except requests.exceptions.Timeout as timeout_err:
+            print(f'Timeout error occurred: {timeout_err}')
+        except requests.exceptions.JSONDecodeError as json_err:
+            print(f'JSON decode error occurred: {json_err}')
+            if response is not None and response.text:
+                print(f'TMDb raw response excerpt: {response.text[:200]}')
+        except requests.exceptions.RequestException as req_err:
+            print(f'Request error occurred: {req_err}')
+        except ValueError as value_err:
+            print(f'Value error occurred: {value_err}')
+        except Exception as err:
+            print(f'An error occurred: {err}')
+        intattemptsremaining = intattemptsremaining - 1
+        if intattemptsremaining > 0:
+            time.sleep(1)
+        else:
+            intencore = False
+    print(f"{strcontext} failed!")
+    return None
+
 def f_tmdbcontentimagesstosql(lngcontentid, strcontenttype, strsqlmastertable, strsqltablename, strkeyfieldname):
     """
     Fetch images for content from TMDb API and store them in the database.
@@ -98,40 +142,10 @@ def f_tmdbcontentimagesstosql(lngcontentid, strcontenttype, strsqlmastertable, s
     
     strtmdbapiimagesurl = f"3/{strcontenttype}/{lngcontentid}/images"
     strtmdbapifullurl = strtmdbapidomainurl + "/" + strtmdbapiimagesurl
-    
-    # Add retry logic with error handling
-    intencore = True
-    intattemptsremaining = 5
-    intsuccess = False
-    
-    while intencore:
-        try:
-            response = requests.get(strtmdbapifullurl, headers=headers)
-            intencore = False
-            intsuccess = True
-        except requests.exceptions.HTTPError as http_err:
-            print(f'HTTP error occurred: {http_err}')
-        except requests.exceptions.ConnectionError as conn_err:
-            print(f'Connection error occurred: {conn_err}')
-        except requests.exceptions.Timeout as timeout_err:
-            print(f'Timeout error occurred: {timeout_err}')
-        except requests.exceptions.RequestException as req_err:
-            print(f'Request error occurred: {req_err}')
-        except Exception as err:
-            print(f'An error occurred: {err}')
-        
-        if intencore:
-            intattemptsremaining = intattemptsremaining - 1
-            if intattemptsremaining >= 0:
-                time.sleep(1)  # Wait for 1 second before next request
-            else:
-                intencore = False
-    
-    if not intsuccess:
-        print(f"f_tmdbcontentimagesstosql({lngcontentid}) failed!")
+    data = f_tmdbfetchjson(strtmdbapifullurl, f"f_tmdbcontentimagesstosql({lngcontentid})")
+    if data is None:
         return False
-    
-    data = response.json()
+
     if 'status_code' in data and data['status_code'] > 1:
         print(f"Error: API returned status code {data['status_code']}")
         if 'status_message' in data:
@@ -257,40 +271,10 @@ def f_tmdbcontentvideosstosql(lngcontentid, strcontenttype, strsqlmastertable, s
     
     strtmdbapivideosurl = f"3/{strcontenttype}/{lngcontentid}/videos?language={strlang}"
     strtmdbapifullurl = strtmdbapidomainurl + "/" + strtmdbapivideosurl
-    
-    # Add retry logic with error handling
-    intencore = True
-    intattemptsremaining = 5
-    intsuccess = False
-    
-    while intencore:
-        try:
-            response = requests.get(strtmdbapifullurl, headers=headers)
-            intencore = False
-            intsuccess = True
-        except requests.exceptions.HTTPError as http_err:
-            print(f'HTTP error occurred: {http_err}')
-        except requests.exceptions.ConnectionError as conn_err:
-            print(f'Connection error occurred: {conn_err}')
-        except requests.exceptions.Timeout as timeout_err:
-            print(f'Timeout error occurred: {timeout_err}')
-        except requests.exceptions.RequestException as req_err:
-            print(f'Request error occurred: {req_err}')
-        except Exception as err:
-            print(f'An error occurred: {err}')
-        
-        if intencore:
-            intattemptsremaining = intattemptsremaining - 1
-            if intattemptsremaining >= 0:
-                time.sleep(1)  # Wait for 1 second before next request
-            else:
-                intencore = False
-    
-    if not intsuccess:
-        print(f"f_tmdbcontentvideosstosql({lngcontentid}, {strlang}) failed!")
+    data = f_tmdbfetchjson(strtmdbapifullurl, f"f_tmdbcontentvideosstosql({lngcontentid}, {strlang})")
+    if data is None:
         return False
-    
-    data = response.json()
+
     if 'status_code' in data and data['status_code'] > 1:
         print(f"Error: API returned status code {data['status_code']}")
         if 'status_message' in data:
@@ -408,36 +392,12 @@ def f_tmdbpersontosql(lngpersonid):
         strtmdbapipersonurl = "3/person/" + str(lngpersonid) + "?append_to_response=combined_credits,external_ids"
         strtmdbapifullurl = strtmdbapidomainurl + "/" + strtmdbapipersonurl
         # print(strtmdbapifullurl)
-        intencore = True
-        intattemptsremaining = 5
-        intsuccess = False
-        while intencore:
-            try:
-                response = requests.get(strtmdbapifullurl, headers=headers)
-                intencore = False
-                intsuccess = True
-            except requests.exceptions.HTTPError as http_err:
-                print(f'HTTP error occurred: {http_err}')  # Handle specific HTTP errors
-            except requests.exceptions.ConnectionError as conn_err:
-                print(f'Connection error occurred: {conn_err}')  # Handle connection errors
-            except requests.exceptions.Timeout as timeout_err:
-                print(f'Timeout error occurred: {timeout_err}')  # Handle timeout errors
-            except requests.exceptions.RequestException as req_err:
-                print(f'Request error occurred: {req_err}')  # Handle other request-related errors
-            except Exception as err:
-                print(f'An error occurred: {err}')  # Handle any other exceptions
-            if intencore:
-                intattemptsremaining = intattemptsremaining - 1
-                if intattemptsremaining >= 0:
-                    time.sleep(1)  # Wait for 1 second before next request
-                else:
-                    intencore = False
-        if not intsuccess:
-            print(f"f_tmdbpersontosql({lngpersonid}) failed!")
+        data = f_tmdbfetchjson(strtmdbapifullurl, f"f_tmdbpersontosql({lngpersonid})")
+        if data is None:
+            return
         else:
             # strapiperson = response.text
             # Parse the JSON data into a dictionary
-            data = response.json()
             
             lngpersonstatuscode = 0
             if 'status_code' in data:
@@ -686,8 +646,9 @@ def f_tmdbpersonexist(lngpersonid):
         strtmdbapipersonurl = "3/person/" + str(lngpersonid) + "?language=" + strlanguage
         strtmdbapifullurl = strtmdbapidomainurl + "/" + strtmdbapipersonurl
         # print(strtmdbapifullurl)
-        response = requests.get(strtmdbapifullurl, headers=headers)
-        data = response.json()
+        data = f_tmdbfetchjson(strtmdbapifullurl, f"f_tmdbpersonexists({lngpersonid})")
+        if data is None:
+            return intresult
         lngpersonstatuscode = 0
         if 'status_code' in data:
             lngpersonstatuscode = data['status_code']
@@ -852,37 +813,10 @@ def f_tmdbmovietosql(lngmovieid):
         strtmdbapimovieurl = "3/movie/" + str(lngmovieid) + "?append_to_response=credits,alternative_titles,external_ids&language=" + strlanguage
         strtmdbapifullurl = strtmdbapidomainurl + "/" + strtmdbapimovieurl
         # print(strtmdbapifullurl)
-        # Add retry logic with error handling
-        intencore = True
-        intattemptsremaining = 5
-        intsuccess = False
-        while intencore:
-            try:
-                response = requests.get(strtmdbapifullurl, headers=headers)
-                intencore = False
-                intsuccess = True
-            except requests.exceptions.HTTPError as http_err:
-                print(f'HTTP error occurred: {http_err}')  # Handle specific HTTP errors
-            except requests.exceptions.ConnectionError as conn_err:
-                print(f'Connection error occurred: {conn_err}')  # Handle connection errors
-            except requests.exceptions.Timeout as timeout_err:
-                print(f'Timeout error occurred: {timeout_err}')  # Handle timeout errors
-            except requests.exceptions.RequestException as req_err:
-                print(f'Request error occurred: {req_err}')  # Handle other request-related errors
-            except Exception as err:
-                print(f'An error occurred: {err}')  # Handle any other exceptions
-            if intencore:
-                intattemptsremaining = intattemptsremaining - 1
-                if intattemptsremaining >= 0:
-                    time.sleep(1)  # Wait for 1 second before next request
-                else:
-                    intencore = False
-        
-        if not intsuccess:
-            print(f"f_tmdbmovietosql({lngmovieid}) failed!")
+        data = f_tmdbfetchjson(strtmdbapifullurl, f"f_tmdbmovietosql({lngmovieid})")
+        if data is None:
             return
-        
-        data = response.json()
+
         lngmoviestatuscode = 0
         if 'status_code' in data:
             lngmoviestatuscode = data['status_code']
@@ -897,9 +831,9 @@ def f_tmdbmovietosql(lngmovieid):
                 strmovieoverview = data['overview']
             strmoviereleasedate = ""
             #strmoviereleaseyear = ""
-            lngmoviereleaseyear = 0
-            lngmoviereleasemonth = 0
-            lngmoviereleaseday = 0
+            lngmoviereleaseyear = None
+            lngmoviereleasemonth = None
+            lngmoviereleaseday = None
             if 'release_date' in data:
                 strmoviereleasedate = data['release_date']
                 if not re.match(strdatepattern, strmoviereleasedate):
@@ -1129,9 +1063,9 @@ def f_tmdbmovietosql(lngmovieid):
             if strmoviereleasedate:
                 if strmoviereleasedate != "":
                     arrmoviecouples["DAT_RELEASE"] = strmoviereleasedate
-                    arrmoviecouples["RELEASE_YEAR"] = lngmoviereleaseyear
-                    arrmoviecouples["RELEASE_MONTH"] = lngmoviereleasemonth
-                    arrmoviecouples["RELEASE_DAY"] = lngmoviereleaseday
+            arrmoviecouples["RELEASE_YEAR"] = lngmoviereleaseyear
+            arrmoviecouples["RELEASE_MONTH"] = lngmoviereleasemonth
+            arrmoviecouples["RELEASE_DAY"] = lngmoviereleaseday
             arrmoviecouples["VIDEO"] = intmovievideo
             arrmoviecouples["ID_MOVIE"] = lngmovieid
             arrmoviecouples["POSTER_PATH"] = strmovieposterpath
@@ -1264,37 +1198,10 @@ def f_tmdbmovielangtosql(lngmovieid, strlang):
         strtmdbapimovieurl = "3/movie/" + str(lngmovieid) + "?language=" + strlang
         strtmdbapifullurl = strtmdbapidomainurl + "/" + strtmdbapimovieurl
         # print(strtmdbapifullurl)
-        # Add retry logic with error handling
-        intencore = True
-        intattemptsremaining = 5
-        intsuccess = False
-        while intencore:
-            try:
-                response = requests.get(strtmdbapifullurl, headers=headers)
-                intencore = False
-                intsuccess = True
-            except requests.exceptions.HTTPError as http_err:
-                print(f'HTTP error occurred: {http_err}')  # Handle specific HTTP errors
-            except requests.exceptions.ConnectionError as conn_err:
-                print(f'Connection error occurred: {conn_err}')  # Handle connection errors
-            except requests.exceptions.Timeout as timeout_err:
-                print(f'Timeout error occurred: {timeout_err}')  # Handle timeout errors
-            except requests.exceptions.RequestException as req_err:
-                print(f'Request error occurred: {req_err}')  # Handle other request-related errors
-            except Exception as err:
-                print(f'An error occurred: {err}')  # Handle any other exceptions
-            if intencore:
-                intattemptsremaining = intattemptsremaining - 1
-                if intattemptsremaining >= 0:
-                    time.sleep(1)  # Wait for 1 second before next request
-                else:
-                    intencore = False
-        
-        if not intsuccess:
-            print(f"f_tmdbmovietosql({lngmovieid}) failed!")
+        data = f_tmdbfetchjson(strtmdbapifullurl, f"f_tmdbmovielangtosql({lngmovieid}, {strlang})")
+        if data is None:
             return
-        
-        data = response.json()
+
         lngmoviestatuscode = 0
         if 'status_code' in data:
             lngmoviestatuscode = data['status_code']
@@ -1368,37 +1275,10 @@ def f_tmdbmoviekeywordstosql(lngmovieid):
     if lngmovieid > 0:
         strtmdbapimoviekeywordsurl = "3/movie/" + str(lngmovieid) + "/keywords"
         strtmdbapifullurl = strtmdbapidomainurl + "/" + strtmdbapimoviekeywordsurl
-        # print(strtmdbapifullurl)
-        intencore = True
-        intattemptsremaining = 5
-        intsuccess = False
-        while intencore:
-            try:
-                response = requests.get(strtmdbapifullurl, headers=headers)
-                intencore = False
-                intsuccess = True
-            except requests.exceptions.HTTPError as http_err:
-                print(f'HTTP error occurred: {http_err}')  # Handle specific HTTP errors
-            except requests.exceptions.ConnectionError as conn_err:
-                print(f'Connection error occurred: {conn_err}')  # Handle connection errors
-            except requests.exceptions.Timeout as timeout_err:
-                print(f'Timeout error occurred: {timeout_err}')  # Handle timeout errors
-            except requests.exceptions.RequestException as req_err:
-                print(f'Request error occurred: {req_err}')  # Handle other request-related errors
-            except Exception as err:
-                print(f'An error occurred: {err}')  # Handle any other exceptions
-            if intencore:
-                intattemptsremaining = intattemptsremaining - 1
-                if intattemptsremaining >= 0:
-                    time.sleep(1)  # Wait for 1 second before next request
-                else:
-                    intencore = False
-        if not intsuccess:
-            print(f"f_tmdbmoviekeywordstosql({lngkeywordid}) failed!")
+        jsonmoviekeywords = f_tmdbfetchjson(strtmdbapifullurl, f"f_tmdbmoviekeywordstosql({lngmovieid})")
+        if jsonmoviekeywords is None:
+            return
         else:
-            response = requests.get(strtmdbapifullurl, headers=headers)
-            strapimoviekeywords = response.text
-            jsonmoviekeywords = response.json()
             lngmoviekeywordsstatuscode = 0
             if 'status_code' in jsonmoviekeywords:
                 lngmoviekeywordsstatuscode = jsonmoviekeywords['status_code']
@@ -1446,8 +1326,9 @@ def f_tmdbmovieexist(lngmovieid):
         strtmdbapimovieurl = "3/movie/" + str(lngmovieid) + "?language=" + strlanguage
         strtmdbapifullurl = strtmdbapidomainurl + "/" + strtmdbapimovieurl
         # print(strtmdbapifullurl)
-        response = requests.get(strtmdbapifullurl, headers=headers)
-        data = response.json()
+        data = f_tmdbfetchjson(strtmdbapifullurl, f"f_tmdbmovieexists({lngmovieid})")
+        if data is None:
+            return intresult
         lngmoviestatuscode = 0
         if 'status_code' in data:
             lngmoviestatuscode = data['status_code']
@@ -1723,39 +1604,11 @@ def f_tmdbserietosql(lngserieid):
         strtmdbapiserieurl = "3/tv/" + str(lngserieid) + "?append_to_response=credits,alternative_titles,external_ids&language=" + strlanguage
         strtmdbapifullurl = strtmdbapidomainurl + "/" + strtmdbapiserieurl
         #print(strtmdbapifullurl)
-        
-        # Add retry logic with error handling
-        intencore = True
-        intattemptsremaining = 5
-        intsuccess = False
-        while intencore:
-            try:
-                response = requests.get(strtmdbapifullurl, headers=headers)
-                intencore = False
-                intsuccess = True
-            except requests.exceptions.HTTPError as http_err:
-                print(f'HTTP error occurred: {http_err}')  # Handle specific HTTP errors
-            except requests.exceptions.ConnectionError as conn_err:
-                print(f'Connection error occurred: {conn_err}')  # Handle connection errors
-            except requests.exceptions.Timeout as timeout_err:
-                print(f'Timeout error occurred: {timeout_err}')  # Handle timeout errors
-            except requests.exceptions.RequestException as req_err:
-                print(f'Request error occurred: {req_err}')  # Handle other request-related errors
-            except Exception as err:
-                print(f'An error occurred: {err}')  # Handle any other exceptions
-            if intencore:
-                intattemptsremaining = intattemptsremaining - 1
-                if intattemptsremaining >= 0:
-                    time.sleep(1)  # Wait for 1 second before next request
-                else:
-                    intencore = False
-        
-        if not intsuccess:
-            print(f"f_tmdbserietosql({lngserieid}) failed!")
+        data = f_tmdbfetchjson(strtmdbapifullurl, f"f_tmdbserietosql({lngserieid})")
+        if data is None:
             return
-        
+
         # Parse the JSON data into a dictionary
-        data = response.json()
         
         lngseriestatuscode = 0
         if 'status_code' in data:
@@ -1774,9 +1627,9 @@ def f_tmdbserietosql(lngserieid):
             
             # Process first air date with proper validation
             strseriefirstairdate = ""
-            lngseriefirstairyear = 0
-            lngseriefirstairmonth = 0
-            lngseriefirstairday = 0
+            lngseriefirstairyear = None
+            lngseriefirstairmonth = None
+            lngseriefirstairday = None
             if 'first_air_date' in data:
                 strseriefirstairdate = data['first_air_date']
                 if strseriefirstairdate and re.match(strdatepattern, strseriefirstairdate):
@@ -1786,9 +1639,9 @@ def f_tmdbserietosql(lngserieid):
             
             # Process last air date with proper validation
             strserielastairdate = ""
-            lngserielastairyear = 0
-            lngserielastairmonth = 0
-            lngserielastairday = 0
+            lngserielastairyear = None
+            lngserielastairmonth = None
+            lngserielastairday = None
             if 'last_air_date' in data:
                 strserielastairdate = data['last_air_date']
                 if strserielastairdate and re.match(strdatepattern, strserielastairdate):
@@ -2038,15 +1891,15 @@ def f_tmdbserietosql(lngserieid):
             # Date fields
             if strseriefirstairdate:
                 arrseriecouples["DAT_FIRST_AIR"] = strseriefirstairdate
-                arrseriecouples["FIRST_AIR_YEAR"] = lngseriefirstairyear
-                arrseriecouples["FIRST_AIR_MONTH"] = lngseriefirstairmonth
-                arrseriecouples["FIRST_AIR_DAY"] = lngseriefirstairday
+            arrseriecouples["FIRST_AIR_YEAR"] = lngseriefirstairyear
+            arrseriecouples["FIRST_AIR_MONTH"] = lngseriefirstairmonth
+            arrseriecouples["FIRST_AIR_DAY"] = lngseriefirstairday
             
             if strserielastairdate:
                 arrseriecouples["DAT_LAST_AIR"] = strserielastairdate
-                arrseriecouples["LAST_AIR_YEAR"] = lngserielastairyear
-                arrseriecouples["LAST_AIR_MONTH"] = lngserielastairmonth
-                arrseriecouples["LAST_AIR_DAY"] = lngserielastairday
+            arrseriecouples["LAST_AIR_YEAR"] = lngserielastairyear
+            arrseriecouples["LAST_AIR_MONTH"] = lngserielastairmonth
+            arrseriecouples["LAST_AIR_DAY"] = lngserielastairday
             
             arrseriecouples["POSTER_PATH"] = strserieposterpath
             arrseriecouples["HOMEPAGE_URL"] = strseriehomepage
@@ -2253,8 +2106,9 @@ def f_tmdbserielangtosql(lngserieid, strlang):
         strtmdbapiserieurl = "3/tv/" + str(lngserieid) + "?language=" + strlang
         strtmdbapifullurl = strtmdbapidomainurl + "/" + strtmdbapiserieurl
         # print(strtmdbapifullurl)
-        response = requests.get(strtmdbapifullurl, headers=headers)
-        data = response.json()
+        data = f_tmdbfetchjson(strtmdbapifullurl, f"f_tmdbserielangtosql({lngserieid}, {strlang})")
+        if data is None:
+            return
         lngseriestatuscode = 0
         if 'status_code' in data:
             lngseriestatuscode = data['status_code']
@@ -2328,38 +2182,10 @@ def f_tmdbseriekeywordstosql(lngserieid):
     if lngserieid > 0:
         strtmdbapiseriekeywordsurl = "3/tv/" + str(lngserieid) + "/keywords"
         strtmdbapifullurl = strtmdbapidomainurl + "/" + strtmdbapiseriekeywordsurl
-        # print(strtmdbapifullurl)
-        intencore = True
-        intattemptsremaining = 5
-        intsuccess = False
-        response = None
-        while intencore:
-            try:
-                response = requests.get(strtmdbapifullurl, headers=headers, timeout=30)
-                intencore = False
-                intsuccess = True
-            except requests.exceptions.HTTPError as http_err:
-                print(f'HTTP error occurred: {http_err}')  # Handle specific HTTP errors
-            except requests.exceptions.ConnectionError as conn_err:
-                print(f'Connection error occurred: {conn_err}')  # Handle connection errors
-            except requests.exceptions.Timeout as timeout_err:
-                print(f'Timeout error occurred: {timeout_err}')  # Handle timeout errors
-            except requests.exceptions.RequestException as req_err:
-                print(f'Request error occurred: {req_err}')  # Handle other request-related errors
-            except Exception as err:
-                print(f'An error occurred: {err}')  # Handle any other exceptions
-            if intencore:
-                intattemptsremaining = intattemptsremaining - 1
-                if intattemptsremaining > 0:
-                    time.sleep(1)  # Wait for 1 second before next request
-                else:
-                    intencore = False
-        if not intsuccess:
-            print(f"f_tmdbseriekeywordstosql({lngserieid}) failed!")
+        jsonseriekeywords = f_tmdbfetchjson(strtmdbapifullurl, f"f_tmdbseriekeywordstosql({lngserieid})")
+        if jsonseriekeywords is None:
+            return
         else:
-            # Reuse the successful response from the retry loop (avoid a second unguarded request)
-            strapiseriekeywords = response.text
-            jsonseriekeywords = response.json()
             lngseriekeywordsstatuscode = 0
             if 'status_code' in jsonseriekeywords:
                 lngseriekeywordsstatuscode = jsonseriekeywords['status_code']
@@ -2408,8 +2234,9 @@ def f_tmdbserieexist(lngserieid):
         strtmdbapiserieurl = "3/tv/" + str(lngserieid) + "?language=" + strlanguage
         strtmdbapifullurl = strtmdbapidomainurl + "/" + strtmdbapiserieurl
         # print(strtmdbapifullurl)
-        response = requests.get(strtmdbapifullurl, headers=headers)
-        data = response.json()
+        data = f_tmdbfetchjson(strtmdbapifullurl, f"f_tmdbserieexist({lngserieid})")
+        if data is None:
+            return intresult
         lngseriestatuscode = 0
         if 'status_code' in data:
             lngseriestatuscode = data['status_code']
@@ -2574,6 +2401,120 @@ def f_tmdbseriesetwikidatacompleted(lngserieid):
         cursor2.execute(strsqlupdate)
         connectioncp.commit()
 
+def f_tmdbseasonsetwikidatacompleted(lngseasonid):
+    """
+    Mark a TV season's Wikidata integration as completed by setting TIM_WIKIDATA_COMPLETED timestamp.
+
+    Parameters:
+    -----------
+    lngseasonid : int
+        The TMDb TV season ID to update
+
+    Returns:
+    --------
+    None
+    """
+    global paris_tz
+    global connectioncp
+
+    if lngseasonid > 0:
+        cursor2 = connectioncp.cursor()
+        strsqltablename = "T_WC_TMDB_SEASON"
+        strsqlupdatecondition = f"ID_SEASON = {lngseasonid}"
+        strtimwikidatacompleted = datetime.now(paris_tz).strftime("%Y-%m-%d %H:%M:%S")
+        strsqlupdatesetclause = f"TIM_WIKIDATA_COMPLETED = '{strtimwikidatacompleted}'"
+        strsqlupdate = f"UPDATE {strsqltablename} SET {strsqlupdatesetclause} WHERE {strsqlupdatecondition};"
+        cursor2.execute(strsqlupdate)
+        connectioncp.commit()
+
+def f_tmdbepisodesetwikidatacompleted(lngepisodeid):
+    """
+    Mark a TV episode's Wikidata integration as completed by setting TIM_WIKIDATA_COMPLETED timestamp.
+
+    Parameters:
+    -----------
+    lngepisodeid : int
+        The TMDb TV episode ID to update
+
+    Returns:
+    --------
+    None
+    """
+    global paris_tz
+    global connectioncp
+
+    if lngepisodeid > 0:
+        cursor2 = connectioncp.cursor()
+        strsqltablename = "T_WC_TMDB_EPISODE"
+        strsqlupdatecondition = f"ID_EPISODE = {lngepisodeid}"
+        strtimwikidatacompleted = datetime.now(paris_tz).strftime("%Y-%m-%d %H:%M:%S")
+        strsqlupdatesetclause = f"TIM_WIKIDATA_COMPLETED = '{strtimwikidatacompleted}'"
+        strsqlupdate = f"UPDATE {strsqltablename} SET {strsqlupdatesetclause} WHERE {strsqlupdatecondition};"
+        cursor2.execute(strsqlupdate)
+        connectioncp.commit()
+
+def _f_t2ssetwikidatacompleted(strtablename, strpkcolumn, lngid):
+    """
+    Internal helper. Mark a T2S row's Wikidata integration as completed by setting
+    TIM_WIKIDATA_COMPLETED on `strtablename` where `strpkcolumn` = `lngid`.
+
+    The per-table f_t2s*setwikidatacompleted wrappers below exist for symmetry with
+    the f_tmdb* helpers so callers in sparql-crawler.py read consistently.
+    """
+    global paris_tz
+    global connectioncp
+
+    if lngid > 0:
+        cursor2 = connectioncp.cursor()
+        strtimwikidatacompleted = datetime.now(paris_tz).strftime("%Y-%m-%d %H:%M:%S")
+        strsqlupdate = (
+            f"UPDATE {strtablename} "
+            f"SET TIM_WIKIDATA_COMPLETED = '{strtimwikidatacompleted}' "
+            f"WHERE {strpkcolumn} = {lngid};"
+        )
+        cursor2.execute(strsqlupdate)
+        connectioncp.commit()
+
+def f_t2scollectionsetwikidatacompleted(lngid):
+    """Mark a T2S collection's Wikidata integration as completed (scope 118)."""
+    _f_t2ssetwikidatacompleted("T_WC_T2S_COLLECTION", "ID_T2S_COLLECTION", lngid)
+
+def f_t2scharactersetwikidatacompleted(lngid):
+    """Mark a T2S character's Wikidata integration as completed (scope 119)."""
+    _f_t2ssetwikidatacompleted("T_WC_T2S_CHARACTER", "ID_CHARACTER", lngid)
+
+def f_t2sawardsetwikidatacompleted(lngid):
+    """Mark a T2S award's Wikidata integration as completed (scope 120)."""
+    _f_t2ssetwikidatacompleted("T_WC_T2S_AWARD", "ID_AWARD", lngid)
+
+def f_t2snominationsetwikidatacompleted(lngid):
+    """Mark a T2S nomination's Wikidata integration as completed (scope 121)."""
+    _f_t2ssetwikidatacompleted("T_WC_T2S_NOMINATION", "ID_NOMINATION", lngid)
+
+def f_t2stopicsetwikidatacompleted(lngid):
+    """Mark a T2S topic's Wikidata integration as completed (scope 122)."""
+    _f_t2ssetwikidatacompleted("T_WC_T2S_TOPIC", "ID_TOPIC", lngid)
+
+def f_t2stechnicalsetwikidatacompleted(lngid):
+    """Mark a T2S technical's Wikidata integration as completed (scope 123)."""
+    _f_t2ssetwikidatacompleted("T_WC_T2S_TECHNICAL", "ID_TECHNICAL", lngid)
+
+def f_t2sgroupsetwikidatacompleted(lngid):
+    """Mark a T2S group's Wikidata integration as completed (scope 124)."""
+    _f_t2ssetwikidatacompleted("T_WC_T2S_GROUP", "ID_GROUP", lngid)
+
+def f_t2smovementsetwikidatacompleted(lngid):
+    """Mark a T2S movement's Wikidata integration as completed (scope 125)."""
+    _f_t2ssetwikidatacompleted("T_WC_T2S_MOVEMENT", "ID_MOVEMENT", lngid)
+
+def f_t2slistsetwikidatacompleted(lngid):
+    """Mark a T2S list's Wikidata integration as completed (scope 126)."""
+    _f_t2ssetwikidatacompleted("T_WC_T2S_LIST", "ID_T2S_LIST", lngid)
+
+def f_t2sdeathsetwikidatacompleted(lngid):
+    """Mark a T2S death's Wikidata integration as completed (scope 127)."""
+    _f_t2ssetwikidatacompleted("T_WC_T2S_DEATH", "ID_DEATH", lngid)
+
 def f_tmdbseriesetwikipediacompleted(lngserieid):
     """
     Mark a TV series' Wikipedia integration as completed by setting TIM_WIKIPEDIA_COMPLETED timestamp.
@@ -2680,8 +2621,9 @@ def f_tmdbcollectiontosql(lngcollectionid):
         strtmdbapicollectionurl = "3/collection/" + str(lngcollectionid) + "?language=" + strlanguagecountry
         strtmdbapifullurl = strtmdbapidomainurl + "/" + strtmdbapicollectionurl
         # print(strtmdbapifullurl)
-        response = requests.get(strtmdbapifullurl, headers=headers)
-        data = response.json()
+        data = f_tmdbfetchjson(strtmdbapifullurl, f"f_tmdbcollectiontosql({lngcollectionid})")
+        if data is None:
+            return
         
         #strapicollectionfordb = json.dumps(data, ensure_ascii=False)
         
@@ -2751,8 +2693,9 @@ def f_tmdbcollectionlangtosql(lngcollectionid, strlang):
         strtmdbapicollectionurl = "3/collection/" + str(lngcollectionid) + "?language=" + strlang
         strtmdbapifullurl = strtmdbapidomainurl + "/" + strtmdbapicollectionurl
         # print(strtmdbapifullurl)
-        response = requests.get(strtmdbapifullurl, headers=headers)
-        data = response.json()
+        data = f_tmdbfetchjson(strtmdbapifullurl, f"f_tmdbcollectionlangtosql({lngcollectionid}, {strlang})")
+        if data is None:
+            return
         lngcollectionstatuscode = 0
         if 'status_code' in data:
             lngcollectionstatuscode = data['status_code']
@@ -2879,9 +2822,9 @@ def f_tmdbcompanytosql(lngcompanyid):
     if lngcompanyid > 0:
         strtmdbapicompanyurl = "3/company/" + str(lngcompanyid)
         strtmdbapifullurl = strtmdbapidomainurl + "/" + strtmdbapicompanyurl
-        # print(strtmdbapifullurl)
-        response = requests.get(strtmdbapifullurl, headers=headers)
-        data = response.json()
+        data = f_tmdbfetchjson(strtmdbapifullurl, f"f_tmdbcompanytosql({lngcompanyid})")
+        if data is None:
+            return
         
         #strapicompanyfordb = json.dumps(data, ensure_ascii=False)
         lngcompanystatuscode = 0
@@ -3031,8 +2974,9 @@ def f_tmdbnetworktosql(lngnetworkid):
         strtmdbapinetworkurl = "3/network/" + str(lngnetworkid)
         strtmdbapifullurl = strtmdbapidomainurl + "/" + strtmdbapinetworkurl
         # print(strtmdbapifullurl)
-        response = requests.get(strtmdbapifullurl, headers=headers)
-        data = response.json()
+        data = f_tmdbfetchjson(strtmdbapifullurl, f"f_tmdbnetworktosql({lngnetworkid})")
+        if data is None:
+            return
         
         #strapinetworkfordb = json.dumps(data, ensure_ascii=False)
         lngnetworkstatuscode = 0
@@ -3249,8 +3193,9 @@ def f_tmdblisttosql(lnglistid):
             strtmdbapilisturl = "3/list/" + str(lnglistid) + "?language=" + strlanguagecountry + "&page=" + str(lngpage)
             strtmdbapifullurl = strtmdbapidomainurl + "/" + strtmdbapilisturl
             # print(strtmdbapifullurl)
-            response = requests.get(strtmdbapifullurl, headers=headers)
-            data = response.json()
+            data = f_tmdbfetchjson(strtmdbapifullurl, f"f_tmdblisttosql({lnglistid}, page={lngpage})")
+            if data is None:
+                return
             #strapilistfordb = json.dumps(data, ensure_ascii=False)
             lngliststatuscode = 0
             if 'status_code' in data:

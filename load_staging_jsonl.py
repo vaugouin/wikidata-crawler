@@ -11,7 +11,10 @@ import pymysql
 from dotenv import load_dotenv
 
 
-BATCH_SIZE = 100
+# pymysql collapses an executemany INSERT into a single multi-row statement, so a
+# larger batch means far fewer round-trips. 1000 keeps each packet well under the
+# default max_allowed_packet even for rows carrying large LABELS_JSON blobs.
+BATCH_SIZE = 1000
 DEFAULT_SHARED_DIR = Path(os.environ.get("SHARED_DIR", "/shared"))
 
 
@@ -52,6 +55,24 @@ TABLE_SPECS: List[TableSpec] = [
         stg_file_name="T_WC_WIKIDATA_PERSON.jsonl",
         stg_file_location="item_cache",
         table_name="STG_T_WC_WIKIDATA_PERSON",
+        additional_columns={"IMPORT_BATCH_ID": None, "SOURCE_FILE": None, "ROW_STATUS": "NEW"},
+    ),
+    TableSpec(
+        stg_file_name="T_WC_WIKIDATA_SEASON.jsonl",
+        stg_file_location="pass2",
+        table_name="STG_T_WC_WIKIDATA_SEASON",
+        additional_columns={"IMPORT_BATCH_ID": None, "SOURCE_FILE": None, "ROW_STATUS": "NEW"},
+    ),
+    TableSpec(
+        stg_file_name="T_WC_WIKIDATA_EPISODE.jsonl",
+        stg_file_location="pass2",
+        table_name="STG_T_WC_WIKIDATA_EPISODE",
+        additional_columns={"IMPORT_BATCH_ID": None, "SOURCE_FILE": None, "ROW_STATUS": "NEW"},
+    ),
+    TableSpec(
+        stg_file_name="T_WC_WIKIDATA_CHARACTER.jsonl",
+        stg_file_location="pass2",
+        table_name="STG_T_WC_WIKIDATA_CHARACTER",
         additional_columns={"IMPORT_BATCH_ID": None, "SOURCE_FILE": None, "ROW_STATUS": "NEW"},
     ),
     TableSpec(

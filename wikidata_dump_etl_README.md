@@ -71,7 +71,7 @@ Copy `.env.example` to `.env` and configure the combination that fits your setup
 ## Running in Docker
 
 The script is designed to run inside the Docker container defined by `Dockerfile`.
-The host path `/home/debian/docker/shared_data` is mounted as `/shared` inside the container.
+The host path `/home/debian/docker/shared_data/wikidata-crawler` is mounted as `/shared` inside the container.
 
 ### Full automation with `wikidata_crawler.py`
 
@@ -121,9 +121,9 @@ The container's default command is `run_etl.sh`, which runs all three passes aut
 Which map to the host at:
 
 ```
-/home/debian/docker/shared_data/pass1/
-/home/debian/docker/shared_data/pass2/
-/home/debian/docker/shared_data/item_cache/
+/home/debian/docker/shared_data/wikidata-crawler/pass1/
+/home/debian/docker/shared_data/wikidata-crawler/pass2/
+/home/debian/docker/shared_data/wikidata-crawler/item_cache/
 ```
 
 ### Running a single pass manually
@@ -135,7 +135,7 @@ docker run --rm --network=host \
   --env-file .env \
   -e PASS_NAME=pass1 \
   -e OUT_DIR=/shared/pass1 \
-  -v /home/debian/docker/shared_data:/shared \
+  -v /home/debian/docker/shared_data/wikidata-crawler:/shared \
   wikidata-crawler-python-app \
   python /app/wikidata_dump_etl.py
 ```
@@ -150,7 +150,7 @@ docker run --rm --network=host \
   -e CLASS_ROOTS_JSON=/shared/pass1/class_roots.jsonl \
   -e CORE_ENTITY_IDS=/shared/pass1/core_entity_ids.txt \
   -e CANDIDATE_PERSON_IDS=/shared/pass1/candidate_person_ids.txt \
-  -v /home/debian/docker/shared_data:/shared \
+  -v /home/debian/docker/shared_data/wikidata-crawler:/shared \
   wikidata-crawler-python-app \
   python /app/wikidata_dump_etl.py
 ```
@@ -296,7 +296,7 @@ python load_staging_jsonl.py --shared-dir /shared --only-table STG_T_WC_WIKIDATA
 python load_staging_jsonl.py --shared-dir /shared --only-table STG_T_WC_WIKIDATA_STATEMENT --only-table STG_T_WC_WIKIDATA_ITEM_VALUE
 ```
 
-If you run the loader inside Docker with the existing volume mapping, `/shared` corresponds to `/home/debian/docker/shared_data` on the host.
+If you run the loader inside Docker with the existing volume mapping, `/shared` corresponds to `/home/debian/docker/shared_data/wikidata-crawler` on the host.
 
 ---
 

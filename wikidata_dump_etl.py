@@ -34,6 +34,7 @@ import bz2
 import hashlib
 import json
 import os
+import re
 import sys
 import time
 from collections import defaultdict, deque
@@ -52,7 +53,33 @@ _SV_PREFIX = "strwikidatacrawler"
 MOVIE_ROOTS = {"Q11424", "Q506240"}  # film, television film
 SERIES_ROOTS = {"Q5398426", "Q1259759", "Q526877"}  # television series, miniseries, web series
 PERSON_ROOTS = {"Q5"}  # human
+SEASON_ROOTS = {"Q3464665"}  # television series season
+EPISODE_ROOTS = {"Q21191270"}  # television series episode
+CHARACTER_ROOTS = {"Q95074"}  # fictional character
 EXCLUDED_SERIES_ROOTS = {"Q15416"}  # television program
+
+# Maps a classification result to its target table / NDJSON file name. New entity
+# types are added by extending the *_ROOTS sets above, classify_entity(), and this map.
+CLASS_TO_TABLE = {
+    "movie": "T_WC_WIKIDATA_MOVIE",
+    "series": "T_WC_WIKIDATA_SERIE",
+    "person": "T_WC_WIKIDATA_PERSON",
+    "season": "T_WC_WIKIDATA_SEASON",
+    "episode": "T_WC_WIKIDATA_EPISODE",
+    "character": "T_WC_WIKIDATA_CHARACTER",
+}
+
+# Cheap top-level id extractor used to skip full JSON materialization of entities
+# the current pass cannot possibly emit. Anchored at the start of the line, so it
+# only matches the entity's own id (Wikidata dump field order is type, then id),
+# never a claim GUID or snak value. On any non-match it returns None and the caller
+# falls back to the normal full-parse path — so it can only skip, never corrupt.
+_ENTITY_ID_RE = re.compile(rb'^\{"type":"(?:item|property)","id":"([A-Za-z]\d+)"')
+
+
+def fast_entity_id(entity_json: bytes) -> Optional[str]:
+    match = _ENTITY_ID_RE.match(entity_json)
+    return match.group(1).decode("ascii") if match else None
 
 P_INSTANCE_OF = "P31"
 P_SUBCLASS_OF = "P279"
@@ -90,16 +117,38 @@ class Stats:
     movies_detected: int = 0
     series_detected: int = 0
     persons_detected: int = 0
+    seasons_detected: int = 0
+    episodes_detected: int = 0
+    characters_detected: int = 0
     started_at: float = field(default_factory=time.perf_counter)
 
     def elapsed(self) -> float:
         return time.perf_counter() - self.started_at
 
+    def count_detected(self, entity_class: str) -> None:
+        if entity_class == "movie":
+            self.movies_detected += 1
+        elif entity_class == "series":
+            self.series_detected += 1
+        elif entity_class == "person":
+            self.persons_detected += 1
+        elif entity_class == "season":
+            self.seasons_detected += 1
+        elif entity_class == "episode":
+            self.episodes_detected += 1
+        elif entity_class == "character":
+            self.characters_detected += 1
+
 
 class NDJSONWriter:
+    # 4 MB write buffer per file: pass2/item_cache emit tens of millions of small
+    # NDJSON rows across many files on /shared; large buffering collapses the
+    # write() syscall storm that otherwise dominates those passes.
+    _WRITE_BUFFER_BYTES = 4 * 1024 * 1024
+
     def __init__(self, path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
-        self._fh = path.open("w", encoding="utf-8")
+        self._fh = path.open("w", encoding="utf-8", buffering=self._WRITE_BUFFER_BYTES)
         print(f"[FILE] Created {path}", file=sys.stderr, flush=True)
 
     def write(self, row: Dict[str, Any]) -> None:
@@ -354,7 +403,62 @@ def iter_bz2_lines_from_http(
             print(f"[HTTP] Connection error (attempt {attempt + 1}/{max_retries + 1}): {exc}", file=sys.stderr, flush=True)
 
 
+def _open_parallel_bz2(path: Path):
+    """Return a multi-core bz2 decompressing reader (indexed_bzip2) or None.
+
+    stdlib bz2 is single-threaded and is the per-pass throughput ceiling for a local
+    dump. indexed_bzip2 decompresses the same .bz2 across cores. Optional dependency:
+    if it is missing or fails, we return None and the caller uses the stdlib path.
+    Set BZ2_PARALLELISM to pin core count (default 0 = use all cores)."""
+    try:
+        import indexed_bzip2  # type: ignore[import]
+    except Exception:
+        return None
+    try:
+        parallelization = int(os.environ.get("BZ2_PARALLELISM", "0"))
+        reader = indexed_bzip2.IndexedBzip2File(str(path), parallelization=parallelization)
+        print(
+            f"[FILE] Parallel bz2 decompression via indexed_bzip2 "
+            f"(parallelization={parallelization or 'auto'})",
+            file=sys.stderr, flush=True,
+        )
+        return reader
+    except Exception as exc:
+        print(f"[FILE] indexed_bzip2 unavailable ({exc}); using single-threaded bz2", file=sys.stderr, flush=True)
+        return None
+
+
 def iter_bz2_lines_from_file(path: Path, chunk_size: int = 8 * 1024 * 1024) -> Generator[bytes, None, None]:
+    # Fast path: multi-core decompression. read() here already returns DECOMPRESSED bytes,
+    # so we only line-split (no per-chunk decompress step).
+    reader = _open_parallel_bz2(path)
+    if reader is not None:
+        buffered = bytearray()
+        lines_yielded = 0
+        try:
+            while True:
+                data = reader.read(chunk_size)
+                if not data:
+                    break
+                buffered.extend(data)
+                start = 0
+                while True:
+                    nl = buffered.find(b"\n", start)
+                    if nl == -1:
+                        if start > 0:
+                            del buffered[:start]
+                        break
+                    lines_yielded += 1
+                    yield bytes(buffered[start:nl + 1])
+                    start = nl + 1
+            if buffered:
+                yield bytes(buffered)
+        finally:
+            reader.close()
+        print(f"[FILE] Read complete (parallel) — {lines_yielded:,} lines", file=sys.stderr, flush=True)
+        return
+
+    # Fallback: stdlib single-threaded streaming decompression.
     decompressor = bz2.BZ2Decompressor()
     buffered = bytearray()
 
@@ -831,6 +935,9 @@ class WikidataDumpETL:
         self.movie_descendants: Set[str] = set()
         self.series_descendants: Set[str] = set()
         self.person_descendants: Set[str] = set()
+        self.season_descendants: Set[str] = set()
+        self.episode_descendants: Set[str] = set()
+        self.character_descendants: Set[str] = set()
 
         self.in_scope_entity_ids: Set[str] = load_id_set(core_entity_ids_path)
         self.referenced_item_ids_filter: Set[str] = load_id_set(referenced_item_ids_path)
@@ -841,9 +948,20 @@ class WikidataDumpETL:
         # used in item_cache to emit them to T_WC_WIKIDATA_PERSON instead of T_WC_WIKIDATA_ITEM
         self.referenced_person_ids_filter: Set[str] = load_id_set(referenced_person_ids_path)
 
-        self.detected_movie_ids: Set[str] = set()
-        self.detected_series_ids: Set[str] = set()
-        self.detected_person_ids: Set[str] = set()
+        # run() skips the expensive full JSON parse for any Q-item that the current pass cannot
+        # possibly emit. pass2 only emits the in-scope core entities; item_cache only emits
+        # referenced items/persons. pass1 must see everything (None = no skipping).
+        self._fastskip_set: Optional[Set[str]] = None
+        if pass_name == "pass2":
+            self._fastskip_set = self.in_scope_entity_ids
+        elif pass_name == "item_cache":
+            self._fastskip_set = self.referenced_item_ids_filter | self.referenced_person_ids_filter
+
+        # pass1 records (id, P31 qids, has_imdb) here during the scan; after the scan the complete
+        # subclass graph is used to classify these records into the authoritative core entity set.
+        self._p31_sidecar = None
+        self._p31_sidecar_path = out_dir / "entity_class_input.tsv"
+
         self.detected_core_entity_ids: Set[str] = set()
         # candidate_person_ids: built in pass1, all Q5 instances (regardless of IMDb/birth date)
         self.candidate_person_ids: Set[str] = set()
@@ -854,6 +972,9 @@ class WikidataDumpETL:
 
         if class_roots_json and class_roots_json.exists():
             self._load_root_sets(class_roots_json)
+        # Build classifier pools from whatever descendants are known now (complete in pass2 /
+        # item_cache; empty in pass1 until its scan finishes, where _build_pools() is called again).
+        self._build_pools()
 
     def _load_root_sets(self, path: Path) -> None:
         with path.open("r", encoding="utf-8") as fh:
@@ -867,16 +988,27 @@ class WikidataDumpETL:
                     self.series_descendants.add(qid)
                 elif root_type == "person":
                     self.person_descendants.add(qid)
+                elif root_type == "season":
+                    self.season_descendants.add(qid)
+                elif root_type == "episode":
+                    self.episode_descendants.add(qid)
+                elif root_type == "character":
+                    self.character_descendants.add(qid)
 
     def _write_root_sets(self) -> None:
         path = self.out_dir / "class_roots.jsonl"
+        descendant_sets = (
+            ("movie", self.movie_descendants),
+            ("series", self.series_descendants),
+            ("person", self.person_descendants),
+            ("season", self.season_descendants),
+            ("episode", self.episode_descendants),
+            ("character", self.character_descendants),
+        )
         with path.open("w", encoding="utf-8") as fh:
-            for qid in sorted(self.movie_descendants):
-                fh.write(json.dumps({"ROOT_TYPE": "movie", "QID": qid}, ensure_ascii=False) + "\n")
-            for qid in sorted(self.series_descendants):
-                fh.write(json.dumps({"ROOT_TYPE": "series", "QID": qid}, ensure_ascii=False) + "\n")
-            for qid in sorted(self.person_descendants):
-                fh.write(json.dumps({"ROOT_TYPE": "person", "QID": qid}, ensure_ascii=False) + "\n")
+            for root_type, descendants in descendant_sets:
+                for qid in sorted(descendants):
+                    fh.write(json.dumps({"ROOT_TYPE": root_type, "QID": qid}, ensure_ascii=False) + "\n")
 
     def iter_lines(self) -> Generator[bytes, None, None]:
         if self.dump_url:
@@ -900,6 +1032,15 @@ class WikidataDumpETL:
             entity_json = normalize_wikidata_entity_line(raw_line)
             if entity_json is None:
                 continue
+
+            # Fast path (pass2 / item_cache): a Q-item the pass cannot emit is skipped
+            # before the expensive full parse. Properties and any line the cheap matcher
+            # can't read fall through to normal parsing, so this only ever skips, never drops.
+            if self._fastskip_set is not None:
+                fast_id = fast_entity_id(entity_json)
+                if fast_id is not None and fast_id.startswith("Q") and fast_id not in self._fastskip_set:
+                    self.stats.entities_seen += 1
+                    continue
 
             try:
                 doc = simdjson.loads(entity_json)
@@ -943,6 +1084,9 @@ class WikidataDumpETL:
                     f"movies={self.stats.movies_detected:,} "
                     f"series={self.stats.series_detected:,} "
                     f"persons={self.stats.persons_detected:,} "
+                    f"seasons={self.stats.seasons_detected:,} "
+                    f"episodes={self.stats.episodes_detected:,} "
+                    f"characters={self.stats.characters_detected:,} "
                     f"statements={self.stats.statements_emitted:,} "
                     f"values={self.stats.value_rows_emitted:,} "
                     f"errors={self.stats.parse_errors:,} "
@@ -953,13 +1097,18 @@ class WikidataDumpETL:
                 self._sv_progress(elapsed, rate)
 
         if self.pass_name == "pass1":
+            # Whole dump streamed: the subclass graph is now complete.
             self.movie_descendants = self.subclass_graph.descendants_of_roots(MOVIE_ROOTS)
             self.series_descendants = self.subclass_graph.descendants_of_roots(SERIES_ROOTS)
             self.person_descendants = self.subclass_graph.descendants_of_roots(PERSON_ROOTS)
+            self.season_descendants = self.subclass_graph.descendants_of_roots(SEASON_ROOTS)
+            self.episode_descendants = self.subclass_graph.descendants_of_roots(EPISODE_ROOTS)
+            self.character_descendants = self.subclass_graph.descendants_of_roots(CHARACTER_ROOTS)
+            self._build_pools()
             self._write_root_sets()
-            write_id_set(self.out_dir / "core_entity_ids.txt", self.detected_core_entity_ids)
-            # All Q5 instances found; needed by pass2 to identify persons in referenced item values
-            write_id_set(self.out_dir / "candidate_person_ids.txt", self.candidate_person_ids)
+            # Classify the recorded P31 sidecar with the complete graph -> authoritative
+            # core_entity_ids.txt and candidate_person_ids.txt.
+            self._classify_sidecar_and_write_core()
 
         if self.pass_name == "pass2":
             write_id_set(self.out_dir / "referenced_item_ids.txt", self.referenced_item_ids)
@@ -983,6 +1132,9 @@ class WikidataDumpETL:
             "movies_detected": self.stats.movies_detected,
             "series_detected": self.stats.series_detected,
             "persons_detected": self.stats.persons_detected,
+            "seasons_detected": self.stats.seasons_detected,
+            "episodes_detected": self.stats.episodes_detected,
+            "characters_detected": self.stats.characters_detected,
             "statements_emitted": self.stats.statements_emitted,
             "value_rows_emitted": self.stats.value_rows_emitted,
             "elapsed_seconds": round(elapsed, 2),
@@ -1121,45 +1273,48 @@ class WikidataDumpETL:
 
     def process_item(self, doc: Any, entity_id: str) -> None:
         if self.pass_name == "pass1":
+            # pass1 builds the subclass graph and records each entity's P31 (+ an IMDb
+            # flag for humans) to a sidecar. It does NOT classify here: the P279
+            # descendant sets are only complete once the whole dump has been streamed.
+            # After the scan, _classify_sidecar_and_write_core() classifies the sidecar
+            # with the COMPLETE graph, producing the authoritative core entity set — so
+            # subclass-typed films/series are captured, and pass2 can cheaply id-gate.
             self.collect_subclass_edges(doc)
-            entity_class = self.classify_entity(doc)
-            if entity_class == "movie":
-                self.detected_core_entity_ids.add(entity_id)
-                self.detected_movie_ids.add(entity_id)
-                self.stats.movies_detected += 1
-            elif entity_class == "series":
-                self.detected_core_entity_ids.add(entity_id)
-                self.detected_series_ids.add(entity_id)
-                self.stats.series_detected += 1
-            elif entity_class == "person":
-                # All Q5 instances are candidate persons (for rule 2: referenced by movies/series)
-                self.candidate_person_ids.add(entity_id)
-                # Rule 1: only include in core entities if they have an IMDb ID
-                if self._has_imdb(doc):
-                    self.detected_core_entity_ids.add(entity_id)
-                    self.detected_person_ids.add(entity_id)
-                    self.stats.persons_detected += 1
+            p31 = self.direct_p31_qids(doc)
+            if p31:
+                # Only compute has_imdb for humans (the only class gated on it) to avoid a
+                # P345 scan across all ~120M entities.
+                has_imdb = 1 if ("Q5" in p31 and self._has_imdb(doc)) else 0
+                if self._p31_sidecar is None:
+                    self._p31_sidecar_path.parent.mkdir(parents=True, exist_ok=True)
+                    self._p31_sidecar = self._p31_sidecar_path.open("w", encoding="utf-8", buffering=4 * 1024 * 1024)
+                self._p31_sidecar.write(f"{entity_id}\t{','.join(sorted(p31))}\t{has_imdb}\n")
             return
 
         if self.pass_name == "pass2":
-            if entity_id in self.in_scope_entity_ids:
-                entity_class = self.classify_entity(doc)
-                base_row = {
-                    "ID_WIKIDATA": entity_id,
-                    "LABEL_EN": get_label(doc, "en"),
-                    "DESCRIPTION_EN": get_description(doc, "en"),
-                    "LABELS_JSON": extract_labels(doc),
-                    "DESCRIPTIONS_JSON": extract_descriptions(doc),
-                }
+            # Gate by the authoritative core set produced in pass1. run()'s fast-skip
+            # already drops most non-core entities before the full parse; this is the
+            # exact guard for properties and any line the fast matcher couldn't read.
+            if entity_id not in self.in_scope_entity_ids:
+                return
+            entity_class = self.classify_entity(doc)
+            if entity_class is None:
+                return
+            self.stats.count_detected(entity_class)
 
-                if entity_class == "movie":
-                    self.writers.write("T_WC_WIKIDATA_MOVIE", base_row)
-                elif entity_class == "series":
-                    self.writers.write("T_WC_WIKIDATA_SERIE", base_row)
-                elif entity_class == "person":
-                    self.writers.write("T_WC_WIKIDATA_PERSON", base_row)
+            base_row = {
+                "ID_WIKIDATA": entity_id,
+                "LABEL_EN": get_label(doc, "en"),
+                "DESCRIPTION_EN": get_description(doc, "en"),
+                "LABELS_JSON": extract_labels(doc),
+                "DESCRIPTIONS_JSON": extract_descriptions(doc),
+            }
 
-                self.emit_claims_for_in_scope_entity(doc, entity_id)
+            table = CLASS_TO_TABLE.get(entity_class)
+            if table:
+                self.writers.write(table, base_row)
+
+            self.emit_claims_for_in_scope_entity(doc, entity_id)
             return
 
         if self.pass_name == "item_cache":
@@ -1203,22 +1358,75 @@ class WikidataDumpETL:
                 qids.add(qid)
         return qids
 
-    def classify_entity(self, doc: Any) -> Optional[str]:
-        qids = self.direct_p31_qids(doc)
+    def _build_pools(self) -> None:
+        """Precompute root|descendants pools once. Called after descendant sets are
+        known (loaded from class_roots.jsonl, or computed at the end of pass1).
+        Rebuilding these per entity was an O(entities x roots) set-union cost."""
+        self._person_pool = PERSON_ROOTS | self.person_descendants
+        self._movie_pool = MOVIE_ROOTS | self.movie_descendants
+        self._series_pool = SERIES_ROOTS | self.series_descendants
+        self._season_pool = SEASON_ROOTS | self.season_descendants
+        self._episode_pool = EPISODE_ROOTS | self.episode_descendants
+        self._character_pool = CHARACTER_ROOTS | self.character_descendants
+
+    def classify_qids(self, qids: Set[str]) -> Optional[str]:
         if not qids:
             return None
-
-        person_pool = PERSON_ROOTS | self.person_descendants
-        movie_pool = MOVIE_ROOTS | self.movie_descendants
-        series_pool = SERIES_ROOTS | self.series_descendants
-
-        if any(qid in person_pool for qid in qids):
+        if any(qid in self._person_pool for qid in qids):
             return "person"
-        if any(qid in movie_pool for qid in qids):
+        if any(qid in self._movie_pool for qid in qids):
             return "movie"
-        if any((qid not in EXCLUDED_SERIES_ROOTS) and (qid in series_pool) for qid in qids):
+        if any((qid not in EXCLUDED_SERIES_ROOTS) and (qid in self._series_pool) for qid in qids):
             return "series"
+        # Checked after series: a season/episode is part-of (not a kind-of) a series,
+        # so these pools do not overlap the series pool in Wikidata's P279 graph.
+        if any(qid in self._season_pool for qid in qids):
+            return "season"
+        if any(qid in self._episode_pool for qid in qids):
+            return "episode"
+        if any(qid in self._character_pool for qid in qids):
+            return "character"
         return None
+
+    def classify_entity(self, doc: Any) -> Optional[str]:
+        return self.classify_qids(self.direct_p31_qids(doc))
+
+    def _classify_sidecar_and_write_core(self) -> None:
+        """pass1 post-scan: classify the recorded (id, P31, has_imdb) sidecar with the
+        now-complete subclass graph, producing the authoritative core entity set and the
+        all-humans candidate-person set. Streamed line by line — no large in-memory map."""
+        if self._p31_sidecar is not None:
+            self._p31_sidecar.close()
+            self._p31_sidecar = None
+
+        core: Set[str] = set()
+        candidate_persons: Set[str] = set()
+        if self._p31_sidecar_path.exists():
+            with self._p31_sidecar_path.open("r", encoding="utf-8") as fh:
+                for line in fh:
+                    parts = line.rstrip("\n").split("\t")
+                    if len(parts) != 3:
+                        continue
+                    entity_id, p31_csv, imdb_flag = parts
+                    qids = set(p31_csv.split(",")) if p31_csv else set()
+                    entity_class = self.classify_qids(qids)
+                    if entity_class is None:
+                        continue
+                    if entity_class == "person":
+                        # All humans are candidate persons (rule 2: referenced by movies/series).
+                        candidate_persons.add(entity_id)
+                        # Rule 1: only humans with an IMDb ID become core entities.
+                        if imdb_flag == "1":
+                            core.add(entity_id)
+                            self.stats.persons_detected += 1
+                        continue
+                    core.add(entity_id)
+                    self.stats.count_detected(entity_class)
+
+        self.detected_core_entity_ids = core
+        self.candidate_person_ids = candidate_persons
+        write_id_set(self.out_dir / "core_entity_ids.txt", core)
+        write_id_set(self.out_dir / "candidate_person_ids.txt", candidate_persons)
 
     def emit_claims_for_in_scope_entity(self, doc: Any, entity_id: str) -> None:
         for property_id, claim_list in iter_claims_map(doc):

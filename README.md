@@ -37,6 +37,13 @@ Use these documents as the main references:
   - conceptual schema documentation
   - statement / typed value / qualifier model
   - award modeling notes
+- `doc/mariadb-server-tuning.md`
+  - **server installation**: InnoDB buffer pool sizing + bulk-load settings
+  - belongs in the server install runbook
+- `doc/wikidata-v1-v2-gap-analysis.md`
+  - V1→V2 coverage gap, the classifier fix, new entity types, run-time breakdown
+- `doc/collation-standardization.md`
+  - database-wide charset/collation standardization plan (fixes cross-table `#1267` join errors)
 
 ## Main files
 
@@ -54,12 +61,23 @@ Use these documents as the main references:
 - `03_bulk_load_from_staging_FULL.sql`
 - `04_reset_for_full_rerun.sql`
 - `07_resolve_media_resources.sql`
+- `apply_to_live_db.sql` — idempotent additive DDL (SEASON/EPISODE/CHARACTER target + staging tables);
+  auto-applied by the crawler at steps 108 and 110 so a long-lived DB stays in sync with new tables
+
+### Tests
+
+- `tests/test_etl_smoke.py` — standalone, no-DB/no-network parity check of the ETL classifier and
+  emission (subclass-typed detection, new entity types, IMDb gating, item cache). Run:
+  `python tests/test_etl_smoke.py`
 
 ### Documentation and scripts
 
 - `README.md`
 - `wikidata_dump_etl_README.md`
 - `WIKIDATA.md`
+- `doc/mariadb-server-tuning.md` — server-install MariaDB tuning (InnoDB buffer pool + load settings)
+- `doc/wikidata-v1-v2-gap-analysis.md` — V1→V2 gap, classifier fix, new entity types, ETL performance
+- `doc/collation-standardization.md` — database-wide charset/collation standardization plan
 - `wikidata-crawler.sh`
 
 ## Current architecture summary
@@ -179,7 +197,7 @@ That means if you want a fresh latest dump, you must delete the cached file befo
 Host example:
 
 ```bash
-rm -f /home/debian/docker/shared_data/latest-all.json.bz2
+rm -f /home/debian/docker/shared_data/wikidata-crawler/latest-all.json.bz2
 ```
 
 This is required because the workflow is designed to download from `DUMP_URL` into `DUMP_FILE` only when the local file does not already exist.
@@ -240,6 +258,20 @@ If you changed Python or SQL files, rebuild before the run:
 docker build -t wikidata-crawler-python-app .
 ```
 
+The rebuild also installs `indexed_bzip2` (in `requirements.txt`), which enables multi-core
+decompression of the local dump — a significant speedup across all three ETL passes. The ETL falls
+back to single-threaded `bz2` if it is unavailable, so the build/run never breaks on its account.
+Tune the core count with the `BZ2_PARALLELISM` env var (default: all cores).
+
+### 4b. Tune the MariaDB server (one-time, highly recommended)
+
+Before the first big run, raise the InnoDB buffer pool and apply the load settings — the single
+highest-value, lowest-risk performance change, and it benefits every database on the instance. See
+`doc/mariadb-server-tuning.md`. The crawler already applies the safe session-scoped load pragmas
+itself at step 110; the buffer pool is the one server-side step you set manually. The new
+SEASON/EPISODE/CHARACTER tables are created automatically by `apply_to_live_db.sql` during the run —
+no manual DDL needed.
+
 ### 5. Start the container in detached mode
 
 The recommended mode is detached/background execution.
@@ -250,7 +282,7 @@ Use:
 docker run -d --rm --network="host" \
   --name wikidata-crawler \
   --env-file .env \
-  -v /home/debian/docker/shared_data:/shared \
+  -v /home/debian/docker/shared_data/wikidata-crawler:/shared \
   wikidata-crawler-python-app
 ```
 
@@ -292,7 +324,7 @@ When restarting everything from scratch, use this checklist in order.
 - confirm `.env` contains the expected `DUMP_URL`
 - confirm `.env` contains the expected `DUMP_FILE`
 - change `MARIADB_IMPORT_BATCH_ID`
-- remove `/home/debian/docker/shared_data/latest-all.json.bz2`
+- remove `/home/debian/docker/shared_data/wikidata-crawler/latest-all.json.bz2`
 
 ### Database
 
@@ -310,7 +342,7 @@ When restarting everything from scratch, use this checklist in order.
 ### 1. Remove the cached dump
 
 ```bash
-rm -f /home/debian/docker/shared_data/latest-all.json.bz2
+rm -f /home/debian/docker/shared_data/wikidata-crawler/latest-all.json.bz2
 ```
 
 ### 2. Rebuild the image
@@ -341,7 +373,7 @@ Equivalent raw docker command (use this if you need to tweak flags):
 docker run -d --rm --network="host" \
   --name wikidata-crawler \
   --env-file .env \
-  -v /home/debian/docker/shared_data:/shared \
+  -v /home/debian/docker/shared_data/wikidata-crawler:/shared \
   wikidata-crawler-python-app \
   --start-step 101
 ```

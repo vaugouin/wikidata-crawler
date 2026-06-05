@@ -42,6 +42,7 @@ SHARED_DIR = Path("/shared")
 BASE_DIR = Path(__file__).resolve().parent
 DEFAULT_BULK_SQL_NAME = "03_bulk_load_from_staging_FULL.sql"
 DEFAULT_MEDIA_RESOLVE_SQL_NAME = "07_resolve_media_resources.sql"
+DEFAULT_LIVE_DB_SCHEMA_NAME = "apply_to_live_db.sql"
 CRAWLER_PREFIX = "strwikidatacrawler"
 
 
@@ -228,6 +229,8 @@ class WikidataCrawler:
             raise ValidationError("pass2 has parse errors")
         if summary["statements_emitted"] <= 0:
             raise ValidationError("pass2 emitted no statements")
+        if summary["movies_detected"] <= 0 and summary["series_detected"] <= 0 and summary["persons_detected"] <= 0:
+            raise ValidationError("pass2 emitted no in-scope entities")
         cp.f_setservervariable(f"{CRAWLER_PREFIX}pass2statements", str(summary["statements_emitted"]), "Statements emitted during ETL pass2", 0)
 
     def step_run_item_cache(self) -> None:
@@ -235,6 +238,8 @@ class WikidataCrawler:
             pass_name="item_cache",
             out_dir=ITEM_CACHE_DIR,
             class_roots_json=None,
+            # pass1 now produces the authoritative core set (it classifies its P31 sidecar
+            # with the complete subclass graph), so item_cache excludes the correct entities.
             core_entity_ids_path=PASS1_DIR / "core_entity_ids.txt",
             referenced_item_ids_path=PASS2_DIR / "referenced_item_ids.txt",
             candidate_person_ids_path=None,
@@ -251,6 +256,10 @@ class WikidataCrawler:
         cp.f_setservervariable(f"{CRAWLER_PREFIX}itemcacheentities", str(summary["entities_seen"]), "Entities seen during ETL item_cache", 0)
 
     def step_load_staging(self) -> None:
+        # Idempotently bring the live DB up to date (new SEASON/EPISODE/CHARACTER
+        # tables) before touching staging. CREATE TABLE IF NOT EXISTS, so it is a
+        # no-op once the tables exist.
+        self._apply_live_db_schema()
         total_rows = 0
         connection = create_staging_connection()
         try:
@@ -283,6 +292,9 @@ class WikidataCrawler:
             "STG_T_WC_WIKIDATA_SERIE",
             "STG_T_WC_WIKIDATA_PERSON",
             "STG_T_WC_WIKIDATA_ITEM",
+            "STG_T_WC_WIKIDATA_SEASON",
+            "STG_T_WC_WIKIDATA_EPISODE",
+            "STG_T_WC_WIKIDATA_CHARACTER",
             "STG_T_WC_WIKIDATA_STATEMENT",
             "STG_T_WC_WIKIDATA_ITEM_VALUE",
             "STG_T_WC_WIKIDATA_STRING_VALUE",
@@ -309,6 +321,9 @@ class WikidataCrawler:
         cp.f_setservervariable(f"{CRAWLER_PREFIX}stagingstatementrows", str(counts["STG_T_WC_WIKIDATA_STATEMENT"]), "Statement rows available in staging for the import batch id", 0)
 
     def step_bulk_load(self) -> None:
+        # Also applied here so a run started at --start-step 110 still gets the
+        # new target tables. Idempotent (CREATE TABLE IF NOT EXISTS).
+        self._apply_live_db_schema()
         sql_path = self._resolve_bulk_sql_path()
         sql_text = sql_path.read_text(encoding="utf-8")
         sql_text = sql_text.replace("SET NAMES utf8mb4;", "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;")
@@ -325,6 +340,20 @@ class WikidataCrawler:
         connection = self._create_multi_statement_connection()
         try:
             with connection.cursor() as cursor:
+                # Session-scoped load accelerators: they apply ONLY to this loader
+                # connection (no effect on other databases/scripts) and reset when it
+                # closes. Safe because the staged data is unique and FK-clean by
+                # construction and is fully reproducible from the dump.
+                #   - sql_log_bin=0       : skip binary-logging every inserted row
+                #   - unique_checks=0     : skip per-row secondary-unique-index probes
+                #   - foreign_key_checks=0: skip per-row FK validation
+                # Must run before the first INSERT (sql_log_bin requires no open txn).
+                for pragma in (
+                    "SET SESSION sql_log_bin = 0",
+                    "SET SESSION unique_checks = 0",
+                    "SET SESSION foreign_key_checks = 0",
+                ):
+                    cursor.execute(pragma)
                 for index, statement in enumerate(statements, start=1):
                     normalized = statement.strip().upper()
                     if normalized in ("START TRANSACTION", "COMMIT"):
@@ -348,6 +377,9 @@ class WikidataCrawler:
             "T_WC_WIKIDATA_SERIE",
             "T_WC_WIKIDATA_PERSON",
             "T_WC_WIKIDATA_ITEM",
+            "T_WC_WIKIDATA_SEASON",
+            "T_WC_WIKIDATA_EPISODE",
+            "T_WC_WIKIDATA_CHARACTER",
             "T_WC_WIKIDATA_STATEMENT",
             "T_WC_WIKIDATA_ITEM_VALUE",
             "T_WC_WIKIDATA_STRING_VALUE",
@@ -526,6 +558,42 @@ class WikidataCrawler:
                 return candidate
         searched = ", ".join(str(path) for path in candidates)
         raise ValidationError(f"Media-resolution SQL file not found. Searched: {searched}")
+
+    def _resolve_live_db_schema_path(self) -> Path:
+        candidates = [
+            BASE_DIR / DEFAULT_LIVE_DB_SCHEMA_NAME,
+            Path.cwd() / DEFAULT_LIVE_DB_SCHEMA_NAME,
+            SHARED_DIR / DEFAULT_LIVE_DB_SCHEMA_NAME,
+        ]
+        for candidate in candidates:
+            if candidate.exists():
+                return candidate
+        searched = ", ".join(str(path) for path in candidates)
+        raise ValidationError(f"Live-DB schema file not found. Searched: {searched}")
+
+    def _apply_live_db_schema(self) -> None:
+        """Idempotently apply additive DDL (CREATE TABLE IF NOT EXISTS) to the live DB.
+
+        Keeps a long-lived database in sync with newly-added tables that
+        01_create_schema.sql would only create on a fresh database. Safe to call
+        repeatedly and from multiple steps.
+        """
+        sql_path = self._resolve_live_db_schema_path()
+        statements = self._split_sql_statements(sql_path.read_text(encoding="utf-8"))
+        connection = self._create_multi_statement_connection()
+        try:
+            with connection.cursor() as cursor:
+                for statement in statements:
+                    cursor.execute(statement)
+                    connection.commit()
+        finally:
+            connection.close()
+        cp.f_setservervariable(
+            f"{CRAWLER_PREFIX}livedbschemaapplied",
+            sql_path.name,
+            "Last live-DB additive schema script applied by the Wikidata dump crawler",
+            0,
+        )
 
     def _fetch_rows(self, sql: str, params: tuple = ()) -> List[Dict[str, object]]:
         connection = cp.f_getconnection()

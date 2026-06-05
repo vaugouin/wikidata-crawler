@@ -35,6 +35,12 @@ strdatepattern = r"^\d{4}-\d{2}-\d{2}$"
 strlanguagecountry = "en-US"
 strlanguage = "en"
 
+# Selective TV refresh tuning (see SERIE_UPDATE.md). TODO: move to T_WC_SERVER_VARIABLE.
+INT_RECENT_SEASON_DAYS = 120
+INT_RECENT_EPISODE_DAYS = 45
+INT_ACTIVE_SERIES_LOOKBACK_DAYS = 90
+INT_TMDB_CHANGES_MAX_DAYS = 14
+
 def f_tmdbjsonremovekeys(strjson,strbegin,strend,strreplace):
     """
     Remove a key-value section from a JSON string by finding and replacing text between markers.
@@ -1367,12 +1373,6 @@ def f_tmdbmoviedelete(lngmovieid):
         cursor2.execute(strsqlupdate)
         connectioncp.commit()
         
-        strsqltablename = "T_WC_TMDB_MOVIE_LANG_META"
-        strsqlupdatecondition = f"ID_MOVIE = {lngmovieid}"
-        strsqlupdate = f"DELETE FROM {strsqltablename} WHERE {strsqlupdatecondition};"
-        cursor2.execute(strsqlupdate)
-        connectioncp.commit()
-        
         strsqltablename = "T_WC_TMDB_MOVIE_LIST"
         strsqlupdatecondition = f"ID_MOVIE = {lngmovieid}"
         strsqlupdate = f"DELETE FROM {strsqltablename} WHERE {strsqlupdatecondition};"
@@ -1724,7 +1724,42 @@ def f_tmdbserietosql(lngserieid):
             strserietype = ""
             if 'type' in data:
                 strserietype = data['type']
-            
+
+            # Activity signals (drive selective season/episode refresh)
+            intinproduction = None
+            if 'in_production' in data:
+                booinproduction = data['in_production']
+                if booinproduction is True:
+                    intinproduction = 1
+                elif booinproduction is False:
+                    intinproduction = 0
+
+            strnextepisodedatair = None
+            lngnextepisodeseasonnumber = None
+            lngnextepisodenumber = None
+            if 'next_episode_to_air' in data and data['next_episode_to_air']:
+                arrnextepisode = data['next_episode_to_air']
+                if 'air_date' in arrnextepisode and arrnextepisode['air_date']:
+                    if re.match(strdatepattern, arrnextepisode['air_date']):
+                        strnextepisodedatair = arrnextepisode['air_date']
+                if 'season_number' in arrnextepisode:
+                    lngnextepisodeseasonnumber = arrnextepisode['season_number']
+                if 'episode_number' in arrnextepisode:
+                    lngnextepisodenumber = arrnextepisode['episode_number']
+
+            strlastepisodedatair = None
+            lnglastepisodeseasonnumber = None
+            lnglastepisodenumber = None
+            if 'last_episode_to_air' in data and data['last_episode_to_air']:
+                arrlastepisode = data['last_episode_to_air']
+                if 'air_date' in arrlastepisode and arrlastepisode['air_date']:
+                    if re.match(strdatepattern, arrlastepisode['air_date']):
+                        strlastepisodedatair = arrlastepisode['air_date']
+                if 'season_number' in arrlastepisode:
+                    lnglastepisodeseasonnumber = arrlastepisode['season_number']
+                if 'episode_number' in arrlastepisode:
+                    lnglastepisodenumber = arrlastepisode['episode_number']
+
             # Process production countries
             strseriecountries = ""
             strcountryidlist = ""
@@ -1926,6 +1961,15 @@ def f_tmdbserietosql(lngserieid):
             arrseriecouples["NUMBER_OF_EPISODES"] = lngnumberofepisodes
             arrseriecouples["NUMBER_OF_SEASONS"] = lngnumberofseasons
             arrseriecouples["SERIE_TYPE"] = strserietype
+
+            # Activity signals (always set so they get cleared when TMDb drops them)
+            arrseriecouples["IN_PRODUCTION"] = intinproduction
+            arrseriecouples["NEXT_EPISODE_DAT_AIR"] = strnextepisodedatair
+            arrseriecouples["NEXT_EPISODE_SEASON_NUMBER"] = lngnextepisodeseasonnumber
+            arrseriecouples["NEXT_EPISODE_NUMBER"] = lngnextepisodenumber
+            arrseriecouples["LAST_EPISODE_DAT_AIR"] = strlastepisodedatair
+            arrseriecouples["LAST_EPISODE_SEASON_NUMBER"] = lnglastepisodeseasonnumber
+            arrseriecouples["LAST_EPISODE_NUMBER"] = lnglastepisodenumber
             
             # Store created_by array for later use with credits
             arrcreatedby = []
@@ -2274,13 +2318,7 @@ def f_tmdbseriedelete(lngserieid):
         strsqlupdate = f"DELETE FROM {strsqltablename} WHERE {strsqlupdatecondition};"
         cursor2.execute(strsqlupdate)
         connectioncp.commit()
-        """
-        strsqltablename = "T_WC_TMDB_SERIE_LANG_META"
-        strsqlupdatecondition = f"ID_SERIE = {lngserieid}"
-        strsqlupdate = f"DELETE FROM {strsqltablename} WHERE {strsqlupdatecondition};"
-        cursor2.execute(strsqlupdate)
-        connectioncp.commit()
-        """
+        
         strsqltablename = "T_WC_TMDB_SERIE_LIST"
         strsqlupdatecondition = f"ID_SERIE = {lngserieid}"
         strsqlupdate = f"DELETE FROM {strsqltablename} WHERE {strsqlupdatecondition};"
@@ -2596,6 +2634,1339 @@ def f_tmdbserietosqleverything(lngserieid):
     f_tmdbserieimagestosql(lngserieid)
     f_tmdbserievideotosql(lngserieid,'en')
     f_tmdbserievideotosql(lngserieid,'fr')
+
+# https://developer.themoviedb.org/reference/tv-season-details
+
+def _f_tmdbparseairdate(strdate):
+    """Parse a YYYY-MM-DD air date into (date_str_or_none, year, month, day)."""
+    global strdatepattern
+    if strdate and re.match(strdatepattern, strdate):
+        y, m, d = map(int, strdate.split('-'))
+        return strdate, y, m, d
+    return None, None, None, None
+
+def f_tmdbseasongetid(lngserieid, lngseasonnumber):
+    """Look up the TMDb season id for a given (series id, season number) pair."""
+    global connectioncp
+    cursor2 = connectioncp.cursor()
+    cursor2.execute(
+        "SELECT ID_SEASON FROM T_WC_TMDB_SEASON WHERE ID_SERIE = %s AND SEASON_NUMBER = %s",
+        (lngserieid, lngseasonnumber)
+    )
+    row = cursor2.fetchone()
+    return int(row['ID_SEASON']) if row else 0
+
+def f_tmdbepisodegetid(lngserieid, lngseasonnumber, lngepisodenumber):
+    """Look up the TMDb episode id for a given (series, season, episode) triple."""
+    global connectioncp
+    cursor2 = connectioncp.cursor()
+    cursor2.execute(
+        "SELECT ID_EPISODE FROM T_WC_TMDB_EPISODE WHERE ID_SERIE = %s AND SEASON_NUMBER = %s AND EPISODE_NUMBER = %s",
+        (lngserieid, lngseasonnumber, lngepisodenumber)
+    )
+    row = cursor2.fetchone()
+    return int(row['ID_EPISODE']) if row else 0
+
+def _f_tmdbepisoderowtosql(lngserieid, lngseasonid, episode):
+    """Insert/update one T_WC_TMDB_EPISODE row + embedded crew/guest_stars credits.
+
+    Uses the dict shape returned both inside season['episodes'][...] and by
+    /tv/{id}/season/{n}/episode/{m}. Returns the episode TMDb id (0 if missing).
+    """
+    if not episode or 'id' not in episode:
+        return 0
+
+    lngepisodeid = int(episode['id'])
+    strairdate, lngyear, lngmonth, lngday = _f_tmdbparseairdate(episode.get('air_date'))
+
+    strtitle = episode.get('name') or ""
+    if len(strtitle) > 250:
+        strtitle = strtitle[:250]
+
+    arrcouples = {
+        "ID_EPISODE": lngepisodeid,
+        "ID_SERIE": lngserieid,
+        "ID_SEASON": lngseasonid,
+        "SEASON_NUMBER": episode.get('season_number'),
+        "EPISODE_NUMBER": episode.get('episode_number'),
+        "TITLE": strtitle,
+        "OVERVIEW": episode.get('overview') or "",
+        "AIR_YEAR": lngyear,
+        "AIR_MONTH": lngmonth,
+        "AIR_DAY": lngday,
+        "RUNTIME": episode.get('runtime'),
+        "PRODUCTION_CODE": episode.get('production_code') or "",
+        "EPISODE_TYPE": episode.get('episode_type') or "",
+        "STILL_PATH": episode.get('still_path') or "",
+        "VOTE_AVERAGE": episode.get('vote_average', 0),
+        "VOTE_COUNT": episode.get('vote_count', 0),
+    }
+    if strairdate:
+        arrcouples["DAT_AIR"] = strairdate
+
+    if 'external_ids' in episode and episode['external_ids']:
+        ext = episode['external_ids']
+        if ext.get('imdb_id'):
+            arrcouples["ID_IMDB"] = ext['imdb_id']
+        if ext.get('wikidata_id'):
+            arrcouples["ID_WIKIDATA"] = ext['wikidata_id']
+        if ext.get('tvdb_id'):
+            arrcouples["ID_TVDB"] = ext['tvdb_id']
+
+    cp.f_sqlupdatearray(
+        "T_WC_TMDB_EPISODE",
+        arrcouples,
+        f"ID_EPISODE = {lngepisodeid}",
+        1
+    )
+
+    # Persist embedded crew + guest_stars (these come with the season payload).
+    # Cast for an episode is only reachable via the dedicated episode credits
+    # endpoint, so it is handled in f_tmdbepisodetosql.
+    _f_tmdbepisodecreditstosql(
+        lngserieid, lngseasonid, lngepisodeid,
+        cast=None,
+        crew=episode.get('crew'),
+        guest_stars=episode.get('guest_stars'),
+        purge=False
+    )
+    return lngepisodeid
+
+def _f_tmdbepisodecreditstosql(lngserieid, lngseasonid, lngepisodeid,
+                               cast=None, crew=None, guest_stars=None, purge=False):
+    """Upsert credits for one episode in T_WC_TMDB_PERSON_EPISODE.
+
+    When purge=True any existing rows for the episode whose ID_CREDIT is not in
+    the supplied lists are deleted (used by the dedicated episode credits call,
+    which is authoritative). When purge=False rows are merged in (used when the
+    data comes embedded in the season payload, which only carries crew + guest
+    stars).
+    """
+    global connectioncp
+
+    arrcredits = []
+    if cast:
+        for idx, person in enumerate(cast, start=1):
+            arrcredits.append(('cast', idx, person))
+    if crew:
+        for idx, person in enumerate(crew, start=1):
+            arrcredits.append(('crew', idx, person))
+    if guest_stars:
+        for idx, person in enumerate(guest_stars, start=1):
+            arrcredits.append(('guest', idx, person))
+
+    seen_credit_ids = []
+    for credit_type, lngdisplayorder, person in arrcredits:
+        strcreditid = person.get('credit_id')
+        lngpersonid = person.get('id')
+        if not strcreditid or not lngpersonid:
+            continue
+        seen_credit_ids.append(strcreditid)
+
+        strcharacter = person.get('character', '') or '' if credit_type in ('cast', 'guest') else ''
+        if len(strcharacter) > 600:
+            strcharacter = strcharacter[:600]
+        strdepartment = person.get('department', '') or '' if credit_type == 'crew' else ''
+        strjob = person.get('job', '') or '' if credit_type == 'crew' else ''
+
+        arrrow = {
+            "ID_PERSON": lngpersonid,
+            "ID_SERIE": lngserieid,
+            "ID_SEASON": lngseasonid,
+            "ID_EPISODE": lngepisodeid,
+            "SEASON_NUMBER": person.get('season_number'),
+            "EPISODE_NUMBER": person.get('episode_number'),
+            "ID_CREDIT": strcreditid,
+            "CAST_CHARACTER": strcharacter,
+            "CREW_DEPARTMENT": strdepartment,
+            "CREW_JOB": strjob,
+            "CREDIT_TYPE": credit_type,
+            "DISPLAY_ORDER": person.get('order') if person.get('order') is not None else lngdisplayorder,
+        }
+        cp.f_sqlupdatearray(
+            "T_WC_TMDB_PERSON_EPISODE",
+            arrrow,
+            f"ID_CREDIT = '{strcreditid}'",
+            1
+        )
+
+    if purge:
+        if seen_credit_ids:
+            credit_id_list = "'" + "', '".join(seen_credit_ids) + "'"
+            strsqldelete = (
+                f"DELETE FROM T_WC_TMDB_PERSON_EPISODE "
+                f"WHERE ID_EPISODE = {lngepisodeid} AND ID_CREDIT NOT IN ({credit_id_list})"
+            )
+        else:
+            strsqldelete = f"DELETE FROM T_WC_TMDB_PERSON_EPISODE WHERE ID_EPISODE = {lngepisodeid}"
+        cursor2 = connectioncp.cursor()
+        cursor2.execute(strsqldelete)
+        connectioncp.commit()
+
+def _f_tmdbseasoncreditstosql(lngserieid, lngseasonid, credits_obj, aggregate_obj):
+    """Upsert credits for one season in T_WC_TMDB_PERSON_SEASON.
+
+    Prefers TMDb's aggregate_credits (richer: per-role credit_id and
+    total_episode_count). If that is absent, falls back to the plain credits
+    block. Existing rows for the season whose ID_CREDIT is no longer present
+    are removed.
+    """
+    global connectioncp
+
+    seen_credit_ids = []
+    lngdisplayorder = 0
+
+    def _store(credit_type, lngpersonid, strcreditid, strcharacter,
+               strdepartment, strjob, lngorder, lngepisodecount):
+        nonlocal lngdisplayorder
+        if not strcreditid or not lngpersonid:
+            return
+        seen_credit_ids.append(strcreditid)
+        lngdisplayorder += 1
+        if strcharacter and len(strcharacter) > 600:
+            strcharacter = strcharacter[:600]
+
+        arrrow = {
+            "ID_PERSON": lngpersonid,
+            "ID_SERIE": lngserieid,
+            "ID_SEASON": lngseasonid,
+            "ID_CREDIT": strcreditid,
+            "CAST_CHARACTER": strcharacter or "",
+            "CREW_DEPARTMENT": strdepartment or "",
+            "CREW_JOB": strjob or "",
+            "CREDIT_TYPE": credit_type,
+            "DISPLAY_ORDER": lngorder if lngorder is not None else lngdisplayorder,
+            "TOTAL_EPISODE_COUNT": lngepisodecount,
+        }
+        cp.f_sqlupdatearray(
+            "T_WC_TMDB_PERSON_SEASON",
+            arrrow,
+            f"ID_CREDIT = '{strcreditid}'",
+            1
+        )
+
+    if aggregate_obj:
+        for person in (aggregate_obj.get('cast') or []):
+            for role in (person.get('roles') or []):
+                _store(
+                    'cast',
+                    person.get('id'),
+                    role.get('credit_id'),
+                    role.get('character'),
+                    None, None,
+                    person.get('order'),
+                    role.get('episode_count')
+                )
+        for person in (aggregate_obj.get('crew') or []):
+            for job in (person.get('jobs') or []):
+                _store(
+                    'crew',
+                    person.get('id'),
+                    job.get('credit_id'),
+                    None,
+                    person.get('department') or job.get('department'),
+                    job.get('job'),
+                    None,
+                    job.get('episode_count')
+                )
+    elif credits_obj:
+        for person in (credits_obj.get('cast') or []):
+            _store(
+                'cast',
+                person.get('id'),
+                person.get('credit_id'),
+                person.get('character'),
+                None, None,
+                person.get('order'),
+                None
+            )
+        for person in (credits_obj.get('crew') or []):
+            _store(
+                'crew',
+                person.get('id'),
+                person.get('credit_id'),
+                None,
+                person.get('department'),
+                person.get('job'),
+                None,
+                None
+            )
+
+    if seen_credit_ids:
+        credit_id_list = "'" + "', '".join(seen_credit_ids) + "'"
+        strsqldelete = (
+            f"DELETE FROM T_WC_TMDB_PERSON_SEASON "
+            f"WHERE ID_SEASON = {lngseasonid} AND ID_CREDIT NOT IN ({credit_id_list})"
+        )
+    else:
+        strsqldelete = f"DELETE FROM T_WC_TMDB_PERSON_SEASON WHERE ID_SEASON = {lngseasonid}"
+    cursor2 = connectioncp.cursor()
+    cursor2.execute(strsqldelete)
+    connectioncp.commit()
+
+def f_tmdbseasontosql(lngserieid, lngseasonnumber):
+    """
+    Fetch a TV season's details, episodes (basic data + crew + guest stars)
+    and credits from TMDb and store everything in the database.
+
+    Parameters:
+    -----------
+    lngserieid : int
+        The TMDb TV series ID
+    lngseasonnumber : int
+        The season number (0 = specials)
+
+    Returns:
+    --------
+    int
+        The TMDb season ID that was stored, or 0 on failure.
+    """
+    global strtmdbapidomainurl
+    global headers
+    global strlanguage
+
+    if lngserieid <= 0 or lngseasonnumber is None or lngseasonnumber < 0:
+        return 0
+
+    strtmdbapiurl = (
+        f"3/tv/{lngserieid}/season/{lngseasonnumber}"
+        f"?append_to_response=credits,aggregate_credits,external_ids&language={strlanguage}"
+    )
+    strtmdbapifullurl = strtmdbapidomainurl + "/" + strtmdbapiurl
+    data = f_tmdbfetchjson(strtmdbapifullurl, f"f_tmdbseasontosql({lngserieid},{lngseasonnumber})")
+    if data is None:
+        return 0
+    if data.get('status_code', 0) > 1:
+        return 0
+    if 'id' not in data:
+        return 0
+
+    lngseasonid = int(data['id'])
+    strairdate, lngyear, lngmonth, lngday = _f_tmdbparseairdate(data.get('air_date'))
+
+    strtitle = data.get('name') or ""
+    if len(strtitle) > 250:
+        strtitle = strtitle[:250]
+
+    arrcouples = {
+        "ID_SEASON": lngseasonid,
+        "ID_SERIE": lngserieid,
+        "SEASON_NUMBER": data.get('season_number', lngseasonnumber),
+        "TITLE": strtitle,
+        "OVERVIEW": data.get('overview') or "",
+        "AIR_YEAR": lngyear,
+        "AIR_MONTH": lngmonth,
+        "AIR_DAY": lngday,
+        "POSTER_PATH": data.get('poster_path') or "",
+        "EPISODE_COUNT": len(data.get('episodes') or []) or None,
+        "VOTE_AVERAGE": data.get('vote_average', 0),
+    }
+    if strairdate:
+        arrcouples["DAT_AIR"] = strairdate
+
+    if 'external_ids' in data and data['external_ids']:
+        ext = data['external_ids']
+        if ext.get('imdb_id'):
+            arrcouples["ID_IMDB"] = ext['imdb_id']
+        if ext.get('wikidata_id'):
+            arrcouples["ID_WIKIDATA"] = ext['wikidata_id']
+        if ext.get('tvdb_id'):
+            arrcouples["ID_TVDB"] = ext['tvdb_id']
+
+    cp.f_sqlupdatearray(
+        "T_WC_TMDB_SEASON",
+        arrcouples,
+        f"ID_SEASON = {lngseasonid}",
+        1
+    )
+
+    # Episodes embedded in the season payload (basic data + crew + guest stars)
+    for episode in (data.get('episodes') or []):
+        _f_tmdbepisoderowtosql(lngserieid, lngseasonid, episode)
+
+    # Season-level credits (prefer aggregate_credits when present)
+    _f_tmdbseasoncreditstosql(
+        lngserieid,
+        lngseasonid,
+        data.get('credits'),
+        data.get('aggregate_credits')
+    )
+
+    return lngseasonid
+
+def f_tmdbseasonlangtosql(lngserieid, lngseasonnumber, strlang):
+    """Fetch and store a season's title/overview translation."""
+    global strtmdbapidomainurl
+    global headers
+
+    if lngserieid <= 0 or lngseasonnumber is None or lngseasonnumber < 0 or not strlang:
+        return
+
+    strtmdbapiurl = f"3/tv/{lngserieid}/season/{lngseasonnumber}?language={strlang}"
+    strtmdbapifullurl = strtmdbapidomainurl + "/" + strtmdbapiurl
+    data = f_tmdbfetchjson(
+        strtmdbapifullurl,
+        f"f_tmdbseasonlangtosql({lngserieid},{lngseasonnumber},{strlang})"
+    )
+    if data is None or data.get('status_code', 0) > 1 or 'id' not in data:
+        return
+
+    lngseasonid = int(data['id'])
+    strtitle = data.get('name') or ""
+    if len(strtitle) > 250:
+        strtitle = strtitle[:250]
+
+    arrcouples = {
+        "ID_SEASON": lngseasonid,
+        "ID_SERIE": lngserieid,
+        "LANG": strlang,
+        "TITLE": strtitle,
+        "OVERVIEW": data.get('overview') or "",
+    }
+    cp.f_sqlupdatearray(
+        "T_WC_TMDB_SEASON_LANG",
+        arrcouples,
+        f"ID_SEASON = {lngseasonid} AND LANG = '{strlang}'",
+        1
+    )
+
+def f_tmdbseasonexist(lngserieid, lngseasonnumber):
+    """Return False only if TMDb explicitly answers 'not found' (status 34)."""
+    global strtmdbapidomainurl
+    global headers
+    global strlanguage
+
+    if lngserieid <= 0 or lngseasonnumber is None or lngseasonnumber < 0:
+        return False
+
+    strtmdbapiurl = f"3/tv/{lngserieid}/season/{lngseasonnumber}?language={strlanguage}"
+    strtmdbapifullurl = strtmdbapidomainurl + "/" + strtmdbapiurl
+    data = f_tmdbfetchjson(
+        strtmdbapifullurl,
+        f"f_tmdbseasonexist({lngserieid},{lngseasonnumber})"
+    )
+    if data is None:
+        return True
+    return data.get('status_code', 0) != 34
+
+def f_tmdbseasondelete(lngseasonid):
+    """Delete a season and its dependent rows (lang, image, video, credits, episodes)."""
+    global connectioncp
+    if lngseasonid <= 0:
+        return
+
+    cursor2 = connectioncp.cursor()
+
+    cursor2.execute(
+        "SELECT ID_EPISODE FROM T_WC_TMDB_EPISODE WHERE ID_SEASON = %s",
+        (lngseasonid,)
+    )
+    episode_ids = [row['ID_EPISODE'] for row in cursor2.fetchall()]
+    for lngepisodeid in episode_ids:
+        f_tmdbepisodedelete(lngepisodeid)
+
+    for tbl in (
+        "T_WC_TMDB_PERSON_SEASON",
+        "T_WC_TMDB_SEASON_IMAGE",
+        "T_WC_TMDB_SEASON_VIDEO",
+        "T_WC_TMDB_SEASON_LANG",
+        "T_WC_TMDB_SEASON",
+    ):
+        cursor2.execute(f"DELETE FROM {tbl} WHERE ID_SEASON = %s", (lngseasonid,))
+        connectioncp.commit()
+
+def f_tmdbseasonsetcreditscompleted(lngseasonid):
+    """Mark a season's credits as fully processed (TIM_CREDITS_COMPLETED)."""
+    global paris_tz
+    global connectioncp
+    if lngseasonid <= 0:
+        return
+    cursor2 = connectioncp.cursor()
+    strnow = datetime.now(paris_tz).strftime("%Y-%m-%d %H:%M:%S")
+    cursor2.execute(
+        f"UPDATE T_WC_TMDB_SEASON SET TIM_CREDITS_COMPLETED = '{strnow}', "
+        f"TIM_UPDATED = '{strnow}' WHERE ID_SEASON = {lngseasonid};"
+    )
+    connectioncp.commit()
+
+def f_tmdbseasonsettranslationscompleted(lngseasonid):
+    """Mark a season's translations as fully processed."""
+    global paris_tz
+    global connectioncp
+    if lngseasonid <= 0:
+        return
+    cursor2 = connectioncp.cursor()
+    strnow = datetime.now(paris_tz).strftime("%Y-%m-%d %H:%M:%S")
+    cursor2.execute(
+        f"UPDATE T_WC_TMDB_SEASON SET TIM_TRANSLATIONS_COMPLETED = '{strnow}' "
+        f"WHERE ID_SEASON = {lngseasonid};"
+    )
+    connectioncp.commit()
+
+def f_tmdbseasonimagestosql(lngserieid, lngseasonnumber):
+    """Fetch and store images for a season."""
+    global strtmdbapidomainurl
+    global headers
+    global connectioncp
+    global paris_tz
+
+    if lngserieid <= 0 or lngseasonnumber is None or lngseasonnumber < 0:
+        return False
+
+    lngseasonid = f_tmdbseasongetid(lngserieid, lngseasonnumber)
+    if lngseasonid <= 0:
+        return False
+
+    strtmdbapiurl = f"3/tv/{lngserieid}/season/{lngseasonnumber}/images"
+    strtmdbapifullurl = strtmdbapidomainurl + "/" + strtmdbapiurl
+    data = f_tmdbfetchjson(
+        strtmdbapifullurl,
+        f"f_tmdbseasonimagestosql({lngserieid},{lngseasonnumber})"
+    )
+    if data is None or data.get('status_code', 0) > 1:
+        return False
+
+    current_time = datetime.now(paris_tz).strftime("%Y-%m-%d %H:%M:%S")
+    current_date = datetime.now(paris_tz).strftime("%Y-%m-%d")
+    all_image_paths = []
+
+    def _store(image_array, image_type):
+        lngdisplayorder = 0
+        for image in image_array or []:
+            lngdisplayorder += 1
+            image_path = image.get('file_path', '')
+            if not image_path:
+                continue
+            all_image_paths.append(image_path)
+            arrimage = {
+                "ID_SEASON": lngseasonid,
+                "ID_SERIE": lngserieid,
+                "DISPLAY_ORDER": lngdisplayorder,
+                "DAT_CREAT": current_date,
+                "TIM_UPDATED": current_time,
+                "TYPE_IMAGE": image_type,
+                "LANG": image.get('iso_639_1', ''),
+                "IMAGE_PATH": image_path,
+                "ASPECT_RATIO": image.get('aspect_ratio', 0),
+                "WIDTH": image.get('width', 0),
+                "HEIGHT": image.get('height', 0),
+                "VOTE_AVERAGE": image.get('vote_average', 0),
+                "VOTE_COUNT": image.get('vote_count', 0),
+            }
+            cp.f_sqlupdatearray(
+                "T_WC_TMDB_SEASON_IMAGE",
+                arrimage,
+                f"ID_SEASON = {lngseasonid} AND TYPE_IMAGE = '{image_type}' "
+                f"AND IMAGE_PATH = '{image_path}'",
+                1
+            )
+
+    _store(data.get('posters'), 'poster')
+    _store(data.get('backdrops'), 'backdrop')
+
+    cursor = connectioncp.cursor()
+    if all_image_paths:
+        image_paths_list = "'" + "', '".join(all_image_paths) + "'"
+        cursor.execute(
+            f"DELETE FROM T_WC_TMDB_SEASON_IMAGE WHERE ID_SEASON = {lngseasonid} "
+            f"AND IMAGE_PATH NOT IN ({image_paths_list})"
+        )
+    else:
+        cursor.execute(
+            f"DELETE FROM T_WC_TMDB_SEASON_IMAGE WHERE ID_SEASON = {lngseasonid}"
+        )
+    connectioncp.commit()
+
+    cursor.execute(
+        f"UPDATE T_WC_TMDB_SEASON SET TIM_IMAGES_COMPLETED = '{current_time}' "
+        f"WHERE ID_SEASON = {lngseasonid};"
+    )
+    connectioncp.commit()
+    return True
+
+def f_tmdbseasonvideotosql(lngserieid, lngseasonnumber, strlang):
+    """Fetch and store videos for a season in a specific language."""
+    global strtmdbapidomainurl
+    global headers
+    global connectioncp
+    global paris_tz
+
+    if lngserieid <= 0 or lngseasonnumber is None or lngseasonnumber < 0 or not strlang:
+        return False
+
+    lngseasonid = f_tmdbseasongetid(lngserieid, lngseasonnumber)
+    if lngseasonid <= 0:
+        return False
+
+    strtmdbapiurl = f"3/tv/{lngserieid}/season/{lngseasonnumber}/videos?language={strlang}"
+    strtmdbapifullurl = strtmdbapidomainurl + "/" + strtmdbapiurl
+    data = f_tmdbfetchjson(
+        strtmdbapifullurl,
+        f"f_tmdbseasonvideotosql({lngserieid},{lngseasonnumber},{strlang})"
+    )
+    if data is None or data.get('status_code', 0) > 1:
+        return False
+
+    current_time = datetime.now(paris_tz).strftime("%Y-%m-%d %H:%M:%S")
+    current_date = datetime.now(paris_tz).strftime("%Y-%m-%d")
+    all_video_ids = []
+
+    lngdisplayorder = 0
+    for video in (data.get('results') or []):
+        lngdisplayorder += 1
+        video_id = video.get('id', '')
+        if not video_id:
+            continue
+        all_video_ids.append(video_id)
+
+        dat_published = None
+        published_at_str = video.get('published_at')
+        if published_at_str:
+            try:
+                if published_at_str.endswith('Z'):
+                    dt_utc = datetime.strptime(published_at_str, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=pytz.utc)
+                else:
+                    dt_utc = datetime.fromisoformat(published_at_str)
+                    if dt_utc.tzinfo is None:
+                        dt_utc = dt_utc.replace(tzinfo=pytz.utc)
+                dat_published = dt_utc.astimezone(paris_tz).strftime("%Y-%m-%d %H:%M:%S")
+            except Exception:
+                dat_published = None
+
+        arrvideo = {
+            "ID_SEASON": lngseasonid,
+            "ID_SERIE": lngserieid,
+            "DISPLAY_ORDER": lngdisplayorder,
+            "DAT_CREAT": current_date,
+            "TIM_UPDATED": current_time,
+            "DAT_PUBLISHED": dat_published,
+            "VIDEO_TYPE": video.get('type', ''),
+            "LANG": video.get('iso_639_1', ''),
+            "COUNTRY_CODE": video.get('iso_3166_1', ''),
+            "ID_CREDIT": video_id,
+            "VIDEO_KEY": video.get('key', ''),
+            "VIDEO_NAME": video.get('name', ''),
+            "VIDEO_SITE": video.get('site', ''),
+            "QUALITY": video.get('size', 0),
+            "QUALITY_TEXT": str(video.get('size', 0)) + 'p',
+            "OFFICIAL": video.get('official', False),
+        }
+        cp.f_sqlupdatearray(
+            "T_WC_TMDB_SEASON_VIDEO",
+            arrvideo,
+            f"ID_SEASON = {lngseasonid} AND LANG = '{strlang}' AND ID_CREDIT = '{video_id}'",
+            1
+        )
+
+    cursor = connectioncp.cursor()
+    if all_video_ids:
+        video_ids_list = "'" + "', '".join(all_video_ids) + "'"
+        cursor.execute(
+            f"DELETE FROM T_WC_TMDB_SEASON_VIDEO WHERE ID_SEASON = {lngseasonid} "
+            f"AND LANG = '{strlang}' AND ID_CREDIT NOT IN ({video_ids_list})"
+        )
+    else:
+        cursor.execute(
+            f"DELETE FROM T_WC_TMDB_SEASON_VIDEO WHERE ID_SEASON = {lngseasonid} "
+            f"AND LANG = '{strlang}'"
+        )
+    connectioncp.commit()
+
+    cursor.execute(
+        f"UPDATE T_WC_TMDB_SEASON SET TIM_VIDEOS_COMPLETED = '{current_time}' "
+        f"WHERE ID_SEASON = {lngseasonid};"
+    )
+    connectioncp.commit()
+    return True
+
+def f_tmdbseasontosqleverything(lngserieid, lngseasonnumber):
+    """
+    Load complete data for one season: details, episodes (basic + crew + guest
+    stars), credits, French translation, images and English/French videos.
+    Does NOT recurse into per-episode endpoints. Use
+    f_tmdbserieallseasonsepisodestosql() for that.
+    """
+    lngseasonid = f_tmdbseasontosql(lngserieid, lngseasonnumber)
+    if lngseasonid <= 0:
+        return 0
+    f_tmdbseasonlangtosql(lngserieid, lngseasonnumber, 'fr')
+    f_tmdbseasonsettranslationscompleted(lngseasonid)
+    f_tmdbseasonsetcreditscompleted(lngseasonid)
+    f_tmdbseasonimagestosql(lngserieid, lngseasonnumber)
+    f_tmdbseasonvideotosql(lngserieid, lngseasonnumber, 'en')
+    f_tmdbseasonvideotosql(lngserieid, lngseasonnumber, 'fr')
+    return lngseasonid
+
+# https://developer.themoviedb.org/reference/tv-episode-details
+
+def f_tmdbepisodetosql(lngserieid, lngseasonnumber, lngepisodenumber):
+    """
+    Fetch a TV episode's full details and credits (cast + crew + guest stars)
+    from TMDb and store them. The episode row itself can already exist (created
+    from the season payload) — this call enriches it with translations of the
+    overview/title in the default language and refreshes credits authoritatively.
+
+    Returns the TMDb episode ID, or 0 on failure.
+    """
+    global strtmdbapidomainurl
+    global headers
+    global strlanguage
+
+    if lngserieid <= 0 or lngseasonnumber is None or lngseasonnumber < 0 \
+            or lngepisodenumber is None or lngepisodenumber < 0:
+        return 0
+
+    strtmdbapiurl = (
+        f"3/tv/{lngserieid}/season/{lngseasonnumber}/episode/{lngepisodenumber}"
+        f"?append_to_response=credits,external_ids&language={strlanguage}"
+    )
+    strtmdbapifullurl = strtmdbapidomainurl + "/" + strtmdbapiurl
+    data = f_tmdbfetchjson(
+        strtmdbapifullurl,
+        f"f_tmdbepisodetosql({lngserieid},{lngseasonnumber},{lngepisodenumber})"
+    )
+    if data is None or data.get('status_code', 0) > 1 or 'id' not in data:
+        return 0
+
+    lngseasonid = f_tmdbseasongetid(lngserieid, lngseasonnumber)
+    if lngseasonid <= 0:
+        # Season row missing — bootstrap it so the episode FK is populated
+        lngseasonid = f_tmdbseasontosql(lngserieid, lngseasonnumber)
+        if lngseasonid <= 0:
+            return 0
+
+    lngepisodeid = _f_tmdbepisoderowtosql(lngserieid, lngseasonid, data)
+    if lngepisodeid <= 0:
+        return 0
+
+    creds = data.get('credits') or {}
+    _f_tmdbepisodecreditstosql(
+        lngserieid, lngseasonid, lngepisodeid,
+        cast=creds.get('cast'),
+        crew=creds.get('crew') or data.get('crew'),
+        guest_stars=creds.get('guest_stars') or data.get('guest_stars'),
+        purge=True
+    )
+    return lngepisodeid
+
+def f_tmdbepisodelangtosql(lngserieid, lngseasonnumber, lngepisodenumber, strlang):
+    """Fetch and store an episode's translation (title + overview)."""
+    global strtmdbapidomainurl
+    global headers
+
+    if lngserieid <= 0 or lngseasonnumber is None or lngseasonnumber < 0 \
+            or lngepisodenumber is None or lngepisodenumber < 0 or not strlang:
+        return
+
+    strtmdbapiurl = (
+        f"3/tv/{lngserieid}/season/{lngseasonnumber}/episode/{lngepisodenumber}"
+        f"?language={strlang}"
+    )
+    strtmdbapifullurl = strtmdbapidomainurl + "/" + strtmdbapiurl
+    data = f_tmdbfetchjson(
+        strtmdbapifullurl,
+        f"f_tmdbepisodelangtosql({lngserieid},{lngseasonnumber},{lngepisodenumber},{strlang})"
+    )
+    if data is None or data.get('status_code', 0) > 1 or 'id' not in data:
+        return
+
+    lngepisodeid = int(data['id'])
+    lngseasonid = f_tmdbseasongetid(lngserieid, lngseasonnumber)
+
+    strtitle = data.get('name') or ""
+    if len(strtitle) > 250:
+        strtitle = strtitle[:250]
+
+    arrcouples = {
+        "ID_EPISODE": lngepisodeid,
+        "ID_SEASON": lngseasonid,
+        "ID_SERIE": lngserieid,
+        "LANG": strlang,
+        "TITLE": strtitle,
+        "OVERVIEW": data.get('overview') or "",
+    }
+    cp.f_sqlupdatearray(
+        "T_WC_TMDB_EPISODE_LANG",
+        arrcouples,
+        f"ID_EPISODE = {lngepisodeid} AND LANG = '{strlang}'",
+        1
+    )
+
+def f_tmdbepisodeexist(lngserieid, lngseasonnumber, lngepisodenumber):
+    """Return False only if TMDb explicitly returns status 34 (not found)."""
+    global strtmdbapidomainurl
+    global headers
+    global strlanguage
+
+    if lngserieid <= 0 or lngseasonnumber is None or lngseasonnumber < 0 \
+            or lngepisodenumber is None or lngepisodenumber < 0:
+        return False
+
+    strtmdbapiurl = (
+        f"3/tv/{lngserieid}/season/{lngseasonnumber}/episode/{lngepisodenumber}"
+        f"?language={strlanguage}"
+    )
+    strtmdbapifullurl = strtmdbapidomainurl + "/" + strtmdbapiurl
+    data = f_tmdbfetchjson(
+        strtmdbapifullurl,
+        f"f_tmdbepisodeexist({lngserieid},{lngseasonnumber},{lngepisodenumber})"
+    )
+    if data is None:
+        return True
+    return data.get('status_code', 0) != 34
+
+def f_tmdbepisodedelete(lngepisodeid):
+    """Delete an episode and its dependent rows."""
+    global connectioncp
+    if lngepisodeid <= 0:
+        return
+    cursor2 = connectioncp.cursor()
+    for tbl in (
+        "T_WC_TMDB_PERSON_EPISODE",
+        "T_WC_TMDB_EPISODE_IMAGE",
+        "T_WC_TMDB_EPISODE_VIDEO",
+        "T_WC_TMDB_EPISODE_LANG",
+        "T_WC_TMDB_EPISODE",
+    ):
+        cursor2.execute(f"DELETE FROM {tbl} WHERE ID_EPISODE = %s", (lngepisodeid,))
+        connectioncp.commit()
+
+def f_tmdbepisodesetcreditscompleted(lngepisodeid):
+    """Mark an episode's credits as fully processed."""
+    global paris_tz
+    global connectioncp
+    if lngepisodeid <= 0:
+        return
+    cursor2 = connectioncp.cursor()
+    strnow = datetime.now(paris_tz).strftime("%Y-%m-%d %H:%M:%S")
+    cursor2.execute(
+        f"UPDATE T_WC_TMDB_EPISODE SET TIM_CREDITS_COMPLETED = '{strnow}', "
+        f"TIM_UPDATED = '{strnow}' WHERE ID_EPISODE = {lngepisodeid};"
+    )
+    connectioncp.commit()
+
+def f_tmdbepisodesettranslationscompleted(lngepisodeid):
+    """Mark an episode's translations as fully processed."""
+    global paris_tz
+    global connectioncp
+    if lngepisodeid <= 0:
+        return
+    cursor2 = connectioncp.cursor()
+    strnow = datetime.now(paris_tz).strftime("%Y-%m-%d %H:%M:%S")
+    cursor2.execute(
+        f"UPDATE T_WC_TMDB_EPISODE SET TIM_TRANSLATIONS_COMPLETED = '{strnow}' "
+        f"WHERE ID_EPISODE = {lngepisodeid};"
+    )
+    connectioncp.commit()
+
+def f_tmdbepisodeimagestosql(lngserieid, lngseasonnumber, lngepisodenumber):
+    """Fetch and store images (stills) for an episode."""
+    global strtmdbapidomainurl
+    global headers
+    global connectioncp
+    global paris_tz
+
+    if lngserieid <= 0 or lngseasonnumber is None or lngseasonnumber < 0 \
+            or lngepisodenumber is None or lngepisodenumber < 0:
+        return False
+
+    lngepisodeid = f_tmdbepisodegetid(lngserieid, lngseasonnumber, lngepisodenumber)
+    lngseasonid = f_tmdbseasongetid(lngserieid, lngseasonnumber)
+    if lngepisodeid <= 0 or lngseasonid <= 0:
+        return False
+
+    strtmdbapiurl = (
+        f"3/tv/{lngserieid}/season/{lngseasonnumber}/episode/{lngepisodenumber}/images"
+    )
+    strtmdbapifullurl = strtmdbapidomainurl + "/" + strtmdbapiurl
+    data = f_tmdbfetchjson(
+        strtmdbapifullurl,
+        f"f_tmdbepisodeimagestosql({lngserieid},{lngseasonnumber},{lngepisodenumber})"
+    )
+    if data is None or data.get('status_code', 0) > 1:
+        return False
+
+    current_time = datetime.now(paris_tz).strftime("%Y-%m-%d %H:%M:%S")
+    current_date = datetime.now(paris_tz).strftime("%Y-%m-%d")
+    all_image_paths = []
+
+    lngdisplayorder = 0
+    for image in (data.get('stills') or []):
+        lngdisplayorder += 1
+        image_path = image.get('file_path', '')
+        if not image_path:
+            continue
+        all_image_paths.append(image_path)
+        arrimage = {
+            "ID_EPISODE": lngepisodeid,
+            "ID_SEASON": lngseasonid,
+            "ID_SERIE": lngserieid,
+            "DISPLAY_ORDER": lngdisplayorder,
+            "DAT_CREAT": current_date,
+            "TIM_UPDATED": current_time,
+            "TYPE_IMAGE": 'still',
+            "LANG": image.get('iso_639_1', ''),
+            "IMAGE_PATH": image_path,
+            "ASPECT_RATIO": image.get('aspect_ratio', 0),
+            "WIDTH": image.get('width', 0),
+            "HEIGHT": image.get('height', 0),
+            "VOTE_AVERAGE": image.get('vote_average', 0),
+            "VOTE_COUNT": image.get('vote_count', 0),
+        }
+        cp.f_sqlupdatearray(
+            "T_WC_TMDB_EPISODE_IMAGE",
+            arrimage,
+            f"ID_EPISODE = {lngepisodeid} AND TYPE_IMAGE = 'still' "
+            f"AND IMAGE_PATH = '{image_path}'",
+            1
+        )
+
+    cursor = connectioncp.cursor()
+    if all_image_paths:
+        image_paths_list = "'" + "', '".join(all_image_paths) + "'"
+        cursor.execute(
+            f"DELETE FROM T_WC_TMDB_EPISODE_IMAGE WHERE ID_EPISODE = {lngepisodeid} "
+            f"AND IMAGE_PATH NOT IN ({image_paths_list})"
+        )
+    else:
+        cursor.execute(
+            f"DELETE FROM T_WC_TMDB_EPISODE_IMAGE WHERE ID_EPISODE = {lngepisodeid}"
+        )
+    connectioncp.commit()
+
+    cursor.execute(
+        f"UPDATE T_WC_TMDB_EPISODE SET TIM_IMAGES_COMPLETED = '{current_time}' "
+        f"WHERE ID_EPISODE = {lngepisodeid};"
+    )
+    connectioncp.commit()
+    return True
+
+def f_tmdbepisodevideotosql(lngserieid, lngseasonnumber, lngepisodenumber, strlang):
+    """Fetch and store videos for an episode in a specific language."""
+    global strtmdbapidomainurl
+    global headers
+    global connectioncp
+    global paris_tz
+
+    if lngserieid <= 0 or lngseasonnumber is None or lngseasonnumber < 0 \
+            or lngepisodenumber is None or lngepisodenumber < 0 or not strlang:
+        return False
+
+    lngepisodeid = f_tmdbepisodegetid(lngserieid, lngseasonnumber, lngepisodenumber)
+    lngseasonid = f_tmdbseasongetid(lngserieid, lngseasonnumber)
+    if lngepisodeid <= 0 or lngseasonid <= 0:
+        return False
+
+    strtmdbapiurl = (
+        f"3/tv/{lngserieid}/season/{lngseasonnumber}/episode/{lngepisodenumber}/videos"
+        f"?language={strlang}"
+    )
+    strtmdbapifullurl = strtmdbapidomainurl + "/" + strtmdbapiurl
+    data = f_tmdbfetchjson(
+        strtmdbapifullurl,
+        f"f_tmdbepisodevideotosql({lngserieid},{lngseasonnumber},{lngepisodenumber},{strlang})"
+    )
+    if data is None or data.get('status_code', 0) > 1:
+        return False
+
+    current_time = datetime.now(paris_tz).strftime("%Y-%m-%d %H:%M:%S")
+    current_date = datetime.now(paris_tz).strftime("%Y-%m-%d")
+    all_video_ids = []
+
+    lngdisplayorder = 0
+    for video in (data.get('results') or []):
+        lngdisplayorder += 1
+        video_id = video.get('id', '')
+        if not video_id:
+            continue
+        all_video_ids.append(video_id)
+
+        dat_published = None
+        published_at_str = video.get('published_at')
+        if published_at_str:
+            try:
+                if published_at_str.endswith('Z'):
+                    dt_utc = datetime.strptime(published_at_str, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=pytz.utc)
+                else:
+                    dt_utc = datetime.fromisoformat(published_at_str)
+                    if dt_utc.tzinfo is None:
+                        dt_utc = dt_utc.replace(tzinfo=pytz.utc)
+                dat_published = dt_utc.astimezone(paris_tz).strftime("%Y-%m-%d %H:%M:%S")
+            except Exception:
+                dat_published = None
+
+        arrvideo = {
+            "ID_EPISODE": lngepisodeid,
+            "ID_SEASON": lngseasonid,
+            "ID_SERIE": lngserieid,
+            "DISPLAY_ORDER": lngdisplayorder,
+            "DAT_CREAT": current_date,
+            "TIM_UPDATED": current_time,
+            "DAT_PUBLISHED": dat_published,
+            "VIDEO_TYPE": video.get('type', ''),
+            "LANG": video.get('iso_639_1', ''),
+            "COUNTRY_CODE": video.get('iso_3166_1', ''),
+            "ID_CREDIT": video_id,
+            "VIDEO_KEY": video.get('key', ''),
+            "VIDEO_NAME": video.get('name', ''),
+            "VIDEO_SITE": video.get('site', ''),
+            "QUALITY": video.get('size', 0),
+            "QUALITY_TEXT": str(video.get('size', 0)) + 'p',
+            "OFFICIAL": video.get('official', False),
+        }
+        cp.f_sqlupdatearray(
+            "T_WC_TMDB_EPISODE_VIDEO",
+            arrvideo,
+            f"ID_EPISODE = {lngepisodeid} AND LANG = '{strlang}' AND ID_CREDIT = '{video_id}'",
+            1
+        )
+
+    cursor = connectioncp.cursor()
+    if all_video_ids:
+        video_ids_list = "'" + "', '".join(all_video_ids) + "'"
+        cursor.execute(
+            f"DELETE FROM T_WC_TMDB_EPISODE_VIDEO WHERE ID_EPISODE = {lngepisodeid} "
+            f"AND LANG = '{strlang}' AND ID_CREDIT NOT IN ({video_ids_list})"
+        )
+    else:
+        cursor.execute(
+            f"DELETE FROM T_WC_TMDB_EPISODE_VIDEO WHERE ID_EPISODE = {lngepisodeid} "
+            f"AND LANG = '{strlang}'"
+        )
+    connectioncp.commit()
+
+    cursor.execute(
+        f"UPDATE T_WC_TMDB_EPISODE SET TIM_VIDEOS_COMPLETED = '{current_time}' "
+        f"WHERE ID_EPISODE = {lngepisodeid};"
+    )
+    connectioncp.commit()
+    return True
+
+def f_tmdbepisodetosqleverything(lngserieid, lngseasonnumber, lngepisodenumber):
+    """Load complete data for one episode: details, credits, French translation,
+    images and English/French videos."""
+    lngepisodeid = f_tmdbepisodetosql(lngserieid, lngseasonnumber, lngepisodenumber)
+    if lngepisodeid <= 0:
+        return 0
+    f_tmdbepisodelangtosql(lngserieid, lngseasonnumber, lngepisodenumber, 'fr')
+    f_tmdbepisodesettranslationscompleted(lngepisodeid)
+    f_tmdbepisodesetcreditscompleted(lngepisodeid)
+    f_tmdbepisodeimagestosql(lngserieid, lngseasonnumber, lngepisodenumber)
+    f_tmdbepisodevideotosql(lngserieid, lngseasonnumber, lngepisodenumber, 'en')
+    f_tmdbepisodevideotosql(lngserieid, lngseasonnumber, lngepisodenumber, 'fr')
+    return lngepisodeid
+
+def f_tmdbseriechangesget(lngserieid, strstartdate=None):
+    """
+    GET /tv/{id}/changes?start_date=YYYY-MM-DD.
+
+    Returns the parsed `changes[]` list (each item is a dict with `key` and
+    `items[]`) or None on HTTP/JSON failure / TMDb error. Returns [] when
+    TMDb reports no changes in the window.
+
+    `strstartdate` must be within the last 14 days; caller is responsible for
+    deciding whether to pass None (= full window, but TMDb still caps at 14d).
+    """
+    global strtmdbapidomainurl
+    if lngserieid <= 0:
+        return None
+    strurl = strtmdbapidomainurl + "/3/tv/" + str(lngserieid) + "/changes"
+    if strstartdate:
+        strurl += "?start_date=" + strstartdate
+    data = f_tmdbfetchjson(strurl, f"f_tmdbseriechangesget({lngserieid})")
+    if data is None:
+        return None
+    if data.get('status_code', 0) > 1:
+        return None
+    return data.get('changes') or []
+
+
+def _f_tmdbseriestamplastchangescheck(lngserieid):
+    """Stamp T_WC_TMDB_SERIE.TIM_LAST_CHANGES_CHECK = now."""
+    global paris_tz
+    global connectioncp
+    if lngserieid <= 0:
+        return
+    strnow = datetime.now(paris_tz).strftime("%Y-%m-%d %H:%M:%S")
+    cursor2 = connectioncp.cursor()
+    cursor2.execute(
+        f"UPDATE T_WC_TMDB_SERIE SET TIM_LAST_CHANGES_CHECK = '{strnow}', "
+        f"TIM_UPDATED = '{strnow}' WHERE ID_SERIE = {lngserieid};"
+    )
+    connectioncp.commit()
+
+
+def _f_tmdbseriestampchildrencompleted(lngserieid, strcolumn):
+    """Stamp a children-completion column on the series row (TIM_SEASONS_COMPLETED
+    or TIM_EPISODES_COMPLETED)."""
+    global paris_tz
+    global connectioncp
+    if lngserieid <= 0:
+        return
+    strnow = datetime.now(paris_tz).strftime("%Y-%m-%d %H:%M:%S")
+    cursor2 = connectioncp.cursor()
+    cursor2.execute(
+        f"UPDATE T_WC_TMDB_SERIE SET {strcolumn} = '{strnow}', "
+        f"TIM_UPDATED = '{strnow}' WHERE ID_SERIE = {lngserieid};"
+    )
+    connectioncp.commit()
+
+
+def f_tmdbserieselectiveseasonsepisodestosql(lngserieid):
+    """
+    Selective season+episode refresh driven by /tv/{id}/changes.
+    Implements the four-tier strategy documented in SERIE_UPDATE.md.
+
+    Assumes f_tmdbserietosqleverything has already been called for this series
+    (series row + activity signals up to date). Side effects:
+      - Refreshes only the seasons/episodes selected by the rules.
+      - Stamps TIM_LAST_CHANGES_CHECK on success.
+      - Stamps TIM_SEASONS_COMPLETED / TIM_EPISODES_COMPLETED when the selected
+        children all completed successfully.
+    """
+    global strtmdbapidomainurl
+    global connectioncp
+
+    if lngserieid <= 0:
+        return
+
+    cursor2 = connectioncp.cursor()
+    cursor2.execute(
+        "SELECT TIM_LAST_CHANGES_CHECK, IN_PRODUCTION, "
+        "       NEXT_EPISODE_DAT_AIR, LAST_EPISODE_DAT_AIR "
+        "FROM T_WC_TMDB_SERIE WHERE ID_SERIE = %s",
+        (lngserieid,)
+    )
+    serierow = cursor2.fetchone()
+    if not serierow:
+        print(f"f_tmdbserieselectiveseasonsepisodestosql: series {lngserieid} not in DB")
+        return
+
+    today = datetime.now().date()
+
+    # --- T1: ask TMDb what changed ---
+    strstartdate = None
+    timlastcheck = serierow['TIM_LAST_CHANGES_CHECK']
+    if timlastcheck is not None:
+        gapdays = (datetime.now() - timlastcheck).days
+        if 0 <= gapdays <= INT_TMDB_CHANGES_MAX_DAYS:
+            strstartdate = timlastcheck.strftime('%Y-%m-%d')
+
+    arrchanges = None
+    if strstartdate is not None:
+        arrchanges = f_tmdbseriechangesget(lngserieid, strstartdate)
+    # arrchanges interpretation:
+    #   None        — no usable T1 info (NULL/gap>14d/HTTP error) → apply full rules
+    #   []          — TMDb reports nothing changed
+    #   [items...]  — list of {key, items[]}
+
+    booseasonsignaled = False
+    arrepisodehintsmap = {}  # {season_number: set(episode_numbers)}
+    if arrchanges:
+        for change in arrchanges:
+            strkey = change.get('key', '')
+            if strkey == 'seasons':
+                booseasonsignaled = True
+            elif strkey == 'episodes':
+                arritems = change.get('items') or []
+                for item in arritems:
+                    arrval = item.get('value') or {}
+                    snum = arrval.get('season_number')
+                    enum = arrval.get('episode_number')
+                    if snum is not None and enum is not None:
+                        arrepisodehintsmap.setdefault(int(snum), set()).add(int(enum))
+
+    booneedseasonscan = (
+        arrchanges is None
+        or booseasonsignaled
+        or bool(arrepisodehintsmap)
+    )
+    if not booneedseasonscan:
+        # Stable series, nothing relevant changed — just record the check time.
+        _f_tmdbseriestamplastchangescheck(lngserieid)
+        return
+
+    # --- T2: snapshot /tv/{id} for seasons[] ---
+    strtmdbapifullurl = strtmdbapidomainurl + "/3/tv/" + str(lngserieid)
+    seriedata = f_tmdbfetchjson(strtmdbapifullurl, f"f_tmdbserieselectiveseasonsepisodestosql({lngserieid})")
+    if seriedata is None or seriedata.get('status_code', 0) > 1:
+        return
+    arrtmdbseasons = seriedata.get('seasons') or []
+
+    # "Active" judgment from persisted signals.
+    booserieactive = False
+    if serierow['IN_PRODUCTION'] == 1:
+        booserieactive = True
+    elif serierow['NEXT_EPISODE_DAT_AIR'] is not None:
+        booserieactive = True
+    elif serierow['LAST_EPISODE_DAT_AIR'] is not None:
+        if (today - serierow['LAST_EPISODE_DAT_AIR']).days <= INT_ACTIVE_SERIES_LOOKBACK_DAYS:
+            booserieactive = True
+
+    lnglatestseasonnumber = None
+    if booserieactive and arrtmdbseasons:
+        arrcand = [s.get('season_number') for s in arrtmdbseasons
+                   if s.get('season_number') is not None and (s.get('season_number') or 0) > 0]
+        if arrcand:
+            lnglatestseasonnumber = max(arrcand)
+
+    # --- T3 selection ---
+    arrseasonselections = []  # list of (season_number, reason)
+    for tmdbseason in arrtmdbseasons:
+        snum = tmdbseason.get('season_number')
+        if snum is None:
+            continue
+        snum = int(snum)
+        strreason = None
+        lnglocalseasonid = f_tmdbseasongetid(lngserieid, snum)
+        if lnglocalseasonid == 0:
+            strreason = "missing locally"
+        else:
+            cursor3 = connectioncp.cursor()
+            cursor3.execute(
+                "SELECT EPISODE_COUNT, DAT_AIR, "
+                "       TIM_CREDITS_COMPLETED, TIM_TRANSLATIONS_COMPLETED, "
+                "       TIM_IMAGES_COMPLETED, TIM_VIDEOS_COMPLETED "
+                "FROM T_WC_TMDB_SEASON WHERE ID_SEASON = %s",
+                (lnglocalseasonid,)
+            )
+            seasonrow = cursor3.fetchone()
+            if not seasonrow:
+                strreason = "local row missing"
+            else:
+                tmdbepcount = tmdbseason.get('episode_count')
+                localepcount = seasonrow['EPISODE_COUNT']
+                if tmdbepcount is not None and localepcount != tmdbepcount:
+                    strreason = f"episode_count drift ({localepcount} -> {tmdbepcount})"
+                elif (seasonrow['TIM_CREDITS_COMPLETED'] is None or
+                      seasonrow['TIM_TRANSLATIONS_COMPLETED'] is None or
+                      seasonrow['TIM_IMAGES_COMPLETED'] is None or
+                      seasonrow['TIM_VIDEOS_COMPLETED'] is None):
+                    strreason = "season completion incomplete"
+                elif seasonrow['DAT_AIR'] is not None:
+                    intagedays = (today - seasonrow['DAT_AIR']).days
+                    if 0 <= intagedays <= INT_RECENT_SEASON_DAYS:
+                        strreason = f"recent season ({intagedays}d)"
+                if strreason is None and snum == lnglatestseasonnumber:
+                    strreason = "active series, latest season"
+        if strreason is None and snum in arrepisodehintsmap:
+            strreason = "T1 episodes hint"
+        if strreason is not None:
+            arrseasonselections.append((snum, strreason))
+
+    # --- T3: refresh selected seasons ---
+    arrrefreshedseasonnumbers = set()
+    booallseasonsok = True
+    for snum, strreason in arrseasonselections:
+        print(f"  selective: refresh season {snum} ({strreason})")
+        lngseasonid = f_tmdbseasontosqleverything(lngserieid, snum)
+        if lngseasonid > 0:
+            arrrefreshedseasonnumbers.add(snum)
+        else:
+            booallseasonsok = False
+
+    # --- T4 selection + refresh ---
+    booallepisodesok = True
+    boohadepisodework = False
+    for snum in arrrefreshedseasonnumbers:
+        lngseasonid = f_tmdbseasongetid(lngserieid, snum)
+        if lngseasonid == 0:
+            continue
+        cursor3 = connectioncp.cursor()
+        cursor3.execute(
+            "SELECT EPISODE_NUMBER, DAT_AIR, "
+            "       TIM_CREDITS_COMPLETED, TIM_TRANSLATIONS_COMPLETED, "
+            "       TIM_IMAGES_COMPLETED, TIM_VIDEOS_COMPLETED "
+            "FROM T_WC_TMDB_EPISODE WHERE ID_SEASON = %s ORDER BY EPISODE_NUMBER",
+            (lngseasonid,)
+        )
+        arrepisodes = cursor3.fetchall()
+        snhints = arrepisodehintsmap.get(snum, set())
+        booactiveseason = (snum == lnglatestseasonnumber)
+        for eprow in arrepisodes:
+            enum = eprow['EPISODE_NUMBER']
+            if enum is None:
+                continue
+            enum = int(enum)
+            strepreason = None
+            if enum in snhints:
+                strepreason = "T1 episodes hint"
+            elif (eprow['TIM_CREDITS_COMPLETED'] is None or
+                  eprow['TIM_TRANSLATIONS_COMPLETED'] is None or
+                  eprow['TIM_IMAGES_COMPLETED'] is None or
+                  eprow['TIM_VIDEOS_COMPLETED'] is None):
+                strepreason = "episode completion incomplete"
+            elif eprow['DAT_AIR'] is not None:
+                intepagedays = (today - eprow['DAT_AIR']).days
+                if 0 <= intepagedays <= INT_RECENT_EPISODE_DAYS:
+                    strepreason = f"recent episode ({intepagedays}d)"
+            if strepreason is None and booactiveseason:
+                strepreason = "active season"
+            if strepreason is not None:
+                boohadepisodework = True
+                print(f"    selective: refresh S{snum:02d}E{enum:02d} ({strepreason})")
+                lngepid = f_tmdbepisodetosqleverything(lngserieid, snum, enum)
+                if lngepid <= 0:
+                    booallepisodesok = False
+
+    # --- Completion stamps ---
+    _f_tmdbseriestamplastchangescheck(lngserieid)
+    if arrseasonselections and booallseasonsok:
+        _f_tmdbseriestampchildrencompleted(lngserieid, "TIM_SEASONS_COMPLETED")
+    if boohadepisodework and booallepisodesok:
+        _f_tmdbseriestampchildrencompleted(lngserieid, "TIM_EPISODES_COMPLETED")
+
+
+def f_tmdbserieallseasonsepisodestosql(lngserieid, intloadepisodes=1):
+    """
+    For a given series, load every season (with embedded episode basic data
+    and credits). When intloadepisodes=1 (default) also call the per-episode
+    endpoint for each episode to capture cast credits, translations, images
+    and videos.
+
+    Reads number_of_seasons from the TMDb API to know how many to iterate.
+
+    Bootstrap-only / operator-backfill entrypoint. The TMDb-changes loop
+    uses f_tmdbserieselectiveseasonsepisodestosql instead.
+    """
+    global strtmdbapidomainurl
+    global headers
+    global strlanguage
+    global connectioncp
+
+    if lngserieid <= 0:
+        return
+
+    strtmdbapiurl = f"3/tv/{lngserieid}?language={strlanguage}"
+    strtmdbapifullurl = strtmdbapidomainurl + "/" + strtmdbapiurl
+    data = f_tmdbfetchjson(strtmdbapifullurl, f"f_tmdbserieallseasonsepisodestosql({lngserieid})")
+    if data is None or data.get('status_code', 0) > 1:
+        return
+
+    arrseasons = data.get('seasons') or []
+    if not arrseasons:
+        # Fall back to number_of_seasons + a 0 special season
+        lngnumseasons = data.get('number_of_seasons', 0) or 0
+        arrseasons = [{"season_number": n} for n in range(0, lngnumseasons + 1)]
+
+    for season in arrseasons:
+        lngseasonnumber = season.get('season_number')
+        if lngseasonnumber is None:
+            continue
+        lngseasonid = f_tmdbseasontosqleverything(lngserieid, lngseasonnumber)
+        if lngseasonid <= 0:
+            continue
+        if intloadepisodes != 1:
+            continue
+        cursor2 = connectioncp.cursor()
+        cursor2.execute(
+            "SELECT EPISODE_NUMBER FROM T_WC_TMDB_EPISODE "
+            "WHERE ID_SEASON = %s ORDER BY EPISODE_NUMBER",
+            (lngseasonid,)
+        )
+        episode_numbers = [row['EPISODE_NUMBER'] for row in cursor2.fetchall() if row['EPISODE_NUMBER'] is not None]
+        for lngepisodenumber in episode_numbers:
+            f_tmdbepisodetosqleverything(lngserieid, lngseasonnumber, lngepisodenumber)
 
 # https://developer.themoviedb.org/reference/collection-details
 

@@ -198,11 +198,11 @@ def get_required_env(name: str) -> str:
 
 def create_connection() -> pymysql.connections.Connection:
     return pymysql.connect(
-        host=get_required_env("MARIADB_HOST"),
-        port=int(os.environ.get("MARIADB_PORT", "3306")),
-        user=get_required_env("MARIADB_USER"),
-        password=get_required_env("MARIADB_PASSWORD"),
-        database=get_required_env("MARIADB_DATABASE"),
+        host=get_required_env("DB_HOST"),
+        port=int(os.environ.get("DB_PORT", "3306")),
+        user=get_required_env("DB_USER"),
+        password=get_required_env("DB_PASSWORD"),
+        database=get_required_env("DB_NAME"),
         charset="utf8mb4",
         autocommit=False,
     )
@@ -338,7 +338,7 @@ def main() -> int:
     load_dotenv()
     args = parse_args()
     shared_dir = Path(args.shared_dir)
-    import_batch_id = get_required_env("MARIADB_IMPORT_BATCH_ID")
+    import_batch_id = get_required_env("IMPORT_BATCH_ID")
     specs = select_specs(args.only_table)
 
     if not specs:

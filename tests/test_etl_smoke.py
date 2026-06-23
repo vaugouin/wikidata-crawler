@@ -25,10 +25,10 @@ import tempfile
 from pathlib import Path
 
 # Import the ETL from the repo root regardless of CWD, and ensure no stray
-# MARIADB_* env makes the server-variable writer try to connect.
+# DB_* env makes the server-variable writer try to connect.
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
-os.environ.pop("MARIADB_HOST", None)
+os.environ.pop("DB_HOST", None)
 
 from wikidata_dump_etl import WikidataDumpETL  # noqa: E402
 

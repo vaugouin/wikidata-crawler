@@ -1,2 +1,9 @@
 citizenphilsecrets.py
 .env
+
+# Caches Python (régénérés automatiquement)
+__pycache__/
+*.pyc
+
+# Outillage local Claude
+.claude/

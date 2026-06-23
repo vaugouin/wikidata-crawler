@@ -177,7 +177,7 @@ class ServerVariableWriter:
     """
     Optional MariaDB writer for live ETL progress variables.
     Mirrors citizenphil.f_setservervariable / f_getservervariable.
-    Silently disabled when MARIADB_HOST is not set or connection fails.
+    Silently disabled when DB_HOST is not set or connection fails.
     """
 
     def __init__(self) -> None:
@@ -187,19 +187,19 @@ class ServerVariableWriter:
         try:
             import pymysql
             import pymysql.cursors as _cursors  # type: ignore[import]
-            host = os.environ.get("MARIADB_HOST", "")
+            host = os.environ.get("DB_HOST", "")
             if not host:
-                print("[DB] MARIADB_HOST not set — server variable tracking disabled", file=sys.stderr, flush=True)
+                print("[DB] DB_HOST not set — server variable tracking disabled", file=sys.stderr, flush=True)
                 return
-            port = int(os.environ.get("MARIADB_PORT", "3306"))
-            prefix = os.environ.get("MARIADB_TABLE_PREFIX", "")
+            port = int(os.environ.get("DB_PORT", "3306"))
+            prefix = os.environ.get("DB_NAMESPACE", "")
             self._table = f"{prefix}SERVER_VARIABLE"
             self._conn = pymysql.connect(
                 host=host,
                 port=port,
-                user=os.environ.get("MARIADB_USER", ""),
-                password=os.environ.get("MARIADB_PASSWORD", ""),
-                database=os.environ.get("MARIADB_DATABASE", ""),
+                user=os.environ.get("DB_USER", ""),
+                password=os.environ.get("DB_PASSWORD", ""),
+                database=os.environ.get("DB_NAME", ""),
                 cursorclass=_cursors.DictCursor,
                 autocommit=True,
             )

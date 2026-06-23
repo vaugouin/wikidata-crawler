@@ -17,19 +17,6 @@ from pymysql.constants import CLIENT
 
 load_dotenv()
 
-
-def _bridge_env(primary: str, fallback: str) -> None:
-    if os.environ.get(primary):
-        os.environ.setdefault(fallback, os.environ[primary])
-
-
-_bridge_env("MARIADB_HOST", "DB_HOST")
-_bridge_env("MARIADB_PORT", "DB_PORT")
-_bridge_env("MARIADB_USER", "DB_USER")
-_bridge_env("MARIADB_PASSWORD", "DB_PASSWORD")
-_bridge_env("MARIADB_DATABASE", "DB_NAME")
-_bridge_env("MARIADB_TABLE_PREFIX", "DB_NAMESPACE")
-
 import citizenphil as cp
 from load_staging_jsonl import TABLE_SPECS, create_connection as create_staging_connection, load_table
 from wikidata_dump_etl import WikidataDumpETL
@@ -61,7 +48,7 @@ class WikidataCrawler:
     def __init__(self, start_step: int = 101) -> None:
         self.processes_executed_desc = "List of processes executed in the Wikidata dump crawler"
         self.total_runtime_desc = "Total runtime of the Wikidata dump crawler"
-        self.import_batch_id = self._require_env("MARIADB_IMPORT_BATCH_ID")
+        self.import_batch_id = self._require_env("IMPORT_BATCH_ID")
         self.start_step = start_step
         self.dump_url = os.environ.get("DUMP_URL", "").strip() or None
         dump_file_value = os.environ.get("DUMP_FILE", "").strip()
@@ -621,11 +608,11 @@ class WikidataCrawler:
 
     def _create_multi_statement_connection(self) -> pymysql.connections.Connection:
         return pymysql.connect(
-            host=self._require_env("MARIADB_HOST"),
-            port=int(os.environ.get("MARIADB_PORT", "3306")),
-            user=self._require_env("MARIADB_USER"),
-            password=self._require_env("MARIADB_PASSWORD"),
-            database=self._require_env("MARIADB_DATABASE"),
+            host=self._require_env("DB_HOST"),
+            port=int(os.environ.get("DB_PORT", "3306")),
+            user=self._require_env("DB_USER"),
+            password=self._require_env("DB_PASSWORD"),
+            database=self._require_env("DB_NAME"),
             charset="utf8mb4",
             collation="utf8mb4_unicode_ci",
             autocommit=False,

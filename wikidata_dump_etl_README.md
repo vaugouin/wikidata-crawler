@@ -259,12 +259,12 @@ MariaDB does not natively import NDJSON. Use `load_staging_jsonl.py`, which read
 
 The loader reads connection settings from `.env`:
 
-- `MARIADB_HOST`
-- `MARIADB_PORT`
-- `MARIADB_USER`
-- `MARIADB_PASSWORD`
-- `MARIADB_DATABASE`
-- `MARIADB_IMPORT_BATCH_ID`
+- `DB_HOST`
+- `DB_PORT`
+- `DB_USER`
+- `DB_PASSWORD`
+- `DB_NAME`
+- `IMPORT_BATCH_ID`
 
 Run it after ETL completes:
 

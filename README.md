@@ -202,14 +202,14 @@ rm -f /home/debian/docker/shared_data/wikidata-crawler/latest-all.json.bz2
 
 This is required because the workflow is designed to download from `DUMP_URL` into `DUMP_FILE` only when the local file does not already exist.
 
-### 2. Change `MARIADB_IMPORT_BATCH_ID` in `.env`
+### 2. Change `IMPORT_BATCH_ID` in `.env`
 
 Always use a new batch id for a new full run.
 
 Example:
 
 ```env
-MARIADB_IMPORT_BATCH_ID=wikidata_full_20260509_1730
+IMPORT_BATCH_ID=wikidata_full_20260509_1730
 ```
 
 Recommended format:
@@ -323,7 +323,7 @@ When restarting everything from scratch, use this checklist in order.
 - confirm `.env` contains the correct MariaDB credentials
 - confirm `.env` contains the expected `DUMP_URL`
 - confirm `.env` contains the expected `DUMP_FILE`
-- change `MARIADB_IMPORT_BATCH_ID`
+- change `IMPORT_BATCH_ID`
 - remove `/home/debian/docker/shared_data/wikidata-crawler/latest-all.json.bz2`
 
 ### Database
@@ -526,7 +526,7 @@ Important generated files include:
 Before the next full run:
 
 - delete `latest-all.json.bz2`
-- change `MARIADB_IMPORT_BATCH_ID` in `.env`
+- change `IMPORT_BATCH_ID` in `.env`
 - run `04_reset_for_full_rerun.sql`
 - rebuild Docker image
 - run with `docker run -d`

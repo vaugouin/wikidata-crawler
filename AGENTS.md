@@ -53,8 +53,8 @@ Docs: `README.md` (operational runbook, canonical), `WIKIDATA.md` (conceptual mo
 - **`f_*` helper functions** in `citizenphil.py`: `f_getconnection`, `f_setservervariable` / `f_getservervariable`, `f_sqlupdatearray`, `f_stringtosql`, `f_fieldfromquery`, etc. Reuse these rather than opening ad-hoc connections where practical.
 - The newer V2 pipeline modules (`wikidata_crawler.py`, `wikidata_dump_etl.py`, `load_staging_jsonl.py`) use modern typed Python (`from __future__ import annotations`, dataclasses, `pathlib`, type hints) — match that style when editing them.
 - **DB helpers**: `citizenphil.f_getconnection()` returns a lazily-created, reused `pymysql` `DictCursor` connection. The orchestrator opens its own multi-statement connection (`CLIENT.MULTI_STATEMENTS`, `utf8mb4` / `utf8mb4_unicode_ci`) only for executing the bulk-load and media-resolution SQL files.
-- **Server variables**: all live operational state (progress, status, per-step timestamps, row counts, last error) is written to the `T_WC_SERVER_VARIABLE` table via `cp.f_setservervariable(...)`, with names prefixed `strwikidatacrawler` (e.g. `strwikidatacrawlerstatus`, `strwikidatacrawlerbulkloadlaststatement`, `strwikidatacrawlermediaresourcecommons`). The table name may carry a prefix from `MARIADB_TABLE_PREFIX` / `DB_NAMESPACE`.
-- **Env bridging**: `wikidata_crawler.py` bridges `MARIADB_*` env vars to the `DB_*` names `citizenphil.py` reads (`_bridge_env`). Set the `MARIADB_*` variables; the `DB_*` aliases are derived automatically.
+- **Server variables**: all live operational state (progress, status, per-step timestamps, row counts, last error) is written to the `T_WC_SERVER_VARIABLE` table via `cp.f_setservervariable(...)`, with names prefixed `strwikidatacrawler` (e.g. `strwikidatacrawlerstatus`, `strwikidatacrawlerbulkloadlaststatement`, `strwikidatacrawlermediaresourcecommons`). The table name may carry a prefix from `DB_NAMESPACE`.
+- **Env naming**: this repo uses the same `DB_*` connection variables as the sibling repos (`sparql-crawler`, `tmdb-crawler`) and as `citizenphil.py` itself — `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_NAMESPACE`. There is no `MARIADB_*` bridge; the orchestrator reads `DB_*` directly.
 
 ## Pipeline / passes
 
@@ -115,8 +115,8 @@ Consistent with the sibling repos:
 
 Configuration is environment-driven; copy `.env.example` to `.env`. Do not commit `.env` (it holds credentials). Key variables:
 
-- Database: `MARIADB_HOST`, `MARIADB_PORT`, `MARIADB_USER`, `MARIADB_PASSWORD`, `MARIADB_DATABASE`, optional `MARIADB_TABLE_PREFIX`. These are bridged to `DB_HOST`/`DB_PORT`/`DB_USER`/`DB_PASSWORD`/`DB_NAME`/`DB_NAMESPACE` for `citizenphil.py`.
-- Batch identity: `MARIADB_IMPORT_BATCH_ID` (required). Use a fresh id per full run; recommended format `wikidata_full_YYYYMMDD_HHMM`.
+- Database: `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, optional `DB_NAMESPACE` (table-name prefix, e.g. `T_WC_`). Same names used by `citizenphil.py` and the sibling repos — no bridging.
+- Batch identity: `IMPORT_BATCH_ID` (required). Use a fresh id per full run; recommended format `wikidata_full_YYYYMMDD_HHMM`.
 - Dump source: `DUMP_URL` (remote `.bz2`) and/or `DUMP_FILE` (local path on the shared volume). See `.env.example` and `wikidata_dump_etl_README.md` for the three valid combinations. A cached `DUMP_FILE` is reused if present — delete it to force a fresh download.
 - HTTP identity: `WIKIMEDIA_USER_AGENT` — Wikimedia policy requires a descriptive User-Agent (`ToolName/version (URL; contact-email)`). Set it before hitting Wikimedia servers.
 - Other: `USER_TIMEZONE` (default `Europe/Paris`).

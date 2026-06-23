@@ -23,8 +23,9 @@ is RAM. There is no per-script downside.
 
 ### Sizing
 
-Set it to roughly **60–70 % of the RAM available to the database container**, leaving headroom for
-the OS, other containers, and MariaDB's own per-connection buffers. Check what the container has:
+The starting rule of thumb is **60–70 % of the RAM available to the database container**, leaving
+headroom for the OS, other containers, and MariaDB's own per-connection buffers. Check what the
+container has:
 
 ```bash
 docker exec damp-vaugouin-com-mariadb-1 sh -c 'cat /proc/meminfo | head -1'   # MemTotal
@@ -32,7 +33,46 @@ docker exec damp-vaugouin-com-mariadb-1 sh -c 'cat /proc/meminfo | head -1'   # 
 docker inspect damp-vaugouin-com-mariadb-1 --format '{{.HostConfig.Memory}}'   # bytes, 0 = unlimited
 ```
 
-Examples: 16 GB box → ~10G; 32 GB → ~20G; 64 GB → ~45G.
+The 60–70 % rule of thumb (16 GB box → ~10G; 32 GB → ~20G; 64 GB → ~45G) only holds when MariaDB is
+the **dominant** resident process. **On a shared, memory-uncapped host you must size against what is
+actually free, not against total RAM** — otherwise the pool plus the other containers can exceed
+physical RAM and trigger the kernel OOM-killer (which may kill MariaDB or a neighbour). When the
+Docker memory limit is `0` (unlimited), the container can grow into all host RAM, so the other
+containers' usage is the real constraint.
+
+> **Always cross-check with `docker stats` before picking a size on a shared host:**
+> ```bash
+> docker stats --no-stream --format 'table {{.Name}}\t{{.MemUsage}}'
+> ```
+
+#### Worked example — this instance (32 GiB host, uncapped, 2026-06)
+
+The host reports `MemTotal: 32169956 kB` (~30.7 GiB usable to containers) and the MariaDB container
+has **no Docker memory limit** (`HostConfig.Memory = 0`). A naive 60–70 % rule would suggest ~20G —
+but `docker stats` shows MariaDB is **not** the dominant resident:
+
+| Container | Memory |
+|---|---|
+| chromadb-server | **13.74 GiB** |
+| fastapi-text2sql-blue | 2.59 GiB |
+| `damp-…-mariadb-1` (current, 128 MB default pool) | 2.15 GiB |
+| wikipedia-crawler | 0.48 GiB |
+| ~16 other containers (wordpress, sparql/tmdb crawlers, proxies, php-fpm, …) | ~2.0 GiB combined |
+
+Everything **except** MariaDB already consumes ≈ **18.3 GiB**, and MariaDB's own non-pool overhead is
+≈ 2 GiB, leaving only ≈ **10 GiB genuinely free**. The key pin is **chromadb (13.7 GiB) +
+fastapi-text2sql (2.6 GiB) ≈ 16 GiB** that are essentially always resident. Setting the pool to 20G
+would drive total demand to ≈ 18.3 + 2 + 20 ≈ **40 GiB on a 32 GiB box → OOM**.
+
+So on this instance the safe size is **`innodb_buffer_pool_size = 6G`**:
+
+- 6G pool → MariaDB total ≈ 8.5 GiB → all-container demand ≈ 26.8 GiB → ≈ 4 GiB OS/headroom left (comfortable).
+- 8G pool → demand ≈ 29 GiB → only ≈ 1.5 GiB free (risky if the crawlers or chromadb spike — avoid unless chromadb's footprint is known-flat).
+
+6G is still a **~48× increase over the 128 MB default** and captures the bulk of the win — the
+speedup comes mostly from escaping the tiny default, not from the last few GB. Revisit this number if
+chromadb is trimmed/capped or removed: freeing its ~13.7 GiB would let the pool grow toward the
+generic 60–70 % target.
 
 ### Apply online (takes effect immediately, NOT persistent across restart)
 
@@ -40,7 +80,7 @@ MariaDB 10.2.2+ resizes the buffer pool online — no restart, no downtime:
 
 ```sql
 -- run via: docker exec -i damp-vaugouin-com-mariadb-1 mariadb -uroot -p
-SET GLOBAL innodb_buffer_pool_size = 10 * 1024 * 1024 * 1024;   -- e.g. 10 GiB; adjust to your RAM
+SET GLOBAL innodb_buffer_pool_size = 6 * 1024 * 1024 * 1024;    -- 6 GiB, safe on this shared host (see Sizing)
 
 -- watch the resize complete (should report "Completed resizing buffer pool"):
 SHOW STATUS LIKE 'Innodb_buffer_pool_resize_status';
@@ -57,8 +97,10 @@ into the MariaDB container (via the stack's `docker-compose.yml` volumes), conta
 
 ```ini
 [mysqld]
-# Primary cache — size to ~60-70% of the container's RAM
-innodb_buffer_pool_size      = 10G
+# Primary cache — size against FREE RAM on a shared host, not total (see Sizing).
+# This instance: 6G (32 GiB host shared with chromadb/fastapi). Use the same value
+# you applied online above — do NOT drop the generic 10G/20G back in here.
+innodb_buffer_pool_size      = 6G
 
 # Helps large loads; safe defaults for a mixed workload
 innodb_buffer_pool_instances = 8
@@ -70,7 +112,7 @@ innodb_flush_method          = O_DIRECT
 
 ```yaml
 command: >-
-  --innodb-buffer-pool-size=10G
+  --innodb-buffer-pool-size=6G
   --innodb-log-file-size=2G
   --innodb-flush-method=O_DIRECT
 ```

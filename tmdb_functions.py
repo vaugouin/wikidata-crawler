@@ -114,7 +114,7 @@ def f_tmdbfetchjson(strtmdbapifullurl, strcontext):
     print(f"{strcontext} failed!")
     return None
 
-def f_tmdbcontentimagesstosql(lngcontentid, strcontenttype, strsqlmastertable, strsqltablename, strkeyfieldname):
+def f_tmdbcontentimagesstosql(lngcontentid, strcontenttype, strsqlmastertable, strsqltablename, strkeyfieldname, strmainimagefield=None, strmainimagetype=None, strlangtable=None):
     """
     Fetch images for content from TMDb API and store them in the database.
 
@@ -130,6 +130,20 @@ def f_tmdbcontentimagesstosql(lngcontentid, strcontenttype, strsqlmastertable, s
         The image table name (e.g., 'T_WC_TMDB_MOVIE_IMAGE')
     strkeyfieldname : str
         The primary key field name (e.g., 'ID_MOVIE')
+    strmainimagefield : str, optional
+        Name of the column holding the "main" image path (e.g., 'POSTER_PATH').
+        When provided, every main image (the base/English image on the master
+        record plus any per-language images, see strlangtable) is pinned to
+        DISPLAY_ORDER 0, inserted if the API did not return it, and never
+        deleted by the obsolete-image cleanup.
+    strmainimagetype : str, optional
+        TYPE_IMAGE value for the main image (e.g., 'poster'). Required when
+        strmainimagefield is set.
+    strlangtable : str, optional
+        Name of the per-language table (e.g., 'T_WC_TMDB_MOVIE_LANG') that holds
+        localized main image paths in the same strmainimagefield column, keyed by
+        strkeyfieldname with a LANG column. Each localized main image is also
+        pinned to DISPLAY_ORDER 0.
 
     Returns:
     --------
@@ -141,11 +155,11 @@ def f_tmdbcontentimagesstosql(lngcontentid, strcontenttype, strsqlmastertable, s
     global connectioncp
     global strsqlns
     global paris_tz
-    
+
     if lngcontentid <= 0:
         print(f"Error: Invalid {strcontenttype} ID {lngcontentid}")
         return False
-    
+
     strtmdbapiimagesurl = f"3/{strcontenttype}/{lngcontentid}/images"
     strtmdbapifullurl = strtmdbapidomainurl + "/" + strtmdbapiimagesurl
     data = f_tmdbfetchjson(strtmdbapifullurl, f"f_tmdbcontentimagesstosql({lngcontentid})")
@@ -161,27 +175,53 @@ def f_tmdbcontentimagesstosql(lngcontentid, strcontenttype, strsqlmastertable, s
     # Get current timestamp for database records
     current_time = datetime.now(paris_tz).strftime("%Y-%m-%d %H:%M:%S")
     current_date = datetime.now(paris_tz).strftime("%Y-%m-%d")
-    
+
+    # Gather every "main" image path that must sit at DISPLAY_ORDER 0: the
+    # base/English image on the master record plus any localized images (e.g. the
+    # French POSTER_PATH stored in the *_LANG table). Mapped to their language so
+    # missing ones can be inserted with a sensible LANG value.
+    dctmainimages = {}
+    if strmainimagefield:
+        cursormain = connectioncp.cursor()
+        cursormain.execute(f"SELECT {strmainimagefield} AS MAIN_IMAGE_PATH FROM {strsqlmastertable} WHERE {strkeyfieldname} = {lngcontentid}")
+        rowmain = cursormain.fetchone()
+        if rowmain is not None and rowmain.get('MAIN_IMAGE_PATH'):
+            dctmainimages[rowmain['MAIN_IMAGE_PATH']] = 'en'
+        if strlangtable:
+            cursormain.execute(f"SELECT {strmainimagefield} AS MAIN_IMAGE_PATH, LANG FROM {strlangtable} WHERE {strkeyfieldname} = {lngcontentid}")
+            for rowlang in cursormain.fetchall():
+                strlangpath = rowlang.get('MAIN_IMAGE_PATH')
+                if strlangpath:
+                    dctmainimages.setdefault(strlangpath, rowlang.get('LANG') or '')
+
     # Track all image paths to clean up obsolete ones later
     all_image_paths = []
-    
+
     # Function to process image arrays (both backdrops and posters)
     def process_image_array(image_array, image_type):
         lngdisplayorder = 0
+        boopintype = (bool(dctmainimages) and image_type == strmainimagetype)
         for image in image_array:
-            lngdisplayorder += 1
-            
             # Extract image data
             image_path = image.get('file_path', '')
             if not image_path:
                 continue
-                
+
+            # Every main image (base + per-language) is pinned to DISPLAY_ORDER 0;
+            # all other images keep a 1-based ordering.
+            boothismain = boopintype and image_path in dctmainimages
+            if boothismain:
+                lngthisdisplayorder = 0
+            else:
+                lngdisplayorder += 1
+                lngthisdisplayorder = lngdisplayorder
+
             all_image_paths.append(image_path)
-            
+
             # Prepare data for database
             arrimagedata = {
                 strkeyfieldname: lngcontentid,
-                "DISPLAY_ORDER": lngdisplayorder,
+                "DISPLAY_ORDER": lngthisdisplayorder,
                 "DAT_CREAT": current_date,
                 "TIM_UPDATED": current_time,
                 "TYPE_IMAGE": image_type,
@@ -193,11 +233,14 @@ def f_tmdbcontentimagesstosql(lngcontentid, strcontenttype, strsqlmastertable, s
                 "VOTE_AVERAGE": image.get('vote_average', 0),
                 "VOTE_COUNT": image.get('vote_count', 0)
             }
-            
+            # Keep the pinned main image active even if a prior run soft-deleted it.
+            if boothismain:
+                arrimagedata["DELETED"] = 0
+
             # Update or insert into database
             strsqlupdatecondition = f"{strkeyfieldname} = {lngcontentid} AND TYPE_IMAGE = '{image_type}' AND IMAGE_PATH = '{image_path}'"
             cp.f_sqlupdatearray(strsqltablename, arrimagedata, strsqlupdatecondition, 1)
-    
+
     # Process backdrops
     if 'backdrops' in data and data['backdrops']:
         process_image_array(data['backdrops'], 'backdrop')
@@ -213,7 +256,27 @@ def f_tmdbcontentimagesstosql(lngcontentid, strcontenttype, strsqlmastertable, s
     # Process profiles
     if 'profiles' in data and data['profiles']:
         process_image_array(data['profiles'], 'profile')
-    
+
+    # Guarantee every main image (base + per-language) is present at
+    # DISPLAY_ORDER 0, even when the TMDb images endpoint did not return it.
+    # Adding them to all_image_paths also shields them from the cleanup below.
+    for strmainpath, strmainlang in dctmainimages.items():
+        if strmainpath in all_image_paths:
+            continue
+        all_image_paths.append(strmainpath)
+        arrmainimagedata = {
+            strkeyfieldname: lngcontentid,
+            "DISPLAY_ORDER": 0,
+            "DELETED": 0,
+            "DAT_CREAT": current_date,
+            "TIM_UPDATED": current_time,
+            "TYPE_IMAGE": strmainimagetype,
+            "IMAGE_PATH": strmainpath,
+            "LANG": strmainlang,
+        }
+        strsqlupdatecondition = f"{strkeyfieldname} = {lngcontentid} AND TYPE_IMAGE = '{strmainimagetype}' AND IMAGE_PATH = '{strmainpath}'"
+        cp.f_sqlupdatearray(strsqltablename, arrmainimagedata, strsqlupdatecondition, 1)
+
     # Clean up obsolete images
     if all_image_paths:
         # Create a comma-separated list of image paths with quotes
@@ -771,7 +834,7 @@ def f_tmdbpersonimagestosql(lngpersonid):
     bool
         True if successful, False if failed
     """
-    f_tmdbcontentimagesstosql(lngpersonid, "person", "T_WC_TMDB_PERSON", "T_WC_TMDB_PERSON_IMAGE", "ID_PERSON")
+    f_tmdbcontentimagesstosql(lngpersonid, "person", "T_WC_TMDB_PERSON", "T_WC_TMDB_PERSON_IMAGE", "ID_PERSON", "PROFILE_PATH", "profile")
 
 def f_tmdbpersontosqleverything(lngpersonid):
     """
@@ -1533,7 +1596,7 @@ def f_tmdbmovieimagestosql(lngmovieid):
     bool
         True if successful, False if failed
     """
-    f_tmdbcontentimagesstosql(lngmovieid, "movie", "T_WC_TMDB_MOVIE", "T_WC_TMDB_MOVIE_IMAGE", "ID_MOVIE")
+    f_tmdbcontentimagesstosql(lngmovieid, "movie", "T_WC_TMDB_MOVIE", "T_WC_TMDB_MOVIE_IMAGE", "ID_MOVIE", "POSTER_PATH", "poster", "T_WC_TMDB_MOVIE_LANG")
 
 def f_tmdbmovievideotosql(lngmovieid, strlang):
     """
@@ -1711,7 +1774,12 @@ def f_tmdbserietosql(lngserieid):
             if 'external_ids' in data:
                 if 'wikidata_id' in data['external_ids']:
                     strserieidwikidata = data['external_ids']['wikidata_id']
-            
+
+            lngserieidtvdb = None
+            if 'external_ids' in data:
+                if data['external_ids'].get('tvdb_id'):
+                    lngserieidtvdb = data['external_ids']['tvdb_id']
+
             # Add TV-specific fields
             lngnumberofepisodes = 0
             if 'number_of_episodes' in data:
@@ -1920,7 +1988,11 @@ def f_tmdbserietosql(lngserieid):
                 arrseriecouples["ID_WIKIDATA"] = strserieidwikidata
             else:
                 arrseriecouples["ID_WIKIDATA"] = ""
-            
+
+            # ID_TVDB is an int column (mirrors SEASON/EPISODE); only set when present
+            if lngserieidtvdb:
+                arrseriecouples["ID_TVDB"] = lngserieidtvdb
+
             arrseriecouples["OVERVIEW"] = strserieoverview
             
             # Date fields
@@ -2593,7 +2665,7 @@ def f_tmdbserieimagestosql(lngserieid):
     bool
         True if successful, False if failed
     """
-    f_tmdbcontentimagesstosql(lngserieid, "tv", "T_WC_TMDB_SERIE", "T_WC_TMDB_SERIE_IMAGE", "ID_SERIE")
+    f_tmdbcontentimagesstosql(lngserieid, "tv", "T_WC_TMDB_SERIE", "T_WC_TMDB_SERIE_IMAGE", "ID_SERIE", "POSTER_PATH", "poster", "T_WC_TMDB_SERIE_LANG")
 
 def f_tmdbserievideotosql(lngserieid, strlang):
     """
@@ -3128,20 +3200,35 @@ def f_tmdbseasonimagestosql(lngserieid, lngseasonnumber):
 
     current_time = datetime.now(paris_tz).strftime("%Y-%m-%d %H:%M:%S")
     current_date = datetime.now(paris_tz).strftime("%Y-%m-%d")
+
+    # Pin the season POSTER_PATH to DISPLAY_ORDER 0 and protect it from cleanup.
+    strmainimagepath = ""
+    cursormain = connectioncp.cursor()
+    cursormain.execute(f"SELECT POSTER_PATH AS MAIN_IMAGE_PATH FROM T_WC_TMDB_SEASON WHERE ID_SEASON = {lngseasonid}")
+    rowmain = cursormain.fetchone()
+    if rowmain is not None and rowmain.get('MAIN_IMAGE_PATH'):
+        strmainimagepath = rowmain['MAIN_IMAGE_PATH']
+
     all_image_paths = []
 
     def _store(image_array, image_type):
         lngdisplayorder = 0
+        boopintype = (strmainimagepath != "" and image_type == 'poster')
         for image in image_array or []:
-            lngdisplayorder += 1
             image_path = image.get('file_path', '')
             if not image_path:
                 continue
+            boothismain = boopintype and image_path == strmainimagepath
+            if boothismain:
+                lngthisdisplayorder = 0
+            else:
+                lngdisplayorder += 1
+                lngthisdisplayorder = lngdisplayorder
             all_image_paths.append(image_path)
             arrimage = {
                 "ID_SEASON": lngseasonid,
                 "ID_SERIE": lngserieid,
-                "DISPLAY_ORDER": lngdisplayorder,
+                "DISPLAY_ORDER": lngthisdisplayorder,
                 "DAT_CREAT": current_date,
                 "TIM_UPDATED": current_time,
                 "TYPE_IMAGE": image_type,
@@ -3153,6 +3240,8 @@ def f_tmdbseasonimagestosql(lngserieid, lngseasonnumber):
                 "VOTE_AVERAGE": image.get('vote_average', 0),
                 "VOTE_COUNT": image.get('vote_count', 0),
             }
+            if boothismain:
+                arrimage["DELETED"] = 0
             cp.f_sqlupdatearray(
                 "T_WC_TMDB_SEASON_IMAGE",
                 arrimage,
@@ -3163,6 +3252,27 @@ def f_tmdbseasonimagestosql(lngserieid, lngseasonnumber):
 
     _store(data.get('posters'), 'poster')
     _store(data.get('backdrops'), 'backdrop')
+
+    # Guarantee the season poster is present at DISPLAY_ORDER 0 even if the API
+    # did not return it, and shield it from the cleanup below.
+    if strmainimagepath and strmainimagepath not in all_image_paths:
+        all_image_paths.append(strmainimagepath)
+        cp.f_sqlupdatearray(
+            "T_WC_TMDB_SEASON_IMAGE",
+            {
+                "ID_SEASON": lngseasonid,
+                "ID_SERIE": lngserieid,
+                "DISPLAY_ORDER": 0,
+                "DELETED": 0,
+                "DAT_CREAT": current_date,
+                "TIM_UPDATED": current_time,
+                "TYPE_IMAGE": 'poster',
+                "IMAGE_PATH": strmainimagepath,
+            },
+            f"ID_SEASON = {lngseasonid} AND TYPE_IMAGE = 'poster' "
+            f"AND IMAGE_PATH = '{strmainimagepath}'",
+            1
+        )
 
     cursor = connectioncp.cursor()
     if all_image_paths:
@@ -3488,20 +3598,34 @@ def f_tmdbepisodeimagestosql(lngserieid, lngseasonnumber, lngepisodenumber):
 
     current_time = datetime.now(paris_tz).strftime("%Y-%m-%d %H:%M:%S")
     current_date = datetime.now(paris_tz).strftime("%Y-%m-%d")
+
+    # Pin the episode STILL_PATH to DISPLAY_ORDER 0 and protect it from cleanup.
+    strmainimagepath = ""
+    cursormain = connectioncp.cursor()
+    cursormain.execute(f"SELECT STILL_PATH AS MAIN_IMAGE_PATH FROM T_WC_TMDB_EPISODE WHERE ID_EPISODE = {lngepisodeid}")
+    rowmain = cursormain.fetchone()
+    if rowmain is not None and rowmain.get('MAIN_IMAGE_PATH'):
+        strmainimagepath = rowmain['MAIN_IMAGE_PATH']
+
     all_image_paths = []
 
     lngdisplayorder = 0
     for image in (data.get('stills') or []):
-        lngdisplayorder += 1
         image_path = image.get('file_path', '')
         if not image_path:
             continue
+        boothismain = strmainimagepath != "" and image_path == strmainimagepath
+        if boothismain:
+            lngthisdisplayorder = 0
+        else:
+            lngdisplayorder += 1
+            lngthisdisplayorder = lngdisplayorder
         all_image_paths.append(image_path)
         arrimage = {
             "ID_EPISODE": lngepisodeid,
             "ID_SEASON": lngseasonid,
             "ID_SERIE": lngserieid,
-            "DISPLAY_ORDER": lngdisplayorder,
+            "DISPLAY_ORDER": lngthisdisplayorder,
             "DAT_CREAT": current_date,
             "TIM_UPDATED": current_time,
             "TYPE_IMAGE": 'still',
@@ -3513,11 +3637,35 @@ def f_tmdbepisodeimagestosql(lngserieid, lngseasonnumber, lngepisodenumber):
             "VOTE_AVERAGE": image.get('vote_average', 0),
             "VOTE_COUNT": image.get('vote_count', 0),
         }
+        if boothismain:
+            arrimage["DELETED"] = 0
         cp.f_sqlupdatearray(
             "T_WC_TMDB_EPISODE_IMAGE",
             arrimage,
             f"ID_EPISODE = {lngepisodeid} AND TYPE_IMAGE = 'still' "
             f"AND IMAGE_PATH = '{image_path}'",
+            1
+        )
+
+    # Guarantee the episode still is present at DISPLAY_ORDER 0 even if the API
+    # did not return it, and shield it from the cleanup below.
+    if strmainimagepath and strmainimagepath not in all_image_paths:
+        all_image_paths.append(strmainimagepath)
+        cp.f_sqlupdatearray(
+            "T_WC_TMDB_EPISODE_IMAGE",
+            {
+                "ID_EPISODE": lngepisodeid,
+                "ID_SEASON": lngseasonid,
+                "ID_SERIE": lngserieid,
+                "DISPLAY_ORDER": 0,
+                "DELETED": 0,
+                "DAT_CREAT": current_date,
+                "TIM_UPDATED": current_time,
+                "TYPE_IMAGE": 'still',
+                "IMAGE_PATH": strmainimagepath,
+            },
+            f"ID_EPISODE = {lngepisodeid} AND TYPE_IMAGE = 'still' "
+            f"AND IMAGE_PATH = '{strmainimagepath}'",
             1
         )
 
@@ -4152,7 +4300,7 @@ def f_tmdbcollectionimagestosql(lngcollectionid):
     bool
         True if successful, False if failed
     """
-    f_tmdbcontentimagesstosql(lngcollectionid, "collection", "T_WC_TMDB_COLLECTION", "T_WC_TMDB_COLLECTION_IMAGE", "ID_COLLECTION")
+    f_tmdbcontentimagesstosql(lngcollectionid, "collection", "T_WC_TMDB_COLLECTION", "T_WC_TMDB_COLLECTION_IMAGE", "ID_COLLECTION", "POSTER_PATH", "poster", "T_WC_TMDB_COLLECTION_LANG")
 
 def f_tmdbcollectiontosqleverything(lngcollectionid):
     """
@@ -4302,7 +4450,7 @@ def f_tmdbcompanyimagestosql(lngcompanyid):
     bool
         True if successful, False if failed
     """
-    f_tmdbcontentimagesstosql(lngcompanyid, "company", "T_WC_TMDB_COMPANY", "T_WC_TMDB_COMPANY_IMAGE", "ID_COMPANY")
+    f_tmdbcontentimagesstosql(lngcompanyid, "company", "T_WC_TMDB_COMPANY", "T_WC_TMDB_COMPANY_IMAGE", "ID_COMPANY", "LOGO_PATH", "logo")
 
 def f_tmdbcompanytosqleverything(lngcompanyid):
     """
@@ -4440,7 +4588,7 @@ def f_tmdbnetworkimagestosql(lngnetworkid):
     bool
         True if successful, False if failed
     """
-    f_tmdbcontentimagesstosql(lngnetworkid, "network", "T_WC_TMDB_NETWORK", "T_WC_TMDB_NETWORK_IMAGE", "ID_NETWORK")
+    f_tmdbcontentimagesstosql(lngnetworkid, "network", "T_WC_TMDB_NETWORK", "T_WC_TMDB_NETWORK_IMAGE", "ID_NETWORK", "LOGO_PATH", "logo")
     
 def f_tmdbnetworktosqleverything(lngnetworkid):
     """

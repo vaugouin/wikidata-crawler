@@ -126,3 +126,14 @@ CREATE TABLE IF NOT EXISTS STG_T_WC_WIKIDATA_CHARACTER (
     KEY IDX_STG_CHARACTER_WIKIDATA (ID_WIKIDATA),
     KEY IDX_STG_CHARACTER_STATUS (ROW_STATUS)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------------------------
+-- Widen YEAR_VALUE to BIGINT: Wikidata stores astronomical/geological years
+-- (e.g. Big Bang +13800000000) that overflow signed INT (max 2147483647),
+-- which raised error 1264 "Out of range value for column 'YEAR_VALUE'".
+-- ALTER ... MODIFY to the same type is a harmless no-op, so this stays idempotent.
+-- ----------------------------------------------------------------------------
+ALTER TABLE T_WC_WIKIDATA_TIME_VALUE               MODIFY COLUMN YEAR_VALUE BIGINT DEFAULT NULL;
+ALTER TABLE T_WC_WIKIDATA_QUALIFIER_TIME_VALUE     MODIFY COLUMN YEAR_VALUE BIGINT DEFAULT NULL;
+ALTER TABLE STG_T_WC_WIKIDATA_TIME_VALUE           MODIFY COLUMN YEAR_VALUE BIGINT DEFAULT NULL;
+ALTER TABLE STG_T_WC_WIKIDATA_QUALIFIER_TIME_VALUE MODIFY COLUMN YEAR_VALUE BIGINT DEFAULT NULL;

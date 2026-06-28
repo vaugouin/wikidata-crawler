@@ -716,6 +716,12 @@ def extract_time_payload(value: Any) -> Dict[str, Any]:
             parts = date_core.split("-")
             if len(parts) >= 1 and parts[0]:
                 year = sign * int(parts[0])
+                # Wikidata stores astronomical/geological years (e.g. Big Bang
+                # +13800000000) that overflow even BIGINT in pathological cases.
+                # Clamp out-of-range years to NULL to keep the load alive; the
+                # original string is preserved in RAW_TIME_VALUE.
+                if not (-9223372036854775808 <= year <= 9223372036854775807):
+                    year = None
             if len(parts) >= 2 and parts[1]:
                 month = int(parts[1])
             if len(parts) >= 3 and parts[2]:

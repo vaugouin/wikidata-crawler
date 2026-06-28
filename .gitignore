@@ -7,3 +7,6 @@ __pycache__/
 
 # Outillage local Claude
 .claude/
+
+# Claude Code / agent local tooling
+.agents/

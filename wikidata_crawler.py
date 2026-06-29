@@ -335,12 +335,28 @@ class WikidataCrawler:
                 #   - unique_checks=0     : skip per-row secondary-unique-index probes
                 #   - foreign_key_checks=0: skip per-row FK validation
                 # Must run before the first INSERT (sql_log_bin requires no open txn).
+                # sql_log_bin=0 needs the BINLOG ADMIN / SUPER privilege (error 1227).
+                # It is only a load accelerator, not a correctness requirement, so it
+                # is best-effort: if the DB user lacks the privilege, skip it and keep
+                # loading (binary logging stays on, the load is just slower).
                 for pragma in (
                     "SET SESSION sql_log_bin = 0",
                     "SET SESSION unique_checks = 0",
                     "SET SESSION foreign_key_checks = 0",
                 ):
-                    cursor.execute(pragma)
+                    try:
+                        cursor.execute(pragma)
+                    except pymysql.err.MySQLError as exc:
+                        code = exc.args[0] if exc.args else None
+                        if pragma.endswith("sql_log_bin = 0") and code == 1227:
+                            cp.f_setservervariable(
+                                f"{CRAWLER_PREFIX}bulkloadsqllogbin",
+                                "skipped: missing BINLOG ADMIN privilege (1227)",
+                                "Whether the bulk load could disable sql_log_bin for speed",
+                                0,
+                            )
+                            continue
+                        raise
                 for index, statement in enumerate(statements, start=1):
                     normalized = statement.strip().upper()
                     if normalized in ("START TRANSACTION", "COMMIT"):

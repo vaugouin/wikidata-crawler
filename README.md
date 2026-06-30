@@ -61,6 +61,11 @@ Use these documents as the main references:
 - `03_bulk_load_from_staging_FULL.sql`
 - `04_reset_for_full_rerun.sql`
 - `07_resolve_media_resources.sql`
+- `08_cleanup_old_batches.sql`
+- `09_fix_value_type_conflicts.sql` — manual repair for trigger error 1644 (statement/qualifier
+  already exists in another child table); deletes stale typed-value siblings left when a
+  statement's `VALUE_TYPE` flips between dumps. Same purge is built into
+  `03_bulk_load_from_staging_FULL.sql`, so this is only for unblocking an in-flight load.
 - `apply_to_live_db.sql` — idempotent additive DDL (SEASON/EPISODE/CHARACTER target + staging tables);
   auto-applied by the crawler at steps 108 and 110 so a long-lived DB stays in sync with new tables
 
@@ -172,6 +177,7 @@ Its steps are:
 - `111` validate target tables
 - `112` resolve media resources
 - `113` validate media resources
+- `114` cleanup old import batches
 
 For a full rerun, start from `101`.
 
@@ -454,6 +460,24 @@ Because of that, the most reliable rerun procedure is:
   - reports staging and target progress counts for a given `IMPORT_BATCH_ID`
 - `07_resolve_media_resources.sql`
   - executed by step `112`; populates `T_WC_WIKIDATA_MEDIA_RESOURCE` and `T_WC_WIKIDATA_MEDIA_RESOURCE_URL` from V2 statement/value tables using `INSERT ... ON DUPLICATE KEY UPDATE` (idempotent)
+- `08_cleanup_old_batches.sql`
+  - executed by step `114`; deletes every target row whose `IMPORT_BATCH_ID` is strictly older than the current batch — the stale "orphans" the upsert-only bulk load never overwrites (entities that fell out of scope, claims deleted/edited between dumps). Idempotent; FK checks off. Entity and property-metadata tables have no `IMPORT_BATCH_ID` and are left untouched. The step is guarded: it refuses to run unless the current batch already has statements loaded.
+- `09_fix_value_type_conflicts.sql`
+  - manual repair for bulk-load trigger error 1644 (`<TABLE>: statement/qualifier already exists in another child table`). When a statement's (or qualifier's) `VALUE_TYPE` changes between two dumps, the upsert-only bulk load updates the parent type but leaves the earlier batch's value row in the now-wrong sibling table, which the "one statement → one value table" triggers reject. This script deletes, for the current `@IMPORT_BATCH_ID`, every target typed-value row whose statement/qualifier is classified as a different `VALUE_TYPE` in this batch's staging. Idempotent. The same purge is built into `03_bulk_load_from_staging_FULL.sql`, so a fresh run self-heals; run this standalone only to unblock an in-flight load without rebuilding the image (set `@IMPORT_BATCH_ID`, then resume with `--start-step 110`).
+
+## Cleanup of old import batches (step 114)
+
+Step `114` runs at the very end of the pipeline and prunes leftovers from previous runs. Because the bulk load (step 110) is **upsert-only** and filtered to the current `IMPORT_BATCH_ID`, any statement that existed in an earlier run but is no longer emitted (its entity went out of scope, or the claim was deleted/edited in Wikidata) keeps its **old** `IMPORT_BATCH_ID` forever and is never overwritten. Over successive runs these stale "orphan" rows accumulate.
+
+Step `114` deletes every target row whose `IMPORT_BATCH_ID` is **strictly older** than the current batch (the recommended `wikidata_full_YYYYMMDD_HHMM` id format sorts chronologically, so a plain string `<` is a valid "is older than" test). It cascades through the child value/URL/check tables (via a join to their old-batch parent) before deleting the four batch-stamped parents (`T_WC_WIKIDATA_STATEMENT`, `T_WC_WIKIDATA_STATEMENT_QUALIFIER`, `T_WC_WIKIDATA_MEDIA_RESOURCE`, `T_WC_WIKIDATA_MEDIA_RESOURCE_CHECK`).
+
+It records `strwikidatacrawlercleanuprowsdeleted` (total rows removed) and `strwikidatacrawlercleanupbatchid` (the cutoff) as server variables. It is idempotent and safe to run on its own:
+
+```bash
+./wikidata-crawler.sh --start-step 114      # prune old batches only
+```
+
+**Safety guard.** The step refuses to delete anything unless the current `IMPORT_BATCH_ID` already has statements in `T_WC_WIKIDATA_STATEMENT`. This prevents a misconfigured or not-yet-loaded batch id from wiping every prior batch. It is a lighter, incremental alternative to `04_reset_for_full_rerun.sql`: the reset clears *everything* before a fresh rebuild, whereas step 114 keeps the current batch and removes only what is older.
 
 ## Media resolution (steps 112 & 113)
 
@@ -532,6 +556,7 @@ Before the next full run:
 - run with `docker run -d`
 - watch with `docker logs -f wikidata-crawler`
 - start from `--start-step 101`
+- the final step (`114`) auto-prunes rows from older `IMPORT_BATCH_ID`s; if you ran a full `04_reset` first there is nothing older to prune
 
 ## Additional references
 

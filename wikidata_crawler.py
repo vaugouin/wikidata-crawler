@@ -29,6 +29,7 @@ SHARED_DIR = Path("/shared")
 BASE_DIR = Path(__file__).resolve().parent
 DEFAULT_BULK_SQL_NAME = "03_bulk_load_from_staging_FULL.sql"
 DEFAULT_MEDIA_RESOLVE_SQL_NAME = "07_resolve_media_resources.sql"
+DEFAULT_CLEANUP_SQL_NAME = "08_cleanup_old_batches.sql"
 DEFAULT_LIVE_DB_SCHEMA_NAME = "apply_to_live_db.sql"
 CRAWLER_PREFIX = "strwikidatacrawler"
 
@@ -70,6 +71,7 @@ class WikidataCrawler:
             (111, "validate target tables"),
             (112, "resolve media resources"),
             (113, "validate media resources"),
+            (114, "cleanup old import batches"),
         ])
         self.steps = OrderedDict([
             (101, ProcessStep(101, self.arrwikidatascope[101], WikidataCrawler.step_resolve_dump_source)),
@@ -85,6 +87,7 @@ class WikidataCrawler:
             (111, ProcessStep(111, self.arrwikidatascope[111], WikidataCrawler.step_validate_targets)),
             (112, ProcessStep(112, self.arrwikidatascope[112], WikidataCrawler.step_resolve_media)),
             (113, ProcessStep(113, self.arrwikidatascope[113], WikidataCrawler.step_validate_media)),
+            (114, ProcessStep(114, self.arrwikidatascope[114], WikidataCrawler.step_cleanup_old_batches)),
         ])
 
     def run(self) -> None:
@@ -460,6 +463,61 @@ class WikidataCrawler:
         cp.f_setservervariable(f"{CRAWLER_PREFIX}mediaresourceyoutube", str(platform_counts.get("youtube", 0)), "Current YouTube resource count", 0)
         cp.f_setservervariable(f"{CRAWLER_PREFIX}mediaresourcearchive", str(platform_counts.get("internet_archive", 0)), "Current Internet Archive resource count", 0)
 
+    def step_cleanup_old_batches(self) -> None:
+        # Prune rows left behind by PREVIOUS runs: every target row whose
+        # IMPORT_BATCH_ID is strictly older than the current batch. The bulk load
+        # only ever upserts the current batch, so statements that fell out of
+        # scope (entity reclassified, claim deleted/edited) keep their old batch
+        # id forever. This step removes those stale orphans so the live tables
+        # match the latest dump. See 08_cleanup_old_batches.sql.
+        #
+        # Safety guard: refuse to delete older batches unless the CURRENT batch is
+        # actually present in the target. This prevents a misconfigured or empty
+        # IMPORT_BATCH_ID (e.g. a standalone --start-step 114 before the load)
+        # from wiping every prior batch and leaving the table empty.
+        current_count = self._fetch_scalar(
+            "SELECT COUNT(*) FROM T_WC_WIKIDATA_STATEMENT WHERE IMPORT_BATCH_ID = %s",
+            (self.import_batch_id,),
+        )
+        if int(current_count) <= 0:
+            raise ValidationError(
+                f"Refusing to clean older import batches: no statements found for the current "
+                f"IMPORT_BATCH_ID '{self.import_batch_id}'. Load the current batch first "
+                f"(run the full pipeline or --start-step 110) before cleanup."
+            )
+
+        sql_path = self._resolve_cleanup_sql_path()
+        sql_text = sql_path.read_text(encoding="utf-8")
+        sql_text = sql_text.replace("SET NAMES utf8mb4;", "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;")
+        sql_text = sql_text.replace(
+            "SET @IMPORT_BATCH_ID = 'BATCH_20260309_001';",
+            f"SET @IMPORT_BATCH_ID = CONVERT('{self.import_batch_id}' USING utf8mb4) COLLATE utf8mb4_unicode_ci;",
+        )
+        statements = self._split_sql_statements(sql_text)
+        total_deleted = 0
+        connection = self._create_multi_statement_connection()
+        try:
+            with connection.cursor() as cursor:
+                for index, statement in enumerate(statements, start=1):
+                    normalized = statement.strip().upper()
+                    if normalized in ("START TRANSACTION", "COMMIT"):
+                        continue
+                    cursor.execute(statement)
+                    if normalized.startswith("DELETE"):
+                        total_deleted += cursor.rowcount or 0
+                    connection.commit()
+                    cp.f_setservervariable(
+                        f"{CRAWLER_PREFIX}cleanuplaststatement",
+                        str(index),
+                        "Last successfully committed statement index in the old-batch cleanup process",
+                        0,
+                    )
+        finally:
+            connection.close()
+        print(f"114: deleted {total_deleted} rows from import batches older than {self.import_batch_id}")
+        cp.f_setservervariable(f"{CRAWLER_PREFIX}cleanupbatchid", self.import_batch_id, "Current import batch id used as the cutoff by the old-batch cleanup step", 0)
+        cp.f_setservervariable(f"{CRAWLER_PREFIX}cleanuprowsdeleted", str(total_deleted), "Total rows deleted from target tables by the old-batch cleanup step (step 114)", 0)
+
     def _run_pass(
         self,
         *,
@@ -562,6 +620,18 @@ class WikidataCrawler:
         searched = ", ".join(str(path) for path in candidates)
         raise ValidationError(f"Media-resolution SQL file not found. Searched: {searched}")
 
+    def _resolve_cleanup_sql_path(self) -> Path:
+        candidates = [
+            BASE_DIR / DEFAULT_CLEANUP_SQL_NAME,
+            Path.cwd() / DEFAULT_CLEANUP_SQL_NAME,
+            SHARED_DIR / DEFAULT_CLEANUP_SQL_NAME,
+        ]
+        for candidate in candidates:
+            if candidate.exists():
+                return candidate
+        searched = ", ".join(str(path) for path in candidates)
+        raise ValidationError(f"Old-batch cleanup SQL file not found. Searched: {searched}")
+
     def _resolve_live_db_schema_path(self) -> Path:
         candidates = [
             BASE_DIR / DEFAULT_LIVE_DB_SCHEMA_NAME,
@@ -643,7 +713,7 @@ def parse_args() -> argparse.Namespace:
         "--start-step",
         type=int,
         default=101,
-        help="Workflow step code to start from. Examples: 109 to start after staging load, 110 to run only bulk load + final validation, 112 to (re-)run only the media-resolution step.",
+        help="Workflow step code to start from. Examples: 109 to start after staging load, 110 to run only bulk load + final validation, 112 to (re-)run only the media-resolution step, 114 to run only the old-batch cleanup.",
     )
     return parser.parse_args()
 

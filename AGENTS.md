@@ -44,6 +44,8 @@ SQL (run in numeric order for a fresh environment):
 - `05_progress_checks.sql` — per-batch progress counts (edit `@IMPORT_BATCH_ID` before running).
 - `06_repair_qualifier_tables.sql` — one-off repair script for qualifier tables.
 - `07_resolve_media_resources.sql` — populates the media-resource tables (step 112). Idempotent.
+- `08_cleanup_old_batches.sql` — deletes target rows whose `IMPORT_BATCH_ID` is strictly older than the current batch (step 114). Removes stale orphans the upsert-only bulk load leaves behind. Idempotent; FK checks off; entity/property tables (no batch column) untouched.
+- `09_fix_value_type_conflicts.sql` — manual repair for trigger error 1644 ("statement/qualifier already exists in another child table"). Deletes, for the current `@IMPORT_BATCH_ID`, target typed-value rows whose statement/qualifier is classified as a different `VALUE_TYPE` in this batch's staging — the stale sibling left when a statement's type flips between dumps. The same purge is built into `03_bulk_load_from_staging_FULL.sql` (a fresh run self-heals); this standalone file unblocks an in-flight load without rebuilding the image. Idempotent. Set `@IMPORT_BATCH_ID` before running.
 
 Docs: `README.md` (operational runbook, canonical), `WIKIDATA.md` (conceptual model), `wikidata_dump_etl_README.md` (ETL internals).
 
@@ -75,6 +77,7 @@ The orchestrator (`wikidata_crawler.py`) runs an ordered, resumable workflow. `-
 | 111 | validate target tables | Assert `T_WC_WIKIDATA_STATEMENT` is non-empty and staging rows were marked `LOADED`. |
 | 112 | resolve media resources | Execute `07_resolve_media_resources.sql`; populate the media-resource tables from V2 statement/value tables. Idempotent (`INSERT ... ON DUPLICATE KEY UPDATE`); fully downstream of V2, safe to run alone via `--start-step 112`. |
 | 113 | validate media resources | Assert media-resource tables non-empty; record per-platform counts. |
+| 114 | cleanup old import batches | Execute `08_cleanup_old_batches.sql`; delete every target row whose `IMPORT_BATCH_ID` is strictly older than the current batch (stale "orphans" the upsert-only bulk load never overwrites). Guarded: refuses to run if the current batch has no statements. Idempotent; safe to run alone via `--start-step 114`. |
 
 Important: do **not** start from `104` unless the code is changed to initialize the dump source when `101` is skipped — pass2/item_cache rely on `resolved_dump_file`/`resolved_dump_url` set by step 101.
 

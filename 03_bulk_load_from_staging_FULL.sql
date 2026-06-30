@@ -426,6 +426,60 @@ WHERE IMPORT_BATCH_ID = @IMPORT_BATCH_ID
   AND ROW_STATUS IN ('NEW','VALID');
 
 -- ============================================================================
+-- 3B. PURGE STALE SIBLING VALUE ROWS (VALUE_TYPE flip between dumps)
+-- ----------------------------------------------------------------------------
+-- ID_STATEMENT is a deterministic hash of the statement GUID, so it is stable
+-- across dumps. If a statement's VALUE_TYPE changes between two dumps (a
+-- property's datatype / the classifier changed), the upsert-only load above
+-- updates T_WC_WIKIDATA_STATEMENT.VALUE_TYPE but leaves the OLD batch's value
+-- row in the wrong sibling table. The "one statement -> one value table"
+-- BEFORE INSERT triggers then abort the new value row with SQLSTATE 45000
+-- ("... statement already exists in another child table", error 1644).
+--
+-- Delete, for this batch, any target value row whose statement is classified as
+-- a DIFFERENT type in this batch's staging. Only contradicting rows are removed;
+-- rows the current batch agrees with are kept, so no current-batch data is lost.
+-- Idempotent. Runs after the STATEMENT load (above) and before the value loads
+-- (below) so the invariant holds when the typed-value inserts fire.
+-- ============================================================================
+
+DELETE v FROM T_WC_WIKIDATA_ITEM_VALUE v
+ WHERE EXISTS (SELECT 1 FROM STG_T_WC_WIKIDATA_STATEMENT s
+              WHERE s.ID_STATEMENT = v.ID_STATEMENT
+                AND s.IMPORT_BATCH_ID = @IMPORT_BATCH_ID
+                AND s.VALUE_TYPE <> 'item');
+
+DELETE v FROM T_WC_WIKIDATA_STRING_VALUE v
+ WHERE EXISTS (SELECT 1 FROM STG_T_WC_WIKIDATA_STATEMENT s
+              WHERE s.ID_STATEMENT = v.ID_STATEMENT
+                AND s.IMPORT_BATCH_ID = @IMPORT_BATCH_ID
+                AND s.VALUE_TYPE <> 'string');
+
+DELETE v FROM T_WC_WIKIDATA_EXTERNAL_ID_VALUE v
+ WHERE EXISTS (SELECT 1 FROM STG_T_WC_WIKIDATA_STATEMENT s
+              WHERE s.ID_STATEMENT = v.ID_STATEMENT
+                AND s.IMPORT_BATCH_ID = @IMPORT_BATCH_ID
+                AND s.VALUE_TYPE <> 'external_id');
+
+DELETE v FROM T_WC_WIKIDATA_MEDIA_VALUE v
+ WHERE EXISTS (SELECT 1 FROM STG_T_WC_WIKIDATA_STATEMENT s
+              WHERE s.ID_STATEMENT = v.ID_STATEMENT
+                AND s.IMPORT_BATCH_ID = @IMPORT_BATCH_ID
+                AND s.VALUE_TYPE <> 'media');
+
+DELETE v FROM T_WC_WIKIDATA_TIME_VALUE v
+ WHERE EXISTS (SELECT 1 FROM STG_T_WC_WIKIDATA_STATEMENT s
+              WHERE s.ID_STATEMENT = v.ID_STATEMENT
+                AND s.IMPORT_BATCH_ID = @IMPORT_BATCH_ID
+                AND s.VALUE_TYPE <> 'time');
+
+DELETE v FROM T_WC_WIKIDATA_QUANTITY_VALUE v
+ WHERE EXISTS (SELECT 1 FROM STG_T_WC_WIKIDATA_STATEMENT s
+              WHERE s.ID_STATEMENT = v.ID_STATEMENT
+                AND s.IMPORT_BATCH_ID = @IMPORT_BATCH_ID
+                AND s.VALUE_TYPE <> 'quantity');
+
+-- ============================================================================
 -- 4. TYPED VALUE TABLES
 -- ============================================================================
 
@@ -693,6 +747,48 @@ SET ROW_STATUS = 'LOADED',
     ERROR_MESSAGE = NULL
 WHERE IMPORT_BATCH_ID = @IMPORT_BATCH_ID
   AND ROW_STATUS IN ('NEW','VALID');
+
+-- ----------------------------------------------------------------------------
+-- Same VALUE_TYPE-flip purge as section 3B, for the qualifier value tables.
+-- ID_STATEMENT_QUALIFIER is deterministic, so a qualifier whose VALUE_TYPE
+-- changed between dumps would otherwise trip the qualifier child-table triggers.
+-- ----------------------------------------------------------------------------
+
+DELETE v FROM T_WC_WIKIDATA_QUALIFIER_ITEM_VALUE v
+ WHERE EXISTS (SELECT 1 FROM STG_T_WC_WIKIDATA_STATEMENT_QUALIFIER s
+              WHERE s.ID_STATEMENT_QUALIFIER = v.ID_STATEMENT_QUALIFIER
+                AND s.IMPORT_BATCH_ID = @IMPORT_BATCH_ID
+                AND s.VALUE_TYPE <> 'item');
+
+DELETE v FROM T_WC_WIKIDATA_QUALIFIER_STRING_VALUE v
+ WHERE EXISTS (SELECT 1 FROM STG_T_WC_WIKIDATA_STATEMENT_QUALIFIER s
+              WHERE s.ID_STATEMENT_QUALIFIER = v.ID_STATEMENT_QUALIFIER
+                AND s.IMPORT_BATCH_ID = @IMPORT_BATCH_ID
+                AND s.VALUE_TYPE <> 'string');
+
+DELETE v FROM T_WC_WIKIDATA_QUALIFIER_EXTERNAL_ID_VALUE v
+ WHERE EXISTS (SELECT 1 FROM STG_T_WC_WIKIDATA_STATEMENT_QUALIFIER s
+              WHERE s.ID_STATEMENT_QUALIFIER = v.ID_STATEMENT_QUALIFIER
+                AND s.IMPORT_BATCH_ID = @IMPORT_BATCH_ID
+                AND s.VALUE_TYPE <> 'external_id');
+
+DELETE v FROM T_WC_WIKIDATA_QUALIFIER_MEDIA_VALUE v
+ WHERE EXISTS (SELECT 1 FROM STG_T_WC_WIKIDATA_STATEMENT_QUALIFIER s
+              WHERE s.ID_STATEMENT_QUALIFIER = v.ID_STATEMENT_QUALIFIER
+                AND s.IMPORT_BATCH_ID = @IMPORT_BATCH_ID
+                AND s.VALUE_TYPE <> 'media');
+
+DELETE v FROM T_WC_WIKIDATA_QUALIFIER_TIME_VALUE v
+ WHERE EXISTS (SELECT 1 FROM STG_T_WC_WIKIDATA_STATEMENT_QUALIFIER s
+              WHERE s.ID_STATEMENT_QUALIFIER = v.ID_STATEMENT_QUALIFIER
+                AND s.IMPORT_BATCH_ID = @IMPORT_BATCH_ID
+                AND s.VALUE_TYPE <> 'time');
+
+DELETE v FROM T_WC_WIKIDATA_QUALIFIER_QUANTITY_VALUE v
+ WHERE EXISTS (SELECT 1 FROM STG_T_WC_WIKIDATA_STATEMENT_QUALIFIER s
+              WHERE s.ID_STATEMENT_QUALIFIER = v.ID_STATEMENT_QUALIFIER
+                AND s.IMPORT_BATCH_ID = @IMPORT_BATCH_ID
+                AND s.VALUE_TYPE <> 'quantity');
 
 
 INSERT INTO T_WC_WIKIDATA_QUALIFIER_ITEM_VALUE (

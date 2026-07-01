@@ -66,6 +66,9 @@ Use these documents as the main references:
   already exists in another child table); deletes stale typed-value siblings left when a
   statement's `VALUE_TYPE` flips between dumps. Same purge is built into
   `03_bulk_load_from_staging_FULL.sql`, so this is only for unblocking an in-flight load.
+- `10_clear_staging_batch.sql` — deletes all `STG_*` rows for one `@OLD_BATCH_ID`, keeping the
+  current batch; use to clear an old batch left stacked in staging (step 114 prunes targets only,
+  not staging). Surgical alternative to `04_reset_for_full_rerun.sql`.
 - `apply_to_live_db.sql` — idempotent additive DDL (SEASON/EPISODE/CHARACTER target + staging tables);
   auto-applied by the crawler at steps 108 and 110 so a long-lived DB stays in sync with new tables
 
@@ -464,6 +467,8 @@ Because of that, the most reliable rerun procedure is:
   - executed by step `114`; deletes every target row whose `IMPORT_BATCH_ID` is strictly older than the current batch — the stale "orphans" the upsert-only bulk load never overwrites (entities that fell out of scope, claims deleted/edited between dumps). Idempotent; FK checks off. Entity and property-metadata tables have no `IMPORT_BATCH_ID` and are left untouched. The step is guarded: it refuses to run unless the current batch already has statements loaded.
 - `09_fix_value_type_conflicts.sql`
   - manual repair for bulk-load trigger error 1644 (`<TABLE>: statement/qualifier already exists in another child table`). When a statement's (or qualifier's) `VALUE_TYPE` changes between two dumps, the upsert-only bulk load updates the parent type but leaves the earlier batch's value row in the now-wrong sibling table, which the "one statement → one value table" triggers reject. This script deletes, for the current `@IMPORT_BATCH_ID`, every target typed-value row whose statement/qualifier is classified as a different `VALUE_TYPE` in this batch's staging. Idempotent. The same purge is built into `03_bulk_load_from_staging_FULL.sql`, so a fresh run self-heals; run this standalone only to unblock an in-flight load without rebuilding the image (set `@IMPORT_BATCH_ID`, then resume with `--start-step 110`).
+- `10_clear_staging_batch.sql`
+  - surgical staging cleanup: deletes every `STG_*` row for one `@OLD_BATCH_ID`, leaving the current batch intact. The pipeline loads staging (step 108) but never clears it, and step 114 prunes only the target tables — so an old batch left stacked in staging (tens of millions of rows) persists. Run this to reclaim that space and avoid a "two batches in staging" state. Set `@OLD_BATCH_ID` to the batch to remove. Lighter than `04_reset_for_full_rerun.sql`, which wipes all staging + targets for a full rebuild.
 
 ## Cleanup of old import batches (step 114)
 

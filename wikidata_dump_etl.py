@@ -51,12 +51,16 @@ import simdjson
 _SV_PREFIX = "strwikidatacrawler"
 
 MOVIE_ROOTS = {"Q11424", "Q506240"}  # film, television film
-SERIES_ROOTS = {"Q5398426", "Q1259759", "Q526877"}  # television series, miniseries, web series
+SERIES_ROOTS = {"Q5398426", "Q1259759", "Q526877", "Q15416"}  # television series, miniseries, web series, television program
 PERSON_ROOTS = {"Q5"}  # human
 SEASON_ROOTS = {"Q3464665"}  # television series season
 EPISODE_ROOTS = {"Q21191270"}  # television series episode
 CHARACTER_ROOTS = {"Q95074"}  # fictional character
-EXCLUDED_SERIES_ROOTS = {"Q15416"}  # television program
+# Was {"Q15416"} (television program), excluded on purpose to keep SERIE = "series proper".
+# Re-included 2026-07-12 for V1 parity (V1 typed ~58k TV programmes as series); decommissioning
+# sparql-movies-persons requires V2 SERIE to cover them. Adding Q15416 as a root also pulls its
+# P279 descendants (news/talk/game shows, TV specials), so V2 SERIE becomes a superset of V1 here.
+EXCLUDED_SERIES_ROOTS: Set[str] = set()
 
 # Maps a classification result to its target table / NDJSON file name. New entity
 # types are added by extending the *_ROOTS sets above, classify_entity(), and this map.

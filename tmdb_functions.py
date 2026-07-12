@@ -132,18 +132,18 @@ def f_tmdbcontentimagesstosql(lngcontentid, strcontenttype, strsqlmastertable, s
         The primary key field name (e.g., 'ID_MOVIE')
     strmainimagefield : str, optional
         Name of the column holding the "main" image path (e.g., 'POSTER_PATH').
-        When provided, every main image (the base/English image on the master
-        record plus any per-language images, see strlangtable) is pinned to
-        DISPLAY_ORDER 0, inserted if the API did not return it, and never
-        deleted by the obsolete-image cleanup.
+        When provided, the base/English main image is pinned to DISPLAY_ORDER 0 and
+        each localized main image (see strlangtable) to DISPLAY_ORDER 1; all are
+        inserted if the API did not return them, and never deleted by the
+        obsolete-image cleanup.
     strmainimagetype : str, optional
         TYPE_IMAGE value for the main image (e.g., 'poster'). Required when
         strmainimagefield is set.
     strlangtable : str, optional
         Name of the per-language table (e.g., 'T_WC_TMDB_MOVIE_LANG') that holds
         localized main image paths in the same strmainimagefield column, keyed by
-        strkeyfieldname with a LANG column. Each localized main image is also
-        pinned to DISPLAY_ORDER 0.
+        strkeyfieldname with a LANG column. Each localized main image is pinned to
+        DISPLAY_ORDER 1 (present, but not stealing position 0 from the base image).
 
     Returns:
     --------
@@ -176,23 +176,28 @@ def f_tmdbcontentimagesstosql(lngcontentid, strcontenttype, strsqlmastertable, s
     current_time = datetime.now(paris_tz).strftime("%Y-%m-%d %H:%M:%S")
     current_date = datetime.now(paris_tz).strftime("%Y-%m-%d")
 
-    # Gather every "main" image path that must sit at DISPLAY_ORDER 0: the
-    # base/English image on the master record plus any localized images (e.g. the
-    # French POSTER_PATH stored in the *_LANG table). Mapped to their language so
-    # missing ones can be inserted with a sensible LANG value.
+    # Gather every "main" image path and the DISPLAY_ORDER it must sit at. Position 0
+    # is reserved for the canonical language-neutral / English image; each localized
+    # main image (e.g. the French POSTER_PATH in the *_LANG table) is pinned to 1 so it
+    # stays present (and cleanup-protected) without stealing position 0.
+    # The base image (master record) is a candidate for 0, but only if its OWN language
+    # is en/'' -- when the master poster is itself a localized (e.g. French) image it is
+    # demoted to 1 at insert time so no non-en/'' image ever nails position 0
+    # (TMDB-CRAWLER-025, follow-up to -024). Its language is only known from the API
+    # array, hence the deferred decision below. Value = {"lang", "order", "is_base"?}.
     dctmainimages = {}
     if strmainimagefield:
         cursormain = connectioncp.cursor()
         cursormain.execute(f"SELECT {strmainimagefield} AS MAIN_IMAGE_PATH FROM {strsqlmastertable} WHERE {strkeyfieldname} = {lngcontentid}")
         rowmain = cursormain.fetchone()
         if rowmain is not None and rowmain.get('MAIN_IMAGE_PATH'):
-            dctmainimages[rowmain['MAIN_IMAGE_PATH']] = 'en'
+            dctmainimages[rowmain['MAIN_IMAGE_PATH']] = {"lang": "en", "order": 0, "is_base": True}
         if strlangtable:
             cursormain.execute(f"SELECT {strmainimagefield} AS MAIN_IMAGE_PATH, LANG FROM {strlangtable} WHERE {strkeyfieldname} = {lngcontentid}")
             for rowlang in cursormain.fetchall():
                 strlangpath = rowlang.get('MAIN_IMAGE_PATH')
                 if strlangpath:
-                    dctmainimages.setdefault(strlangpath, rowlang.get('LANG') or '')
+                    dctmainimages.setdefault(strlangpath, {"lang": rowlang.get('LANG') or '', "order": 1})
 
     # Track all image paths to clean up obsolete ones later
     all_image_paths = []
@@ -207,11 +212,21 @@ def f_tmdbcontentimagesstosql(lngcontentid, strcontenttype, strsqlmastertable, s
             if not image_path:
                 continue
 
-            # Every main image (base + per-language) is pinned to DISPLAY_ORDER 0;
-            # all other images keep a 1-based ordering.
+            # The canonical main image sits at DISPLAY_ORDER 0 only when its own language
+            # is en/''; each localized main image is pinned to DISPLAY_ORDER 1 (present,
+            # but not stealing position 0); all other images keep a 1-based ordering.
+            # A base main image that is itself localized (non-en/'', e.g. a French poster)
+            # is demoted to 1 too, so position 0 never carries a localized language
+            # (TMDB-CRAWLER-025). The base image's language is only knowable here, from
+            # the API row, not from the master table.
             boothismain = boopintype and image_path in dctmainimages
             if boothismain:
-                lngthisdisplayorder = 0
+                dctmaininfo = dctmainimages[image_path]
+                strimagelang = image.get('iso_639_1') or ''
+                if dctmaininfo.get("is_base") and strimagelang not in ("en", ""):
+                    lngthisdisplayorder = 1
+                else:
+                    lngthisdisplayorder = dctmaininfo["order"]
             else:
                 lngdisplayorder += 1
                 lngthisdisplayorder = lngdisplayorder
@@ -257,22 +272,22 @@ def f_tmdbcontentimagesstosql(lngcontentid, strcontenttype, strsqlmastertable, s
     if 'profiles' in data and data['profiles']:
         process_image_array(data['profiles'], 'profile')
 
-    # Guarantee every main image (base + per-language) is present at
-    # DISPLAY_ORDER 0, even when the TMDb images endpoint did not return it.
+    # Guarantee every main image is present even when the TMDb images endpoint did
+    # not return it: the base/English at DISPLAY_ORDER 0, each localized main at 1.
     # Adding them to all_image_paths also shields them from the cleanup below.
-    for strmainpath, strmainlang in dctmainimages.items():
+    for strmainpath, dctmaininfo in dctmainimages.items():
         if strmainpath in all_image_paths:
             continue
         all_image_paths.append(strmainpath)
         arrmainimagedata = {
             strkeyfieldname: lngcontentid,
-            "DISPLAY_ORDER": 0,
+            "DISPLAY_ORDER": dctmaininfo["order"],
             "DELETED": 0,
             "DAT_CREAT": current_date,
             "TIM_UPDATED": current_time,
             "TYPE_IMAGE": strmainimagetype,
             "IMAGE_PATH": strmainpath,
-            "LANG": strmainlang,
+            "LANG": dctmaininfo["lang"],
         }
         strsqlupdatecondition = f"{strkeyfieldname} = {lngcontentid} AND TYPE_IMAGE = '{strmainimagetype}' AND IMAGE_PATH = '{strmainpath}'"
         cp.f_sqlupdatearray(strsqltablename, arrmainimagedata, strsqlupdatecondition, 1)
@@ -1370,6 +1385,102 @@ def f_tmdbmoviekeywordstosql(lngmovieid):
                         strsqlupdatecondition = f"ID_MOVIE = {lngmovieid} AND ID_KEYWORD = {lngkeywordid}"
                         cp.f_sqlupdatearray(strsqltablename,arrmoviekeywordcouples,strsqlupdatecondition,1)
 
+def f_tmdbmoviesimilartosql(lngmovieid):
+    """
+    Fetch and store TMDb "similar" movies for a movie into T_WC_TMDB_MOVIE_SIMILAR.
+
+    Similar is TMDb's content-based set (genres + keywords). Only the neighbour ids
+    and their rank (DISPLAY_ORDER, page-1 order) are stored; titles/posters are
+    resolved later from T_WC_TMDB_MOVIE by the preprocess step (TMDB-MOVIE-PREPROCESS-027).
+    Neighbours are upserted per (ID_MOVIE, ID_MOVIE_SIMILAR), mirroring keywords.
+
+    Parameters:
+    -----------
+    lngmovieid : int
+        The TMDb movie ID to fetch similar movies for
+
+    Returns:
+    --------
+    None
+    """
+    global strtmdbapidomainurl
+    global headers
+
+    if lngmovieid > 0:
+        strtmdbapimoviesimilarurl = "3/movie/" + str(lngmovieid) + "/similar"
+        strtmdbapifullurl = strtmdbapidomainurl + "/" + strtmdbapimoviesimilarurl
+        jsonmoviesimilar = f_tmdbfetchjson(strtmdbapifullurl, f"f_tmdbmoviesimilartosql({lngmovieid})")
+        if jsonmoviesimilar is None:
+            return
+        else:
+            lngmoviesimilarstatuscode = 0
+            if 'status_code' in jsonmoviesimilar:
+                lngmoviesimilarstatuscode = jsonmoviesimilar['status_code']
+            if lngmoviesimilarstatuscode <= 1:
+                # API request result is not an error
+                lngsimilardisplayorder = 0
+                if 'results' in jsonmoviesimilar and jsonmoviesimilar['results']:
+                    # Array is not empty
+                    for onecontent in jsonmoviesimilar['results']:
+                        lngmovieidsimilar = onecontent['id']
+                        lngsimilardisplayorder = lngsimilardisplayorder + 1
+                        arrmoviesimilarcouples = {}
+                        arrmoviesimilarcouples["ID_MOVIE"] = lngmovieid
+                        arrmoviesimilarcouples["ID_MOVIE_SIMILAR"] = lngmovieidsimilar
+                        arrmoviesimilarcouples["DISPLAY_ORDER"] = lngsimilardisplayorder
+
+                        strsqltablename = "T_WC_TMDB_MOVIE_SIMILAR"
+                        strsqlupdatecondition = f"ID_MOVIE = {lngmovieid} AND ID_MOVIE_SIMILAR = {lngmovieidsimilar}"
+                        cp.f_sqlupdatearray(strsqltablename,arrmoviesimilarcouples,strsqlupdatecondition,1)
+
+def f_tmdbmovierecommendationstosql(lngmovieid):
+    """
+    Fetch and store TMDb "recommendations" for a movie into T_WC_TMDB_MOVIE_RECOMMENDATION.
+
+    Recommendations is TMDb's user/behaviour-based set (distinct from similar). Only
+    the neighbour ids and their rank (DISPLAY_ORDER, page-1 order) are stored; the
+    preprocess step (TMDB-MOVIE-PREPROCESS-027) resolves them to showable rows.
+    Neighbours are upserted per (ID_MOVIE, ID_MOVIE_RECOMMENDED), mirroring keywords.
+
+    Parameters:
+    -----------
+    lngmovieid : int
+        The TMDb movie ID to fetch recommendations for
+
+    Returns:
+    --------
+    None
+    """
+    global strtmdbapidomainurl
+    global headers
+
+    if lngmovieid > 0:
+        strtmdbapimovierecommendationsurl = "3/movie/" + str(lngmovieid) + "/recommendations"
+        strtmdbapifullurl = strtmdbapidomainurl + "/" + strtmdbapimovierecommendationsurl
+        jsonmovierecommendations = f_tmdbfetchjson(strtmdbapifullurl, f"f_tmdbmovierecommendationstosql({lngmovieid})")
+        if jsonmovierecommendations is None:
+            return
+        else:
+            lngmovierecommendationsstatuscode = 0
+            if 'status_code' in jsonmovierecommendations:
+                lngmovierecommendationsstatuscode = jsonmovierecommendations['status_code']
+            if lngmovierecommendationsstatuscode <= 1:
+                # API request result is not an error
+                lngrecommendationdisplayorder = 0
+                if 'results' in jsonmovierecommendations and jsonmovierecommendations['results']:
+                    # Array is not empty
+                    for onecontent in jsonmovierecommendations['results']:
+                        lngmovieidrecommended = onecontent['id']
+                        lngrecommendationdisplayorder = lngrecommendationdisplayorder + 1
+                        arrmovierecommendationcouples = {}
+                        arrmovierecommendationcouples["ID_MOVIE"] = lngmovieid
+                        arrmovierecommendationcouples["ID_MOVIE_RECOMMENDED"] = lngmovieidrecommended
+                        arrmovierecommendationcouples["DISPLAY_ORDER"] = lngrecommendationdisplayorder
+
+                        strsqltablename = "T_WC_TMDB_MOVIE_RECOMMENDATION"
+                        strsqlupdatecondition = f"ID_MOVIE = {lngmovieid} AND ID_MOVIE_RECOMMENDED = {lngmovieidrecommended}"
+                        cp.f_sqlupdatearray(strsqltablename,arrmovierecommendationcouples,strsqlupdatecondition,1)
+
 def f_tmdbmovieexist(lngmovieid):
     """
     Check if a movie exists in the TMDb API.
@@ -1634,6 +1745,8 @@ def f_tmdbmovietosqleverything(lngmovieid):
     f_tmdbmoviesetcreditscompleted(lngmovieid)
     f_tmdbmoviekeywordstosql(lngmovieid)
     f_tmdbmoviesetkeywordscompleted(lngmovieid)
+    f_tmdbmoviesimilartosql(lngmovieid)
+    f_tmdbmovierecommendationstosql(lngmovieid)
     f_tmdbmovieimagestosql(lngmovieid)
     f_tmdbmovievideotosql(lngmovieid,'en')
     f_tmdbmovievideotosql(lngmovieid,'fr')
@@ -2685,6 +2798,100 @@ def f_tmdbserievideotosql(lngserieid, strlang):
     """
     f_tmdbcontentvideosstosql(lngserieid, "tv", "T_WC_TMDB_SERIE", "T_WC_TMDB_SERIE_VIDEO", "ID_SERIE", strlang)
 
+def f_tmdbseriesimilartosql(lngserieid):
+    """
+    Fetch and store TMDb "similar" TV series for a series into T_WC_TMDB_SERIE_SIMILAR.
+
+    Series mirror of f_tmdbmoviesimilartosql (TMDB-CRAWLER-023). Similar is TMDb's
+    content-based set (genres + keywords). Only neighbour ids and their rank
+    (DISPLAY_ORDER, page-1 order) are stored, upserted per (ID_SERIE, ID_SERIE_SIMILAR).
+
+    Parameters:
+    -----------
+    lngserieid : int
+        The TMDb TV series ID to fetch similar series for
+
+    Returns:
+    --------
+    None
+    """
+    global strtmdbapidomainurl
+    global headers
+
+    if lngserieid > 0:
+        strtmdbapiseriesimilarurl = "3/tv/" + str(lngserieid) + "/similar"
+        strtmdbapifullurl = strtmdbapidomainurl + "/" + strtmdbapiseriesimilarurl
+        jsonseriesimilar = f_tmdbfetchjson(strtmdbapifullurl, f"f_tmdbseriesimilartosql({lngserieid})")
+        if jsonseriesimilar is None:
+            return
+        else:
+            lngseriesimilarstatuscode = 0
+            if 'status_code' in jsonseriesimilar:
+                lngseriesimilarstatuscode = jsonseriesimilar['status_code']
+            if lngseriesimilarstatuscode <= 1:
+                # API request result is not an error
+                lngsimilardisplayorder = 0
+                if 'results' in jsonseriesimilar and jsonseriesimilar['results']:
+                    # Array is not empty
+                    for onecontent in jsonseriesimilar['results']:
+                        lngserieidsimilar = onecontent['id']
+                        lngsimilardisplayorder = lngsimilardisplayorder + 1
+                        arrseriesimilarcouples = {}
+                        arrseriesimilarcouples["ID_SERIE"] = lngserieid
+                        arrseriesimilarcouples["ID_SERIE_SIMILAR"] = lngserieidsimilar
+                        arrseriesimilarcouples["DISPLAY_ORDER"] = lngsimilardisplayorder
+
+                        strsqltablename = "T_WC_TMDB_SERIE_SIMILAR"
+                        strsqlupdatecondition = f"ID_SERIE = {lngserieid} AND ID_SERIE_SIMILAR = {lngserieidsimilar}"
+                        cp.f_sqlupdatearray(strsqltablename,arrseriesimilarcouples,strsqlupdatecondition,1)
+
+def f_tmdbserierecommendationstosql(lngserieid):
+    """
+    Fetch and store TMDb "recommendations" for a TV series into T_WC_TMDB_SERIE_RECOMMENDATION.
+
+    Series mirror of f_tmdbmovierecommendationstosql (TMDB-CRAWLER-023). Recommendations
+    is TMDb's user/behaviour-based set. Only neighbour ids and their rank (DISPLAY_ORDER,
+    page-1 order) are stored, upserted per (ID_SERIE, ID_SERIE_RECOMMENDED).
+
+    Parameters:
+    -----------
+    lngserieid : int
+        The TMDb TV series ID to fetch recommendations for
+
+    Returns:
+    --------
+    None
+    """
+    global strtmdbapidomainurl
+    global headers
+
+    if lngserieid > 0:
+        strtmdbapiserierecommendationsurl = "3/tv/" + str(lngserieid) + "/recommendations"
+        strtmdbapifullurl = strtmdbapidomainurl + "/" + strtmdbapiserierecommendationsurl
+        jsonserierecommendations = f_tmdbfetchjson(strtmdbapifullurl, f"f_tmdbserierecommendationstosql({lngserieid})")
+        if jsonserierecommendations is None:
+            return
+        else:
+            lngserierecommendationsstatuscode = 0
+            if 'status_code' in jsonserierecommendations:
+                lngserierecommendationsstatuscode = jsonserierecommendations['status_code']
+            if lngserierecommendationsstatuscode <= 1:
+                # API request result is not an error
+                lngrecommendationdisplayorder = 0
+                if 'results' in jsonserierecommendations and jsonserierecommendations['results']:
+                    # Array is not empty
+                    for onecontent in jsonserierecommendations['results']:
+                        lngserieidrecommended = onecontent['id']
+                        lngrecommendationdisplayorder = lngrecommendationdisplayorder + 1
+                        arrserierecommendationcouples = {}
+                        arrserierecommendationcouples["ID_SERIE"] = lngserieid
+                        arrserierecommendationcouples["ID_SERIE_RECOMMENDED"] = lngserieidrecommended
+                        arrserierecommendationcouples["DISPLAY_ORDER"] = lngrecommendationdisplayorder
+
+                        strsqltablename = "T_WC_TMDB_SERIE_RECOMMENDATION"
+                        strsqlupdatecondition = f"ID_SERIE = {lngserieid} AND ID_SERIE_RECOMMENDED = {lngserieidrecommended}"
+                        cp.f_sqlupdatearray(strsqltablename,arrserierecommendationcouples,strsqlupdatecondition,1)
+
 def f_tmdbserietosqleverything(lngserieid):
     """
     Fetch and store complete TV series data including details, credits, keywords, images, and videos.
@@ -2703,6 +2910,8 @@ def f_tmdbserietosqleverything(lngserieid):
     f_tmdbseriesetcreditscompleted(lngserieid)
     f_tmdbseriekeywordstosql(lngserieid)
     f_tmdbseriesetkeywordscompleted(lngserieid)
+    f_tmdbseriesimilartosql(lngserieid)
+    f_tmdbserierecommendationstosql(lngserieid)
     f_tmdbserieimagestosql(lngserieid)
     f_tmdbserievideotosql(lngserieid,'en')
     f_tmdbserievideotosql(lngserieid,'fr')

@@ -151,18 +151,71 @@ class WikidataCrawler:
             raise RuntimeError(f"Missing required environment variable: {name}")
         return value
 
+    def _download_dump(self) -> None:
+        # Wikimedia rejects default library User-Agents with 403, so send the
+        # descriptive one their policy requires — the same header the ETL passes
+        # use (see wikidata_dump_etl.py).
+        user_agent = os.environ.get("WIKIMEDIA_USER_AGENT", "").strip() or "python-httpx"
+        # No read timeout: Wikimedia can be very slow on a multi-GB download and
+        # individual chunk reads may take minutes. Connect timeout stays short.
+        timeout = httpx.Timeout(connect=30.0, read=None, write=None, pool=30.0)
+        max_retries = 20
+
+        self.dump_file.parent.mkdir(parents=True, exist_ok=True)
+        # Download to a .part file and rename on success, so an interrupted run
+        # never leaves a truncated file that later runs would mistake for a
+        # complete cached dump.
+        partial = self.dump_file.with_name(self.dump_file.name + ".part")
+        print(f"101: downloading {self.dump_url}")
+        print(f"101: User-Agent: {user_agent}")
+
+        for attempt in range(max_retries + 1):
+            downloaded = partial.stat().st_size if partial.exists() else 0
+            if attempt > 0:
+                wait = min(120, 10 * (2 ** (attempt - 1)))
+                print(f"101: retry {attempt}/{max_retries} in {wait}s (resuming at {downloaded:,} bytes)")
+                time.sleep(wait)
+
+            headers = {"User-Agent": user_agent}
+            if downloaded:
+                headers["Range"] = f"bytes={downloaded}-"
+
+            try:
+                with httpx.stream("GET", self.dump_url, timeout=timeout, follow_redirects=True, headers=headers) as response:
+                    if downloaded and response.status_code == 200:
+                        # Server ignored the Range request — restart from zero.
+                        print("101: server ignored Range header, restarting download from byte 0")
+                        downloaded = 0
+                    response.raise_for_status()
+                    with partial.open("ab" if downloaded else "wb") as fh:
+                        for chunk in response.iter_bytes(chunk_size=8 * 1024 * 1024):
+                            fh.write(chunk)
+                partial.replace(self.dump_file)
+                print(f"101: download complete ({self.dump_file.stat().st_size:,} bytes)")
+                return
+            except httpx.HTTPStatusError as exc:
+                status = exc.response.status_code
+                if status == 416:
+                    # Requested range beyond EOF: the partial file is already complete.
+                    partial.replace(self.dump_file)
+                    print(f"101: download already complete ({self.dump_file.stat().st_size:,} bytes)")
+                    return
+                if status < 500:
+                    # 403/404 and friends will not fix themselves — fail fast.
+                    raise
+                print(f"101: HTTP {status} from the dump server, will retry")
+            except (httpx.HTTPError, OSError) as exc:
+                print(f"101: download interrupted ({exc}), will retry")
+
+        raise RuntimeError(f"Dump download failed after {max_retries} retries: {self.dump_url}")
+
     def step_resolve_dump_source(self) -> None:
         if self.dump_file and self.dump_url:
             if self.dump_file.exists():
                 self.resolved_dump_file = self.dump_file
                 self.resolved_dump_url = None
             else:
-                self.dump_file.parent.mkdir(parents=True, exist_ok=True)
-                with httpx.stream("GET", self.dump_url, timeout=120.0, follow_redirects=True) as response:
-                    response.raise_for_status()
-                    with self.dump_file.open("wb") as fh:
-                        for chunk in response.iter_bytes(chunk_size=8 * 1024 * 1024):
-                            fh.write(chunk)
+                self._download_dump()
                 self.resolved_dump_file = self.dump_file
                 self.resolved_dump_url = None
         elif self.dump_file:

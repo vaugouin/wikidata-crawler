@@ -40,7 +40,7 @@ SQL (run in numeric order for a fresh environment):
 - `01_create_schema.sql` — creates the final `T_WC_WIKIDATA_*` target tables.
 - `02_staging_and_triggers.sql` — creates the `STG_T_WC_WIKIDATA_*` staging tables and validation triggers.
 - `03_bulk_load_from_staging_FULL.sql` — merges staging rows into target tables (step 110). Idempotent.
-- `04_reset_for_full_rerun.sql` — ordered `DELETE`s (FK checks off) to clear staging + targets before a fresh run.
+- `04_reset_for_full_rerun.sql` — ordered `DELETE`s (FK checks off) to clear staging + targets before a fresh run. **Not part of the normal rerun** — see "Rerun strategy" below before suggesting it.
 - `05_progress_checks.sql` — per-batch progress counts (edit `@IMPORT_BATCH_ID` before running).
 - `06_repair_qualifier_tables.sql` — one-off repair script for qualifier tables.
 - `07_resolve_media_resources.sql` — populates the media-resource tables (step 112). Idempotent.
@@ -84,6 +84,26 @@ Important: do **not** start from `104` unless the code is changed to initialize 
 
 The ETL passes each stream the full multi-GB dump and can take **multiple days** (the full ETL can exceed a week). Treat them as expensive: prefer resuming from a later step over re-running passes. The bulk load (110) and media resolution (112) are both idempotent and cheap by comparison.
 
+## Rerun strategy (do not reset the target tables)
+
+A full rerun **loads on top of the existing target tables**. Never advise clearing them first, and never run `04_reset_for_full_rerun.sql` as part of a routine rerun: it would leave the front-end with no Wikidata V2 data for the entire multi-day ETL, for no benefit.
+
+The incremental path is safe because three things hold together:
+
+1. `derive_statement_identity` / `derive_qualifier_identity` in `wikidata_dump_etl.py` hash the Wikidata `STATEMENT_GUID` (resp. snak hash) into a stable BIGINT — the same claim yields the same `ID_STATEMENT` in every run.
+2. Step 110 is upsert-only (`ON DUPLICATE KEY UPDATE` throughout `03_bulk_load_from_staging_FULL.sql`), so re-loaded rows are updated in place rather than duplicated.
+3. Step 114 (`08_cleanup_old_batches.sql`) deletes rows whose `IMPORT_BATCH_ID` is strictly older than the current batch — the same deletion the reset would have done, but after the new data has landed.
+
+Result: the V2 tables are continuously readable, and the changeover happens row by row during step 110.
+
+Consequences worth knowing when reasoning about the data:
+
+- Entity tables (`MOVIE` / `SERIE` / `PERSON` / `ITEM` / `SEASON` / `EPISODE` / `CHARACTER`) and `PROPERTY_METADATA` carry no `IMPORT_BATCH_ID` and are never pruned. An entity that falls out of scope keeps its row with zero statements. Only a full reset removes it.
+- Loading over an existing batch is exactly the condition that produces trigger error 1644 (`VALUE_TYPE` flip). It is handled by the purge in section 3B of `03_bulk_load_from_staging_FULL.sql`; `09_fix_value_type_conflicts.sql` is the standalone equivalent for an in-flight load.
+- Step 108 clears only the current `IMPORT_BATCH_ID` from staging. Older batches accumulate there until `10_clear_staging_batch.sql` is run — harmless to the front-end, but it consumes real space.
+
+Reset is the right call in exactly four cases: the ID-derivation logic changed; the target schema changed such that existing rows are meaningless; the data is known corrupt; or the entity tables need pruning of out-of-scope rows. Flag the downtime explicitly when recommending it.
+
 NDJSON output dirs (inside the container): `/shared/pass1`, `/shared/pass2`, `/shared/item_cache` (host: `/home/debian/docker/shared_data/wikidata-crawler/<pass>`).
 
 ## Database tables
@@ -122,7 +142,7 @@ Configuration is environment-driven; copy `.env.example` to `.env`. Do not commi
 - Database: `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, optional `DB_NAMESPACE` (table-name prefix, e.g. `T_WC_`). Same names used by `citizenphil.py` and the sibling repos — no bridging.
 - Batch identity: `IMPORT_BATCH_ID` (required). Use a fresh id per full run; recommended format `wikidata_full_YYYYMMDD_HHMM`.
 - Dump source: `DUMP_URL` (remote `.bz2`) and/or `DUMP_FILE` (local path on the shared volume). See `.env.example` and `wikidata_dump_etl_README.md` for the three valid combinations. A cached `DUMP_FILE` is reused if present — delete it to force a fresh download.
-- HTTP identity: `WIKIMEDIA_USER_AGENT` — Wikimedia policy requires a descriptive User-Agent (`ToolName/version (URL; contact-email)`). Set it before hitting Wikimedia servers.
+- HTTP identity: `WIKIMEDIA_USER_AGENT` — Wikimedia policy requires a descriptive User-Agent (`ToolName/version (URL; contact-email)`). Set it before hitting Wikimedia servers. Both the step-101 dump download (`WikidataCrawler._download_dump`) and the ETL's remote streaming (`wikidata_dump_etl.py`) send it; a default library User-Agent gets a `403 Forbidden` from `dumps.wikimedia.org`.
 - Other: `USER_TIMEZONE` (default `Europe/Paris`).
 
 Docker: built from `Dockerfile` (`ENTRYPOINT ["python", "wikidata_crawler.py"]`). Run via `wikidata-crawler.sh` (detached, `--network=host`, `--env-file .env`, host `/home/debian/docker/shared_data/wikidata-crawler` mounted as `/shared`). Args to the script are forwarded to the entrypoint. Rebuild the image after changing Python or SQL files.
@@ -133,7 +153,7 @@ All files are UTF-8. The database and connections use `utf8mb4` / `utf8mb4_unico
 
 ---
 
-**Last Updated**: 2026-06-01
+**Last Updated**: 2026-07-26
 **Current Version**: 1.0.0
 
 ## Backlog (Nestor second-brain)

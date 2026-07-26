@@ -28,7 +28,7 @@ Use these documents as the main references:
   - operational runbook
   - rerun checklist
   - Docker commands
-  - reset procedure before a fresh full run
+  - rerun strategy: incremental (zero-downtime, the default) vs full reset
 - `wikidata_dump_etl_README.md`
   - lower-level ETL details
   - pass1 / pass2 / item_cache behavior
@@ -59,7 +59,9 @@ Use these documents as the main references:
 - `01_create_schema.sql`
 - `02_staging_and_triggers.sql`
 - `03_bulk_load_from_staging_FULL.sql`
-- `04_reset_for_full_rerun.sql`
+- `04_reset_for_full_rerun.sql` — **not** part of the normal rerun. Wipes staging + targets, which
+  leaves the front-end without V2 data for the whole multi-day run. Reserved for the cases listed in
+  "When a full reset IS required".
 - `07_resolve_media_resources.sql`
 - `08_cleanup_old_batches.sql`
 - `09_fix_value_type_conflicts.sql` — manual repair for trigger error 1644 (statement/qualifier
@@ -188,6 +190,46 @@ Do not start from `104` unless the code is explicitly changed to initialize the 
 
 Steps `112` and `113` are fully downstream of V2 and can be re-run on their own with `--start-step 112` — no need to redo the dump ETL or the bulk load. See "Media resolution (steps 112 & 113)" below.
 
+## Rerun strategy: incremental by default (zero downtime)
+
+**Do not clear the target tables before a rerun.** The pipeline is built so a full rerun never leaves the V2 tables empty: the front-end keeps serving the previous run's data throughout the multi-day ETL, and the switch-over happens row by row during the bulk load.
+
+Three properties make this work:
+
+1. **Statement and qualifier IDs are deterministic.** `derive_statement_identity` in `wikidata_dump_etl.py` hashes the Wikidata `STATEMENT_GUID` (SHA-256 truncated to a positive BIGINT), so the same statement gets the same `ID_STATEMENT` in every run. Qualifier IDs are derived the same way from the snak hash.
+2. **The bulk load (step `110`) is an upsert, not a replace.** Every INSERT in `03_bulk_load_from_staging_FULL.sql` ends with `ON DUPLICATE KEY UPDATE`. Rows that already exist are updated **in place** — value and `IMPORT_BATCH_ID` refreshed — never duplicated.
+3. **Step `114` performs the deletion `04_reset` would have done, but afterwards.** `08_cleanup_old_batches.sql` removes every target row whose `IMPORT_BATCH_ID` is strictly older than the current batch — precisely the statements that disappeared from the new dump.
+
+### What the front-end sees during a rerun
+
+| Pipeline stage | State of the V2 target tables |
+|---|---|
+| Steps `101` → `107` (ETL, several days) | previous run's data, untouched |
+| Steps `108` / `109` (staging load + validation) | previous run's data, untouched |
+| Step `110` (bulk load, hours) | updated row by row — never empty |
+| Steps `112` / `113` (media resolution) | current batch |
+| Step `114` (cleanup) | old-batch orphans pruned |
+
+Time with no Wikidata V2 data in the database: **zero**.
+
+### Trade-offs of the incremental path
+
+- **Disk.** Because IDs are stable, re-loading a statement updates its row instead of adding one, so the tables do not double in size. Only genuinely new statements grow them, plus the old-batch orphans that linger until step `114`. Keep headroom anyway — an InnoDB `DELETE` does not return space to the filesystem.
+- **Entity tables are never pruned.** `T_WC_WIKIDATA_MOVIE` / `SERIE` / `PERSON` / `ITEM` / `SEASON` / `EPISODE` / `CHARACTER` and `T_WC_WIKIDATA_PROPERTY_METADATA` have no `IMPORT_BATCH_ID`, so step `114` leaves them alone by design. An entity that falls out of scope keeps its row (with zero statements after the cleanup). Cosmetic, but it never self-heals — only a full reset removes it.
+- **`VALUE_TYPE` flips (trigger error 1644)** are the classic hazard of loading on top of existing data — they happen precisely *because* the old batch is still there. Already handled: the purge of stale typed-value siblings is built into `03_bulk_load_from_staging_FULL.sql` (section 3B). Just rebuild the Docker image so the container runs the current SQL.
+- **Staging is not cleared automatically.** Step `108` deletes rows for the *current* `IMPORT_BATCH_ID` before loading, but leaves older batches in place. Clear the previous batch with `10_clear_staging_batch.sql` whenever convenient — staging is not read by the front-end, so its timing is unconstrained.
+
+### When a full reset IS required
+
+Run `04_reset_for_full_rerun.sql` only when one of these applies:
+
+- the ID-derivation logic changed (`derive_statement_identity`, `derive_qualifier_identity`, or `stable_bigint_from_text` in `wikidata_dump_etl.py`) — old rows would no longer be matched by the upsert and would survive as permanent duplicates;
+- the target schema changed in a way that makes existing rows meaningless;
+- the current data is known to be corrupt and you want a guaranteed-clean rebuild;
+- you specifically want the entity tables pruned of out-of-scope rows.
+
+In those cases accept that the V2 tables stay empty for the whole run, ETL included. A clean rebuild *without* downtime is not supported out of the box — it would mean loading into a copy of the schema and swapping with `RENAME TABLE`.
+
 ## What must be done before a new full run
 
 This section is the most important one for future reruns.
@@ -229,35 +271,24 @@ wikidata_full_YYYYMMDD_HHMM
 
 This lets you distinguish one full run from another in staging and in validation.
 
-### 3. Clear the database before the rerun
+### 3. Leave the target tables alone
 
-Before a new full rerun, clear both:
+**Nothing to do here for a normal rerun.** Do not run `04_reset_for_full_rerun.sql`: the bulk load upserts on top of the existing rows and step `114` prunes what is left over, so the V2 tables stay populated and serviceable from start to finish. See "Rerun strategy: incremental by default (zero downtime)" above for the full rationale, the trade-offs, and the short list of situations that genuinely call for a reset.
 
-- staging tables
-- target tables
+Optionally clear the *previous* batch out of staging — it is dead weight (tens of millions of rows) and invisible to the front-end, so the timing is free:
 
-This is especially important now that statement and qualifier IDs are generated deterministically and older data loaded with previous ID logic should not be mixed with the new run.
-
-Use:
-
-```text
-04_reset_for_full_rerun.sql
+```sql
+-- set @OLD_BATCH_ID to the batch you want gone, then:
+SOURCE 10_clear_staging_batch.sql;
 ```
 
-This file clears:
-
-- all `STG_T_WC_WIKIDATA_*` tables used by the pipeline
-- all `T_WC_WIKIDATA_*` entity, statement, value, and qualifier target tables populated by the pipeline
-
-Run it in MariaDB before starting a fresh full run.
-
-The reset script uses ordered `DELETE` statements with `FOREIGN_KEY_CHECKS` disabled, not `TRUNCATE`, because MariaDB/MySQL does not allow truncating a table that is referenced by a foreign key constraint.
-
-Example:
+If you have determined that a full reset is required, run it now — and expect no V2 data in the database until step `110` completes:
 
 ```sql
 SOURCE 04_reset_for_full_rerun.sql;
 ```
+
+The reset script uses ordered `DELETE` statements with `FOREIGN_KEY_CHECKS` disabled, not `TRUNCATE`, because MariaDB/MySQL does not allow truncating a table that is referenced by a foreign key constraint.
 
 ### 4. Rebuild the Docker image
 
@@ -337,8 +368,9 @@ When restarting everything from scratch, use this checklist in order.
 
 ### Database
 
-- connect to MariaDB
-- run `SOURCE 04_reset_for_full_rerun.sql;`
+- **do not** reset the target tables — the rerun loads on top of them (see "Rerun strategy" above)
+- optionally connect to MariaDB and run `SOURCE 10_clear_staging_batch.sql;` with `@OLD_BATCH_ID` set to the previous batch, to drop stale staging rows
+- run `SOURCE 04_reset_for_full_rerun.sql;` only in the cases listed under "When a full reset IS required"
 
 ### Docker
 
@@ -360,12 +392,14 @@ rm -f /home/debian/docker/shared_data/wikidata-crawler/latest-all.json.bz2
 docker build -t wikidata-crawler-python-app .
 ```
 
-### 3. Reset the database
+### 3. Skip the database reset
 
-In MariaDB:
+There is deliberately no reset step here. The target tables keep serving the previous run while the new one builds; step `114` prunes the leftovers at the end.
+
+Optional housekeeping — drop the previous batch from staging (set `@OLD_BATCH_ID` first):
 
 ```sql
-SOURCE 04_reset_for_full_rerun.sql;
+SOURCE 10_clear_staging_batch.sql;
 ```
 
 ### 4. Launch the full pipeline
@@ -432,21 +466,28 @@ Resuming only makes sense once whatever broke the previous run has been correcte
 - **`Unknown column` / `Table doesn't exist`** — the live MariaDB schema has drifted from `01_create_schema.sql`. Run `SHOW CREATE TABLE <name>` and align with an `ALTER TABLE`, or drop and recreate the offending tables. Then resume with `--start-step 110`.
 - **ETL aborted mid-pass** — the partial output in `/shared/pass1` (or `pass2`, `item_cache`) is no longer trustworthy. Re-run from the failing pass, not the bulk load.
 - **Staging load failed** — fix the data issue, then resume with `--start-step 108`.
+- **`403 Forbidden` on `dumps.wikimedia.org` at step `101`** — Wikimedia refuses requests carrying a default library User-Agent. Set `WIKIMEDIA_USER_AGENT` in `.env` to a descriptive value (`ToolName/version (URL; contact-email)`); the download sends it as required. If you rebuilt an old image, rebuild again — the header was missing from step `101` before this fix, even when the variable was set (the ETL passes always sent it, so the failure only showed up on the download).
 
-## Why a full reset is recommended
+The step `101` download resumes with an HTTP `Range` request and retries up to 20 times with exponential backoff, writing to `<DUMP_FILE>.part` and renaming only on success — a dropped connection mid-download no longer costs the whole transfer, and never leaves a truncated file that a later run would mistake for a complete cached dump.
 
-Several operational issues were discovered during recent reruns:
+## Why the reset is no longer the default
 
-- staging reloads can duplicate rows if rerun carelessly
-- step `104` depends on dump-source initialization from step `101`
-- statement IDs and qualifier IDs must remain stable across reruns
-- if an older run populated target statement/value tables with different ID logic, the safest correction is a clean reload
+Earlier versions of this runbook recommended clearing staging **and** the target tables before every rerun. That advice predates two changes that removed its justification:
 
-Because of that, the most reliable rerun procedure is:
+- **deterministic statement/qualifier IDs** (commit `2ec8534`) — the same claim resolves to the same `ID_STATEMENT` across dumps, so the upsert genuinely updates rather than accumulating parallel rows;
+- **step `114` old-batch cleanup** and the built-in `VALUE_TYPE`-flip purge (commit `d117de1`) — the two failure modes that made loading on top of existing data unpleasant are now handled by the pipeline itself.
 
-- clear cached dump file
+The remaining concerns from that era still hold and are addressed elsewhere:
+
+- staging reloads can duplicate rows if rerun carelessly → step `108` deletes the current batch before loading, and `10_clear_staging_batch.sql` removes older ones;
+- step `104` depends on dump-source initialization from step `101` → still true, still a reason to start full reruns at `101`;
+- statement and qualifier IDs must remain stable across reruns → still true, and it is exactly the condition under which the incremental path is safe. If you change that logic, reset (see "When a full reset IS required").
+
+So the reliable rerun procedure is now:
+
+- clear the cached dump file
 - use a fresh batch id
-- reset staging and target tables
+- leave the target tables in place
 - rerun from `101`
 
 ## SQL files and their roles
@@ -458,7 +499,7 @@ Because of that, the most reliable rerun procedure is:
 - `03_bulk_load_from_staging_FULL.sql`
   - loads staging rows into target tables
 - `04_reset_for_full_rerun.sql`
-  - clears staging and target tables (including the media-resolution layer) before a fresh full rebuild
+  - clears staging and target tables (including the media-resolution layer) before a fresh full rebuild. **Not part of the normal rerun** — it leaves the front-end with no V2 data for the entire multi-day run. Use only in the cases listed under "When a full reset IS required"; the default path loads on top of the existing tables and lets step `114` prune the leftovers.
 - `05_progress_checks.sql`
   - reports staging and target progress counts for a given `IMPORT_BATCH_ID`
 - `07_resolve_media_resources.sql`
@@ -483,6 +524,8 @@ It records `strwikidatacrawlercleanuprowsdeleted` (total rows removed) and `strw
 ```
 
 **Safety guard.** The step refuses to delete anything unless the current `IMPORT_BATCH_ID` already has statements in `T_WC_WIKIDATA_STATEMENT`. This prevents a misconfigured or not-yet-loaded batch id from wiping every prior batch. It is a lighter, incremental alternative to `04_reset_for_full_rerun.sql`: the reset clears *everything* before a fresh rebuild, whereas step 114 keeps the current batch and removes only what is older.
+
+This is what makes the reset unnecessary: step `114` performs the same deletion, but **after** the new data has landed instead of before. That single reordering is what turns a multi-day outage of the V2 tables into no outage at all. See "Rerun strategy: incremental by default (zero downtime)".
 
 ## Media resolution (steps 112 & 113)
 
@@ -556,12 +599,13 @@ Before the next full run:
 
 - delete `latest-all.json.bz2`
 - change `IMPORT_BATCH_ID` in `.env`
-- run `04_reset_for_full_rerun.sql`
+- **do not** run `04_reset_for_full_rerun.sql` — the target tables stay live and get upserted in place
+- optionally run `10_clear_staging_batch.sql` for the previous batch (staging housekeeping only)
 - rebuild Docker image
 - run with `docker run -d`
 - watch with `docker logs -f wikidata-crawler`
 - start from `--start-step 101`
-- the final step (`114`) auto-prunes rows from older `IMPORT_BATCH_ID`s; if you ran a full `04_reset` first there is nothing older to prune
+- the final step (`114`) auto-prunes rows from older `IMPORT_BATCH_ID`s — that is what replaces the up-front reset, and it runs only once the new data is in
 
 ## Additional references
 

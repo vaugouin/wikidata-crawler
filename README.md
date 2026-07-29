@@ -71,8 +71,11 @@ Use these documents as the main references:
 - `10_clear_staging_batch.sql` — deletes all `STG_*` rows for one `@OLD_BATCH_ID`, keeping the
   current batch; use to clear an old batch left stacked in staging (step 114 prunes targets only,
   not staging). Surgical alternative to `04_reset_for_full_rerun.sql`.
-- `apply_to_live_db.sql` — idempotent additive DDL (SEASON/EPISODE/CHARACTER target + staging tables);
-  auto-applied by the crawler at steps 108 and 110 so a long-lived DB stays in sync with new tables
+- `apply_to_live_db.sql` — idempotent additive DDL (SEASON/EPISODE/CHARACTER target tables + the
+  **full** `STG_T_WC_WIKIDATA_*` staging set); auto-applied by the crawler at steps 108 and 110 so a
+  long-lived DB stays in sync with new tables and any staging table that was dropped by hand is
+  re-created in place instead of aborting the run. Column definitions mirror
+  `02_staging_and_triggers.sql`, which stays canonical — keep the two in sync when adding a column.
 
 ### Tests
 
@@ -464,8 +467,10 @@ Do not start from `104` unless the code is explicitly changed to initialize the 
 Resuming only makes sense once whatever broke the previous run has been corrected. Typical causes:
 
 - **`Unknown column` / `Table doesn't exist`** — the live MariaDB schema has drifted from `01_create_schema.sql`. Run `SHOW CREATE TABLE <name>` and align with an `ALTER TABLE`, or drop and recreate the offending tables. Then resume with `--start-step 110`.
+- **`Table 'vaugouindb.STG_T_WC_WIKIDATA_*' doesn't exist` at step `108`** — the staging tables were dropped from the live DB (they hold tens of millions of rows and are often cleared by hand to reclaim disk space). Nothing is lost: staging is rebuilt from the ETL NDJSON, which is still in `/shared`. `apply_to_live_db.sql` now re-creates the full staging set, so **rebuild the image** and resume with `--start-step 108`. To repair without rebuilding, run `SOURCE 02_staging_and_triggers.sql;` on the live DB first (it drops and re-creates every `STG_*` table and re-installs the target-table triggers; it never touches `T_WC_WIKIDATA_*` data).
 - **ETL aborted mid-pass** — the partial output in `/shared/pass1` (or `pass2`, `item_cache`) is no longer trustworthy. Re-run from the failing pass, not the bulk load.
 - **Staging load failed** — fix the data issue, then resume with `--start-step 108`.
+- **`❌ MySQL Error: (2013, 'Lost connection to MySQL server during query')` after an ETL pass** — not fatal, but it means the pass's progress/status never reached `T_WC_SERVER_VARIABLE`. An ETL pass runs for ~20–33 h between two server-variable writes, so MariaDB closes the pooled connection on `wait_timeout` while pymysql still believes it is open. `citizenphil.f_getconnection()` now pings and reconnects before reusing a pooled connection; rebuild the image to pick it up.
 - **`403 Forbidden` on `dumps.wikimedia.org` at step `101`** — Wikimedia refuses requests carrying a default library User-Agent. Set `WIKIMEDIA_USER_AGENT` in `.env` to a descriptive value (`ToolName/version (URL; contact-email)`); the download sends it as required. If you rebuilt an old image, rebuild again — the header was missing from step `101` before this fix, even when the variable was set (the ETL passes always sent it, so the failure only showed up on the download).
 
 The step `101` download resumes with an HTTP `Range` request and retries up to 20 times with exponential backoff, writing to `<DUMP_FILE>.part` and renaming only on success — a dropped connection mid-download no longer costs the whole transfer, and never leaves a truncated file that a later run would mistake for a complete cached dump.

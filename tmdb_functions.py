@@ -114,6 +114,323 @@ def f_tmdbfetchjson(strtmdbapifullurl, strcontext):
     print(f"{strcontext} failed!")
     return None
 
+# --- TMDb "this id is gone" ledger (TMDB-CRAWLER-027) ------------------------
+# TMDb answers status_code 34 ("The resource you requested could not be found")
+# for the ids it has deleted or merged. Nothing on our side ever forgets such an
+# id: process 32 reselects the orphan credit ids on every run, process 26 walks
+# the whole company table every 30 days. Without a memory the crawler re-probes
+# the same dead ids for ever, ten API calls at a time for a movie, and prints
+# the same errors again and again.
+#
+# T_WC_TMDB_ID_NOT_FOUND is that memory: one row per (entity type, id), with a
+# retry window that widens at each confirmation, so an id that TMDb restores
+# later is still picked up eventually.
+INT_TMDB_FETCH_OK = 1        # entity fetched, payload usable
+INT_TMDB_FETCH_GONE = 0      # TMDb answered 34: the id does not exist any more
+INT_TMDB_FETCH_ERROR = -1    # transient failure (network, empty body, other API status)
+
+INT_TMDB_STATUS_NOT_FOUND = 34
+
+# Base retry delay and its maximum multiplier, both tunable as server variables.
+# The first window is deliberately short (a week) so a bad hour at TMDb cannot
+# freeze a batch of ids for months; it then widens 7, 14, 21 ... days, capped at
+# 26 x 7 = 182 days.
+LNG_ID_NOT_FOUND_RETRY_DAYS_DEFAULT = 7
+LNG_ID_NOT_FOUND_RETRY_MAX_FACTOR_DEFAULT = 26
+
+# {(entity type, id): TIM_RETRY_AFTER} read once per run, see f_tmdbidnotfoundload()
+_arridnotfoundledger = None
+_lngidnotfoundretrydays = None
+_lngidnotfoundretrymaxfactor = None
+_lngidnotfoundnewcount = 0   # ids recorded during this run, reported by the crawler
+
+def _f_tmdbservervariableint(strvarname, lngdefault, strvardesc):
+    """Read an integer setting from T_WC_SERVER_VARIABLE, seeding it when absent."""
+    strvalue = cp.f_getservervariable(strvarname, 0)
+    if strvalue:
+        try:
+            return int(float(strvalue))
+        except ValueError:
+            print(f"Invalid {strvarname} value '{strvalue}', falling back to {lngdefault}")
+            return lngdefault
+    cp.f_setservervariable(strvarname, str(lngdefault), strvardesc, 0)
+    return lngdefault
+
+def f_tmdbidnotfoundgetsettings():
+    """Return (base retry delay in days, maximum multiplier), read once per run."""
+    global _lngidnotfoundretrydays
+    global _lngidnotfoundretrymaxfactor
+
+    if _lngidnotfoundretrydays is None:
+        _lngidnotfoundretrydays = _f_tmdbservervariableint(
+            "strtmdbcrawleridnotfoundretrydays",
+            LNG_ID_NOT_FOUND_RETRY_DAYS_DEFAULT,
+            "Base delay in days before a TMDb id recorded as not found is probed again")
+        _lngidnotfoundretrymaxfactor = _f_tmdbservervariableint(
+            "strtmdbcrawleridnotfoundretrymaxfactor",
+            LNG_ID_NOT_FOUND_RETRY_MAX_FACTOR_DEFAULT,
+            "Maximum multiplier applied to the base retry delay of a TMDb id recorded as not found")
+    return _lngidnotfoundretrydays, _lngidnotfoundretrymaxfactor
+
+def f_tmdbidnotfoundensuretable():
+    """
+    Create T_WC_TMDB_ID_NOT_FOUND when it is missing.
+
+    The crawler ships as a Docker image and is the only writer of this table, so
+    it bootstraps it instead of depending on a manual migration on the VPS. The
+    canonical DDL also lives in doc/sql/TMDb-tables.sql.
+
+    Returns:
+    --------
+    bool
+        True when the table is available, False when it could not be created
+    """
+    global connectioncp
+
+    strsqlcreate = """CREATE TABLE IF NOT EXISTS `T_WC_TMDB_ID_NOT_FOUND` (
+  `ID_ROW` int(11) NOT NULL AUTO_INCREMENT,
+  `ENTITY_TYPE` varchar(20) NOT NULL,
+  `ID_ENTITY` int(11) NOT NULL,
+  `ATTEMPT_COUNT` int(11) DEFAULT NULL,
+  `TIM_FIRST_SEEN` datetime DEFAULT NULL,
+  `TIM_LAST_SEEN` datetime DEFAULT NULL,
+  `TIM_RETRY_AFTER` datetime DEFAULT NULL,
+  `LAST_CONTEXT` varchar(100) DEFAULT NULL,
+  `DELETED` int(5) DEFAULT NULL,
+  `DISPLAY_ORDER` int(5) DEFAULT NULL,
+  `ID_CREATOR` int(5) DEFAULT NULL,
+  `DAT_CREAT` date DEFAULT NULL,
+  `ID_OWNER` int(5) DEFAULT NULL,
+  `TIM_UPDATED` datetime DEFAULT NULL,
+  `ID_USER_UPDATED` int(5) DEFAULT NULL,
+  PRIMARY KEY (`ID_ROW`),
+  UNIQUE KEY `UK_TMDB_ID_NOT_FOUND` (`ENTITY_TYPE`,`ID_ENTITY`),
+  KEY `IDX_TMDB_ID_NOT_FOUND_RETRY` (`ENTITY_TYPE`,`TIM_RETRY_AFTER`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"""
+    try:
+        cursor2 = connectioncp.cursor()
+        cursor2.execute(strsqlcreate)
+        connectioncp.commit()
+        return True
+    except Exception as err:
+        print(f"Could not create T_WC_TMDB_ID_NOT_FOUND: {err}")
+        return False
+
+def f_tmdbidnotfoundload():
+    """
+    Load the whole not-found ledger into a process-local dictionary.
+
+    Read once per run: the lookup then costs nothing, which matters because it
+    runs before every entity fetch, including the millions that are alive. The
+    ledger holds one row per dead id, so it stays small compared with the entity
+    tables.
+
+    Returns:
+    --------
+    dict
+        {(entity type, id): TIM_RETRY_AFTER}, empty when the table is unreadable
+    """
+    global _arridnotfoundledger
+    global connectioncp
+
+    if _arridnotfoundledger is not None:
+        return _arridnotfoundledger
+
+    _arridnotfoundledger = {}
+    try:
+        cursor2 = connectioncp.cursor()
+        cursor2.execute("SELECT ENTITY_TYPE, ID_ENTITY, TIM_RETRY_AFTER FROM T_WC_TMDB_ID_NOT_FOUND")
+        for row in cursor2.fetchall():
+            _arridnotfoundledger[(row['ENTITY_TYPE'], row['ID_ENTITY'])] = row['TIM_RETRY_AFTER']
+        lngactive = f_tmdbidnotfoundactivecount()
+        print(f"TMDb not-found ledger: {len(_arridnotfoundledger)} ids recorded, {lngactive} still inside their retry window")
+    except Exception as err:
+        # An unreadable ledger must not stop the crawl: it only means the dead
+        # ids are probed again, which is the behaviour we had before.
+        print(f"Could not read T_WC_TMDB_ID_NOT_FOUND, no id will be skipped: {err}")
+    return _arridnotfoundledger
+
+def f_tmdbidnotfoundactivecount():
+    """Count the ledger entries still inside their retry window."""
+    timnow = datetime.now(paris_tz).replace(tzinfo=None)
+    return sum(1 for timretryafter in f_tmdbidnotfoundload().values()
+               if timretryafter is not None and timretryafter > timnow)
+
+def f_tmdbidnotfoundnewcount():
+    """Count the ids recorded as not found since this process started."""
+    return _lngidnotfoundnewcount
+
+def f_tmdbidnotfoundisknown(strentitytype, lngid):
+    """
+    Tell whether TMDb already answered 34 for this id and the retry window is open.
+
+    Parameters:
+    -----------
+    strentitytype : str
+        Entity family as stored in ENTITY_TYPE ('movie', 'person', 'serie', ...)
+    lngid : int
+        The TMDb id to test
+
+    Returns:
+    --------
+    bool
+        True when the id must be skipped without calling the API
+    """
+    timretryafter = f_tmdbidnotfoundload().get((strentitytype, lngid))
+    if timretryafter is None:
+        return False
+    return timretryafter > datetime.now(paris_tz).replace(tzinfo=None)
+
+def f_tmdbidnotfoundrecord(strentitytype, lngid, strcontext=""):
+    """
+    Record (or confirm) that TMDb no longer serves this id, and widen its retry window.
+
+    Parameters:
+    -----------
+    strentitytype : str
+        Entity family stored in ENTITY_TYPE ('movie', 'person', 'serie', ...)
+    lngid : int
+        The TMDb id that answered status 34
+    strcontext : str, optional
+        Calling function, kept in LAST_CONTEXT to make the ledger readable
+
+    Returns:
+    --------
+    None
+    """
+    global connectioncp
+    global _lngidnotfoundnewcount
+    global paris_tz
+
+    lngretrydays, lngmaxfactor = f_tmdbidnotfoundgetsettings()
+    strnow = datetime.now(paris_tz).strftime("%Y-%m-%d %H:%M:%S")
+    strdate = datetime.now(paris_tz).strftime("%Y-%m-%d")
+    strcontext = strcontext[:100]
+    # MariaDB evaluates the ON DUPLICATE KEY assignments left to right, so
+    # TIM_RETRY_AFTER is computed first, while ATTEMPT_COUNT still holds the
+    # previous value: the window is (attempts so far + 1) x the base delay.
+    strsql = """INSERT INTO T_WC_TMDB_ID_NOT_FOUND
+ (ENTITY_TYPE, ID_ENTITY, ATTEMPT_COUNT, TIM_FIRST_SEEN, TIM_LAST_SEEN, TIM_RETRY_AFTER, LAST_CONTEXT, DELETED, DAT_CREAT, TIM_UPDATED)
+ VALUES (%s, %s, 1, %s, %s, DATE_ADD(%s, INTERVAL %s DAY), %s, 0, %s, %s)
+ ON DUPLICATE KEY UPDATE
+ TIM_RETRY_AFTER = DATE_ADD(%s, INTERVAL LEAST(ATTEMPT_COUNT + 1, %s) * %s DAY),
+ ATTEMPT_COUNT = ATTEMPT_COUNT + 1,
+ TIM_LAST_SEEN = %s,
+ LAST_CONTEXT = %s,
+ TIM_UPDATED = %s"""
+    arrparams = (strentitytype, lngid, strnow, strnow, strnow, lngretrydays, strcontext, strdate, strnow,
+                 strnow, lngmaxfactor, lngretrydays, strnow, strcontext, strnow)
+    try:
+        cursor2 = connectioncp.cursor()
+        cursor2.execute(strsql, arrparams)
+        connectioncp.commit()
+    except Exception as err:
+        print(f"Could not record TMDb {strentitytype} {lngid} as not found: {err}")
+        return
+
+    arrledger = f_tmdbidnotfoundload()
+    if (strentitytype, lngid) not in arrledger:
+        _lngidnotfoundnewcount += 1
+    # Re-read the stored window so the in-memory ledger matches what SQL computed.
+    try:
+        cursor2.execute("SELECT TIM_RETRY_AFTER FROM T_WC_TMDB_ID_NOT_FOUND WHERE ENTITY_TYPE = %s AND ID_ENTITY = %s",
+                        (strentitytype, lngid))
+        rowretry = cursor2.fetchone()
+        arrledger[(strentitytype, lngid)] = rowretry['TIM_RETRY_AFTER'] if rowretry else None
+    except Exception as err:
+        print(f"Could not read back the retry window of TMDb {strentitytype} {lngid}: {err}")
+
+def f_tmdbidnotfoundclear(strentitytype, lngid):
+    """
+    Forget an id that TMDb serves again (an upstream merge can be undone).
+
+    The lookup is done in memory first, so the common case (an id that was never
+    recorded) costs no query at all.
+
+    Parameters:
+    -----------
+    strentitytype : str
+        Entity family stored in ENTITY_TYPE
+    lngid : int
+        The TMDb id that answered normally
+
+    Returns:
+    --------
+    None
+    """
+    global connectioncp
+
+    arrledger = f_tmdbidnotfoundload()
+    if (strentitytype, lngid) not in arrledger:
+        return
+    try:
+        cursor2 = connectioncp.cursor()
+        cursor2.execute("DELETE FROM T_WC_TMDB_ID_NOT_FOUND WHERE ENTITY_TYPE = %s AND ID_ENTITY = %s",
+                        (strentitytype, lngid))
+        connectioncp.commit()
+        arrledger.pop((strentitytype, lngid), None)
+        print(f"TMDb {strentitytype} {lngid} exists again: removed from T_WC_TMDB_ID_NOT_FOUND")
+    except Exception as err:
+        print(f"Could not clear TMDb {strentitytype} {lngid} from the not-found ledger: {err}")
+
+def f_tmdbfetchclassify(data, strentitytype, lngid, strcontext):
+    """
+    Turn a TMDb entity payload into one of the INT_TMDB_FETCH_* outcomes.
+
+    A status 34 is recorded in the ledger and reported once, in place of the
+    "Error: API returned status code 34" lines that each downstream endpoint
+    used to print for the same dead id.
+
+    Parameters:
+    -----------
+    data : dict or None
+        Payload returned by f_tmdbfetchjson()
+    strentitytype : str
+        Entity family stored in ENTITY_TYPE ('movie', 'person', 'serie', ...)
+    lngid : int
+        The TMDb id that was requested
+    strcontext : str
+        Calling function, used in the log line and in LAST_CONTEXT
+
+    Returns:
+    --------
+    int
+        INT_TMDB_FETCH_OK, INT_TMDB_FETCH_GONE or INT_TMDB_FETCH_ERROR
+    """
+    if data is None:
+        return INT_TMDB_FETCH_ERROR
+
+    lngstatuscode = 0
+    if isinstance(data, dict) and data.get('status_code'):
+        lngstatuscode = data['status_code']
+    if lngstatuscode == INT_TMDB_STATUS_NOT_FOUND:
+        f_tmdbidnotfoundrecord(strentitytype, lngid, strcontext)
+        print(f"TMDb {strentitytype} {lngid} no longer exists (status 34): recorded in T_WC_TMDB_ID_NOT_FOUND, rest of the chain skipped")
+        return INT_TMDB_FETCH_GONE
+    if lngstatuscode > 1:
+        strstatusmessage = data.get('status_message', '') if isinstance(data, dict) else ''
+        print(f"TMDb {strentitytype} {lngid} returned status {lngstatuscode} in {strcontext}: {strstatusmessage}")
+        return INT_TMDB_FETCH_ERROR
+    f_tmdbidnotfoundclear(strentitytype, lngid)
+    return INT_TMDB_FETCH_OK
+
+def f_tmdbentityisgone(strentitytype, lngid, strcontext):
+    """
+    Guard placed at the top of every f_tmdb<entity>tosqleverything() chain.
+
+    Covers the call sites that are not driven by f_getprocesssql(), typically the
+    /changes loops, where no SQL filter can exclude a dead id beforehand.
+
+    Returns:
+    --------
+    bool
+        True when the id is a known dead one and must not be crawled
+    """
+    if f_tmdbidnotfoundisknown(strentitytype, lngid):
+        print(f"TMDb {strentitytype} {lngid} is a known missing id (see T_WC_TMDB_ID_NOT_FOUND), skipped by {strcontext}")
+        return True
+    return False
+
 def f_tmdbcontentimagesstosql(lngcontentid, strcontenttype, strsqlmastertable, strsqltablename, strkeyfieldname, strmainimagefield=None, strmainimagetype=None, strlangtable=None):
     """
     Fetch images for content from TMDb API and store them in the database.
@@ -465,8 +782,10 @@ def f_tmdbpersontosql(lngpersonid):
 
     Returns:
     --------
-    bool
-        True if successful, False if failed or invalid ID
+    int
+        INT_TMDB_FETCH_OK when the person was stored, INT_TMDB_FETCH_GONE when
+        TMDb answered 34 (the id is then recorded in T_WC_TMDB_ID_NOT_FOUND),
+        INT_TMDB_FETCH_ERROR on an invalid id or a transient failure
     """
     global strtmdbapidomainurl
     global headers
@@ -478,15 +797,13 @@ def f_tmdbpersontosql(lngpersonid):
         # print(strtmdbapifullurl)
         data = f_tmdbfetchjson(strtmdbapifullurl, f"f_tmdbpersontosql({lngpersonid})")
         if data is None:
-            return
+            return INT_TMDB_FETCH_ERROR
         else:
             # strapiperson = response.text
             # Parse the JSON data into a dictionary
-            
-            lngpersonstatuscode = 0
-            if 'status_code' in data:
-                lngpersonstatuscode = data['status_code']
-            if lngpersonstatuscode <= 1:
+
+            intfetchresult = f_tmdbfetchclassify(data, "person", lngpersonid, f"f_tmdbpersontosql({lngpersonid})")
+            if intfetchresult == INT_TMDB_FETCH_OK:
                 # API request result is not an error
                 # Extract data using the keys
                 strpersonidimdb = ""
@@ -704,6 +1021,8 @@ def f_tmdbpersontosql(lngpersonid):
                 cursor2 = connectioncp.cursor()
                 cursor2.execute(strsqldelete)
                 connectioncp.commit()
+            return intfetchresult
+    return INT_TMDB_FETCH_ERROR
 
 def f_tmdbpersonexist(lngpersonid):
     """
@@ -726,6 +1045,10 @@ def f_tmdbpersonexist(lngpersonid):
 
     # By default, we assume that this person exists
     intresult = True
+    if f_tmdbidnotfoundisknown("person", lngpersonid):
+        # TMDb already answered 34 for this id and the retry window is still open:
+        # no need to spend a call to hear it again.
+        return False
     if lngpersonid > 0:
         strtmdbapipersonurl = "3/person/" + str(lngpersonid) + "?language=" + strlanguage
         strtmdbapifullurl = strtmdbapidomainurl + "/" + strtmdbapipersonurl
@@ -862,11 +1185,19 @@ def f_tmdbpersontosqleverything(lngpersonid):
 
     Returns:
     --------
-    None
+    int
+        One of the INT_TMDB_FETCH_* outcomes of the person details call
     """
-    f_tmdbpersontosql(lngpersonid)
+    if f_tmdbentityisgone("person", lngpersonid, "f_tmdbpersontosqleverything"):
+        return INT_TMDB_FETCH_GONE
+    intfetchresult = f_tmdbpersontosql(lngpersonid)
+    if intfetchresult != INT_TMDB_FETCH_OK:
+        # Nothing to enrich: the id is gone (34) or the details call failed after
+        # its retries. Calling the remaining endpoints would only repeat it.
+        return intfetchresult
     f_tmdbpersonsetcreditscompleted(lngpersonid)
     f_tmdbpersonimagestosql(lngpersonid)
+    return INT_TMDB_FETCH_OK
 
 # https://developer.themoviedb.org/reference/movie-details
 
@@ -881,8 +1212,10 @@ def f_tmdbmovietosql(lngmovieid):
 
     Returns:
     --------
-    bool
-        True if successful, False if failed or invalid ID
+    int
+        INT_TMDB_FETCH_OK when the movie was stored, INT_TMDB_FETCH_GONE when
+        TMDb answered 34 (the id is then recorded in T_WC_TMDB_ID_NOT_FOUND),
+        INT_TMDB_FETCH_ERROR on an invalid id or a transient failure
     """
     global strtmdbapidomainurl
     global headers
@@ -899,12 +1232,10 @@ def f_tmdbmovietosql(lngmovieid):
         # print(strtmdbapifullurl)
         data = f_tmdbfetchjson(strtmdbapifullurl, f"f_tmdbmovietosql({lngmovieid})")
         if data is None:
-            return
+            return INT_TMDB_FETCH_ERROR
 
-        lngmoviestatuscode = 0
-        if 'status_code' in data:
-            lngmoviestatuscode = data['status_code']
-        if lngmoviestatuscode <= 1:
+        intfetchresult = f_tmdbfetchclassify(data, "movie", lngmovieid, f"f_tmdbmovietosql({lngmovieid})")
+        if intfetchresult == INT_TMDB_FETCH_OK:
             # API request result is not an error
             # Extract data using the keys
             strmovieidimdb = ""
@@ -1255,6 +1586,8 @@ def f_tmdbmovietosql(lngmovieid):
             cursor2 = connectioncp.cursor()
             cursor2.execute(strsqldelete)
             connectioncp.commit()
+        return intfetchresult
+    return INT_TMDB_FETCH_ERROR
 
 def f_tmdbmovielangtosql(lngmovieid, strlang):
     """
@@ -1385,6 +1718,71 @@ def f_tmdbmoviekeywordstosql(lngmovieid):
                         strsqlupdatecondition = f"ID_MOVIE = {lngmovieid} AND ID_KEYWORD = {lngkeywordid}"
                         cp.f_sqlupdatearray(strsqltablename,arrmoviekeywordcouples,strsqlupdatecondition,1)
 
+def f_tmdbprunestaleneighbours(strsqltablename, strownercolumn, lngownerid, strneighbourcolumn, arrcurrentids):
+    """
+    Delete the neighbour rows TMDb no longer returns for one movie / series.
+
+    TMDB-CRAWLER-028. The four neighbour writers (movie/serie x similar/recommendations)
+    upsert one row per (owner, neighbour) and never removed anything, so each table held the
+    UNION of every top-20 TMDb had ever returned for a title, growing without bound. Measured
+    2026-07-28: T_WC_TMDB_MOVIE_SIMILAR 2 612 116 rows for 63 445 movies (41.2 each) and
+    T_WC_TMDB_SERIE_SIMILAR 862 314 rows for 17 290 series (49.9 each), while MAX(DISPLAY_ORDER)
+    is 20 in every one of them, proving a single page is ever fetched. Everything past twenty
+    neighbours was therefore accumulated history, roughly two million dead rows.
+
+    Worse than the volume: tmdb-movie-preprocess renumbers DISPLAY_ORDER with ROW_NUMBER() when
+    building the T2S read-model, so the bloat is invisible downstream and the rail reads as a
+    clean ranked list of hundreds of titles. It is not TMDb's current ranking, it is every past
+    rank-1 first, then every past rank-2, and so on.
+
+    This is the same idiom already used for images (see the "delete images that are no longer
+    present in the API response" pass): the freshest response is authoritative.
+
+    Deliberately DIFFERENT from the images pass on one point: an EMPTY current set deletes
+    NOTHING. The images code wipes the lot when the response carries none, which is right for
+    images; here the asymmetry of costs says otherwise. Keeping a stale list one more cycle
+    costs nothing, wiping a correct list because TMDb hiccuped and answered 200 with an empty
+    body costs a re-crawl of the whole catalogue. Callers must also only reach this after a
+    successful fetch, never on a fetch error.
+
+    Parameters:
+    -----------
+    strsqltablename : str
+        Neighbour table, e.g. "T_WC_TMDB_MOVIE_SIMILAR"
+    strownercolumn : str
+        Owner column, e.g. "ID_MOVIE"
+    lngownerid : int
+        The movie / series the neighbours belong to
+    strneighbourcolumn : str
+        Neighbour column, e.g. "ID_MOVIE_SIMILAR"
+    arrcurrentids : list
+        The neighbour ids TMDb returned on this pass. Empty means "do nothing".
+
+    Returns:
+    --------
+    int
+        Number of stale rows removed (0 when nothing to do or on error).
+    """
+    if not arrcurrentids:
+        return 0
+    try:
+        strcurrentids = ", ".join(str(int(lngid)) for lngid in arrcurrentids)
+        strsqldelete = (
+            f"DELETE FROM {strsqltablename} "
+            f"WHERE {strownercolumn} = {int(lngownerid)} "
+            f"AND {strneighbourcolumn} NOT IN ({strcurrentids})"
+        )
+        cursor = connectioncp.cursor()
+        cursor.execute(strsqldelete)
+        lngdeleted = cursor.rowcount
+        connectioncp.commit()
+        if lngdeleted and lngdeleted > 0:
+            print(f"{strsqltablename}: removed {lngdeleted} stale neighbour(s) for {strownercolumn} {lngownerid}")
+        return lngdeleted or 0
+    except Exception as err:
+        print(f"Could not prune stale neighbours in {strsqltablename} for {strownercolumn} {lngownerid}: {err}")
+        return 0
+
 def f_tmdbmoviesimilartosql(lngmovieid):
     """
     Fetch and store TMDb "similar" movies for a movie into T_WC_TMDB_MOVIE_SIMILAR.
@@ -1419,6 +1817,9 @@ def f_tmdbmoviesimilartosql(lngmovieid):
             if lngmoviesimilarstatuscode <= 1:
                 # API request result is not an error
                 lngsimilardisplayorder = 0
+                # TMDB-CRAWLER-028: the neighbour ids this pass saw, so the stale ones can be
+                # pruned once the writes are done.
+                arrcurrentneighbourids = []
                 if 'results' in jsonmoviesimilar and jsonmoviesimilar['results']:
                     # Array is not empty
                     for onecontent in jsonmoviesimilar['results']:
@@ -1432,6 +1833,11 @@ def f_tmdbmoviesimilartosql(lngmovieid):
                         strsqltablename = "T_WC_TMDB_MOVIE_SIMILAR"
                         strsqlupdatecondition = f"ID_MOVIE = {lngmovieid} AND ID_MOVIE_SIMILAR = {lngmovieidsimilar}"
                         cp.f_sqlupdatearray(strsqltablename,arrmoviesimilarcouples,strsqlupdatecondition,1)
+                        arrcurrentneighbourids.append(lngmovieidsimilar)
+                    # TMDB-CRAWLER-028: this response is authoritative, so whatever it no
+                    # longer lists is gone. Runs AFTER the upserts, never before: an
+                    # interrupted pass then leaves the old list intact rather than an empty one.
+                    f_tmdbprunestaleneighbours("T_WC_TMDB_MOVIE_SIMILAR", "ID_MOVIE", lngmovieid, "ID_MOVIE_SIMILAR", arrcurrentneighbourids)
 
 def f_tmdbmovierecommendationstosql(lngmovieid):
     """
@@ -1467,6 +1873,9 @@ def f_tmdbmovierecommendationstosql(lngmovieid):
             if lngmovierecommendationsstatuscode <= 1:
                 # API request result is not an error
                 lngrecommendationdisplayorder = 0
+                # TMDB-CRAWLER-028: the neighbour ids this pass saw, so the stale ones can be
+                # pruned once the writes are done.
+                arrcurrentneighbourids = []
                 if 'results' in jsonmovierecommendations and jsonmovierecommendations['results']:
                     # Array is not empty
                     for onecontent in jsonmovierecommendations['results']:
@@ -1480,6 +1889,11 @@ def f_tmdbmovierecommendationstosql(lngmovieid):
                         strsqltablename = "T_WC_TMDB_MOVIE_RECOMMENDATION"
                         strsqlupdatecondition = f"ID_MOVIE = {lngmovieid} AND ID_MOVIE_RECOMMENDED = {lngmovieidrecommended}"
                         cp.f_sqlupdatearray(strsqltablename,arrmovierecommendationcouples,strsqlupdatecondition,1)
+                        arrcurrentneighbourids.append(lngmovieidrecommended)
+                    # TMDB-CRAWLER-028: this response is authoritative, so whatever it no
+                    # longer lists is gone. Runs AFTER the upserts, never before: an
+                    # interrupted pass then leaves the old list intact rather than an empty one.
+                    f_tmdbprunestaleneighbours("T_WC_TMDB_MOVIE_RECOMMENDATION", "ID_MOVIE", lngmovieid, "ID_MOVIE_RECOMMENDED", arrcurrentneighbourids)
 
 def f_tmdbmovieexist(lngmovieid):
     """
@@ -1502,6 +1916,10 @@ def f_tmdbmovieexist(lngmovieid):
 
     # By default, we assume that this movie exists
     intresult = True
+    if f_tmdbidnotfoundisknown("movie", lngmovieid):
+        # TMDb already answered 34 for this id and the retry window is still open:
+        # no need to spend a call to hear it again.
+        return False
     if lngmovieid > 0:
         strtmdbapimovieurl = "3/movie/" + str(lngmovieid) + "?language=" + strlanguage
         strtmdbapifullurl = strtmdbapidomainurl + "/" + strtmdbapimovieurl
@@ -1738,9 +2156,17 @@ def f_tmdbmovietosqleverything(lngmovieid):
 
     Returns:
     --------
-    None
+    int
+        One of the INT_TMDB_FETCH_* outcomes of the movie details call
     """
-    f_tmdbmovietosql(lngmovieid)
+    if f_tmdbentityisgone("movie", lngmovieid, "f_tmdbmovietosqleverything"):
+        return INT_TMDB_FETCH_GONE
+    intfetchresult = f_tmdbmovietosql(lngmovieid)
+    if intfetchresult != INT_TMDB_FETCH_OK:
+        # Nothing to enrich: the id is gone (34) or the details call failed after
+        # its retries. The nine calls below would only repeat the same failure,
+        # three of them printing an error line each (TMDB-CRAWLER-027).
+        return intfetchresult
     f_tmdbmovielangtosql(lngmovieid,'fr')
     f_tmdbmoviesetcreditscompleted(lngmovieid)
     f_tmdbmoviekeywordstosql(lngmovieid)
@@ -1750,6 +2176,7 @@ def f_tmdbmovietosqleverything(lngmovieid):
     f_tmdbmovieimagestosql(lngmovieid)
     f_tmdbmovievideotosql(lngmovieid,'en')
     f_tmdbmovievideotosql(lngmovieid,'fr')
+    return INT_TMDB_FETCH_OK
 
 # https://developer.themoviedb.org/reference/tv-series-details
 
@@ -1764,8 +2191,10 @@ def f_tmdbserietosql(lngserieid):
 
     Returns:
     --------
-    bool
-        True if successful, False if failed or invalid ID
+    int
+        INT_TMDB_FETCH_OK when the series was stored, INT_TMDB_FETCH_GONE when
+        TMDb answered 34 (the id is then recorded in T_WC_TMDB_ID_NOT_FOUND),
+        INT_TMDB_FETCH_ERROR on an invalid id or a transient failure
     """
     global strtmdbapidomainurl
     global headers
@@ -1782,14 +2211,12 @@ def f_tmdbserietosql(lngserieid):
         #print(strtmdbapifullurl)
         data = f_tmdbfetchjson(strtmdbapifullurl, f"f_tmdbserietosql({lngserieid})")
         if data is None:
-            return
+            return INT_TMDB_FETCH_ERROR
 
         # Parse the JSON data into a dictionary
-        
-        lngseriestatuscode = 0
-        if 'status_code' in data:
-            lngseriestatuscode = data['status_code']
-        if lngseriestatuscode <= 1:
+
+        intfetchresult = f_tmdbfetchclassify(data, "serie", lngserieid, f"f_tmdbserietosql({lngserieid})")
+        if intfetchresult == INT_TMDB_FETCH_OK:
             # API request result is not an error
             # Extract data using the keys
             strserieidimdb = ""
@@ -2307,6 +2734,8 @@ def f_tmdbserietosql(lngserieid):
             cursor2 = connectioncp.cursor()
             cursor2.execute(strsqldelete)
             connectioncp.commit()
+        return intfetchresult
+    return INT_TMDB_FETCH_ERROR
 
 def f_tmdbserielangtosql(lngserieid, strlang):
     """
@@ -2459,6 +2888,10 @@ def f_tmdbserieexist(lngserieid):
 
     # By default, we assume that this serie exists
     intresult = True
+    if f_tmdbidnotfoundisknown("serie", lngserieid):
+        # TMDb already answered 34 for this id and the retry window is still open:
+        # no need to spend a call to hear it again.
+        return False
     if lngserieid > 0:
         strtmdbapiserieurl = "3/tv/" + str(lngserieid) + "?language=" + strlanguage
         strtmdbapifullurl = strtmdbapidomainurl + "/" + strtmdbapiserieurl
@@ -2831,6 +3264,9 @@ def f_tmdbseriesimilartosql(lngserieid):
             if lngseriesimilarstatuscode <= 1:
                 # API request result is not an error
                 lngsimilardisplayorder = 0
+                # TMDB-CRAWLER-028: the neighbour ids this pass saw, so the stale ones can be
+                # pruned once the writes are done.
+                arrcurrentneighbourids = []
                 if 'results' in jsonseriesimilar and jsonseriesimilar['results']:
                     # Array is not empty
                     for onecontent in jsonseriesimilar['results']:
@@ -2844,6 +3280,11 @@ def f_tmdbseriesimilartosql(lngserieid):
                         strsqltablename = "T_WC_TMDB_SERIE_SIMILAR"
                         strsqlupdatecondition = f"ID_SERIE = {lngserieid} AND ID_SERIE_SIMILAR = {lngserieidsimilar}"
                         cp.f_sqlupdatearray(strsqltablename,arrseriesimilarcouples,strsqlupdatecondition,1)
+                        arrcurrentneighbourids.append(lngserieidsimilar)
+                    # TMDB-CRAWLER-028: this response is authoritative, so whatever it no
+                    # longer lists is gone. Runs AFTER the upserts, never before: an
+                    # interrupted pass then leaves the old list intact rather than an empty one.
+                    f_tmdbprunestaleneighbours("T_WC_TMDB_SERIE_SIMILAR", "ID_SERIE", lngserieid, "ID_SERIE_SIMILAR", arrcurrentneighbourids)
 
 def f_tmdbserierecommendationstosql(lngserieid):
     """
@@ -2878,6 +3319,9 @@ def f_tmdbserierecommendationstosql(lngserieid):
             if lngserierecommendationsstatuscode <= 1:
                 # API request result is not an error
                 lngrecommendationdisplayorder = 0
+                # TMDB-CRAWLER-028: the neighbour ids this pass saw, so the stale ones can be
+                # pruned once the writes are done.
+                arrcurrentneighbourids = []
                 if 'results' in jsonserierecommendations and jsonserierecommendations['results']:
                     # Array is not empty
                     for onecontent in jsonserierecommendations['results']:
@@ -2891,6 +3335,11 @@ def f_tmdbserierecommendationstosql(lngserieid):
                         strsqltablename = "T_WC_TMDB_SERIE_RECOMMENDATION"
                         strsqlupdatecondition = f"ID_SERIE = {lngserieid} AND ID_SERIE_RECOMMENDED = {lngserieidrecommended}"
                         cp.f_sqlupdatearray(strsqltablename,arrserierecommendationcouples,strsqlupdatecondition,1)
+                        arrcurrentneighbourids.append(lngserieidrecommended)
+                    # TMDB-CRAWLER-028: this response is authoritative, so whatever it no
+                    # longer lists is gone. Runs AFTER the upserts, never before: an
+                    # interrupted pass then leaves the old list intact rather than an empty one.
+                    f_tmdbprunestaleneighbours("T_WC_TMDB_SERIE_RECOMMENDATION", "ID_SERIE", lngserieid, "ID_SERIE_RECOMMENDED", arrcurrentneighbourids)
 
 def f_tmdbserietosqleverything(lngserieid):
     """
@@ -2903,9 +3352,17 @@ def f_tmdbserietosqleverything(lngserieid):
 
     Returns:
     --------
-    None
+    int
+        One of the INT_TMDB_FETCH_* outcomes of the series details call
     """
-    f_tmdbserietosql(lngserieid)
+    if f_tmdbentityisgone("serie", lngserieid, "f_tmdbserietosqleverything"):
+        return INT_TMDB_FETCH_GONE
+    intfetchresult = f_tmdbserietosql(lngserieid)
+    if intfetchresult != INT_TMDB_FETCH_OK:
+        # Nothing to enrich: the id is gone (34) or the details call failed after
+        # its retries. The nine calls below would only repeat the same failure
+        # (TMDB-CRAWLER-027).
+        return intfetchresult
     f_tmdbserielangtosql(lngserieid,'fr')
     f_tmdbseriesetcreditscompleted(lngserieid)
     f_tmdbseriekeywordstosql(lngserieid)
@@ -2915,6 +3372,7 @@ def f_tmdbserietosqleverything(lngserieid):
     f_tmdbserieimagestosql(lngserieid)
     f_tmdbserievideotosql(lngserieid,'en')
     f_tmdbserievideotosql(lngserieid,'fr')
+    return INT_TMDB_FETCH_OK
 
 # https://developer.themoviedb.org/reference/tv-season-details
 
@@ -4338,7 +4796,10 @@ def f_tmdbcollectiontosql(lngcollectionid):
 
     Returns:
     --------
-    None
+    int
+        INT_TMDB_FETCH_OK when the collection was stored, INT_TMDB_FETCH_GONE
+        when TMDb answered 34 (the id is then recorded in
+        T_WC_TMDB_ID_NOT_FOUND), INT_TMDB_FETCH_ERROR otherwise
     """
     global strtmdbapidomainurl
     global headers
@@ -4351,15 +4812,13 @@ def f_tmdbcollectiontosql(lngcollectionid):
         # print(strtmdbapifullurl)
         data = f_tmdbfetchjson(strtmdbapifullurl, f"f_tmdbcollectiontosql({lngcollectionid})")
         if data is None:
-            return
-        
+            return INT_TMDB_FETCH_ERROR
+
         #strapicollectionfordb = json.dumps(data, ensure_ascii=False)
-        
+
         # print(response.json)
-        lngcollectionstatuscode = 0
-        if 'status_code' in data:
-            lngcollectionstatuscode = data['status_code']
-        if lngcollectionstatuscode <= 1:
+        intfetchresult = f_tmdbfetchclassify(data, "collection", lngcollectionid, f"f_tmdbcollectiontosql({lngcollectionid})")
+        if intfetchresult == INT_TMDB_FETCH_OK:
             # API request result is not an error
             # Extract data using the keys
             strcollectionoverview = ""
@@ -4393,6 +4852,8 @@ def f_tmdbcollectiontosql(lngcollectionid):
             strsqltablename = "T_WC_TMDB_COLLECTION"
             strsqlupdatecondition = f"ID_COLLECTION = {lngcollectionid}"
             cp.f_sqlupdatearray(strsqltablename,arrcollectioncouples,strsqlupdatecondition,1)
+        return intfetchresult
+    return INT_TMDB_FETCH_ERROR
 
 def f_tmdbcollectionlangtosql(lngcollectionid, strlang):
     """
@@ -4522,12 +4983,19 @@ def f_tmdbcollectiontosqleverything(lngcollectionid):
 
     Returns:
     --------
-    None
+    int
+        One of the INT_TMDB_FETCH_* outcomes of the collection details call
     """
-    f_tmdbcollectiontosql(lngcollectionid)
+    if f_tmdbentityisgone("collection", lngcollectionid, "f_tmdbcollectiontosqleverything"):
+        return INT_TMDB_FETCH_GONE
+    intfetchresult = f_tmdbcollectiontosql(lngcollectionid)
+    if intfetchresult != INT_TMDB_FETCH_OK:
+        # Nothing to enrich: the id is gone (34) or the details call failed.
+        return intfetchresult
     f_tmdbcollectionlangtosql(lngcollectionid,'fr')
     f_tmdbcollectionsetcreditscompleted(lngcollectionid)
     f_tmdbcollectionimagestosql(lngcollectionid)
+    return INT_TMDB_FETCH_OK
 
 def f_tmdbcompanytosql(lngcompanyid):
     """
@@ -4540,7 +5008,10 @@ def f_tmdbcompanytosql(lngcompanyid):
 
     Returns:
     --------
-    None
+    int
+        INT_TMDB_FETCH_OK when the company was stored, INT_TMDB_FETCH_GONE when
+        TMDb answered 34 (the id is then recorded in T_WC_TMDB_ID_NOT_FOUND),
+        INT_TMDB_FETCH_ERROR otherwise
     """
     global strtmdbapidomainurl
     global headers
@@ -4552,13 +5023,11 @@ def f_tmdbcompanytosql(lngcompanyid):
         strtmdbapifullurl = strtmdbapidomainurl + "/" + strtmdbapicompanyurl
         data = f_tmdbfetchjson(strtmdbapifullurl, f"f_tmdbcompanytosql({lngcompanyid})")
         if data is None:
-            return
-        
+            return INT_TMDB_FETCH_ERROR
+
         #strapicompanyfordb = json.dumps(data, ensure_ascii=False)
-        lngcompanystatuscode = 0
-        if 'status_code' in data:
-            lngcompanystatuscode = data['status_code']
-        if lngcompanystatuscode <= 1:
+        intfetchresult = f_tmdbfetchclassify(data, "company", lngcompanyid, f"f_tmdbcompanytosql({lngcompanyid})")
+        if intfetchresult == INT_TMDB_FETCH_OK:
             # API request result is not an error
             # Extract data using the keys
             strcompanydescription = ""
@@ -4618,6 +5087,8 @@ def f_tmdbcompanytosql(lngcompanyid):
             strsqltablename = "T_WC_TMDB_COMPANY"
             strsqlupdatecondition = f"ID_COMPANY = {lngcompanyid}"
             cp.f_sqlupdatearray(strsqltablename,arrcompanycouples,strsqlupdatecondition,1)
+        return intfetchresult
+    return INT_TMDB_FETCH_ERROR
 
 def f_tmdbcompanysetcreditscompleted(lngcompanyid):
     """
@@ -4672,11 +5143,20 @@ def f_tmdbcompanytosqleverything(lngcompanyid):
 
     Returns:
     --------
-    None
+    int
+        One of the INT_TMDB_FETCH_* outcomes of the company details call
     """
-    f_tmdbcompanytosql(lngcompanyid)
+    if f_tmdbentityisgone("company", lngcompanyid, "f_tmdbcompanytosqleverything"):
+        return INT_TMDB_FETCH_GONE
+    intfetchresult = f_tmdbcompanytosql(lngcompanyid)
+    if intfetchresult != INT_TMDB_FETCH_OK:
+        # Do not stamp TIM_UPDATED here: marking a dead company as "refreshed"
+        # is what used to hide it for 30 days and bring the same 34 back later.
+        # T_WC_TMDB_ID_NOT_FOUND now holds that memory (TMDB-CRAWLER-027).
+        return intfetchresult
     f_tmdbcompanysetcreditscompleted(lngcompanyid)
     f_tmdbcompanyimagestosql(lngcompanyid)
+    return INT_TMDB_FETCH_OK
 
 # https://developer.themoviedb.org/reference/network-details
 
@@ -4691,7 +5171,10 @@ def f_tmdbnetworktosql(lngnetworkid):
 
     Returns:
     --------
-    None
+    int
+        INT_TMDB_FETCH_OK when the network was stored, INT_TMDB_FETCH_GONE when
+        TMDb answered 34 (the id is then recorded in T_WC_TMDB_ID_NOT_FOUND),
+        INT_TMDB_FETCH_ERROR otherwise
     """
     global strtmdbapidomainurl
     global headers
@@ -4704,13 +5187,11 @@ def f_tmdbnetworktosql(lngnetworkid):
         # print(strtmdbapifullurl)
         data = f_tmdbfetchjson(strtmdbapifullurl, f"f_tmdbnetworktosql({lngnetworkid})")
         if data is None:
-            return
-        
+            return INT_TMDB_FETCH_ERROR
+
         #strapinetworkfordb = json.dumps(data, ensure_ascii=False)
-        lngnetworkstatuscode = 0
-        if 'status_code' in data:
-            lngnetworkstatuscode = data['status_code']
-        if lngnetworkstatuscode <= 1:
+        intfetchresult = f_tmdbfetchclassify(data, "network", lngnetworkid, f"f_tmdbnetworktosql({lngnetworkid})")
+        if intfetchresult == INT_TMDB_FETCH_OK:
             # API request result is not an error
             # Extract data using the keys
             strnetworklogopath = ""
@@ -4756,6 +5237,8 @@ def f_tmdbnetworktosql(lngnetworkid):
             strsqltablename = "T_WC_TMDB_NETWORK"
             strsqlupdatecondition = f"ID_NETWORK = {lngnetworkid}"
             cp.f_sqlupdatearray(strsqltablename,arrnetworkcouples,strsqlupdatecondition,1)
+        return intfetchresult
+    return INT_TMDB_FETCH_ERROR
 
 def f_tmdbnetworksetcreditscompleted(lngnetworkid):
     """
@@ -4810,11 +5293,18 @@ def f_tmdbnetworktosqleverything(lngnetworkid):
 
     Returns:
     --------
-    None
+    int
+        One of the INT_TMDB_FETCH_* outcomes of the network details call
     """
-    f_tmdbnetworktosql(lngnetworkid)
+    if f_tmdbentityisgone("network", lngnetworkid, "f_tmdbnetworktosqleverything"):
+        return INT_TMDB_FETCH_GONE
+    intfetchresult = f_tmdbnetworktosql(lngnetworkid)
+    if intfetchresult != INT_TMDB_FETCH_OK:
+        # Same reasoning as for companies: no TIM_UPDATED stamp on a dead id.
+        return intfetchresult
     f_tmdbnetworksetcreditscompleted(lngnetworkid)
     f_tmdbnetworkimagestosql(lngnetworkid)
+    return INT_TMDB_FETCH_OK
 
 def f_tmdbkeywordtosql(lngkeywordid, strkeywordname):
     """
@@ -4903,13 +5393,16 @@ def f_tmdblisttosql(lnglistid):
 
     Returns:
     --------
-    None
+    int
+        INT_TMDB_FETCH_OK when the list was stored, INT_TMDB_FETCH_GONE when
+        TMDb answered 34 (the id is then recorded in T_WC_TMDB_ID_NOT_FOUND),
+        INT_TMDB_FETCH_ERROR otherwise
     """
     global strtmdbapidomainurl
     global headers
     global strlanguagecountry
     global strlanguage
-    
+
     if lnglistid > 0:
         lngpage = 1
         lngdisplayorder = 0
@@ -4923,80 +5416,81 @@ def f_tmdblisttosql(lnglistid):
             # print(strtmdbapifullurl)
             data = f_tmdbfetchjson(strtmdbapifullurl, f"f_tmdblisttosql({lnglistid}, page={lngpage})")
             if data is None:
-                return
+                return INT_TMDB_FETCH_ERROR
             #strapilistfordb = json.dumps(data, ensure_ascii=False)
-            lngliststatuscode = 0
-            if 'status_code' in data:
-                lngliststatuscode = data['status_code']
-            if lngliststatuscode <= 1:
-                # API request result is not an error
-                if lngpage == 1:
-                    # Extract data using the keys
-                    strlistdesc = ""
-                    if 'description' in data:
-                        strlistdesc = data['description']
-                    strlistposterpath = ""
-                    if 'poster_path' in data:
-                        strlistposterpath = data['poster_path']
-                    strlistname = ""
-                    if 'name' in data:
-                        strlistname = data['name']
-                    strcreatedby = ""
-                    if 'created_by' in data:
-                        strcreatedby = data['created_by']
-                    
-                    # print(f"{strlistname}")
-                    # print(f"{strlistposterpath}")
-                    # print(f"Description: {strlistdesc}")
-                    
+            intfetchresult = f_tmdbfetchclassify(data, "list", lnglistid, f"f_tmdblisttosql({lnglistid}, page={lngpage})")
+            if intfetchresult != INT_TMDB_FETCH_OK:
+                # Leave the existing list rows alone: an empty payload must not be
+                # read as "this list is now empty".
+                return intfetchresult
+            # API request result is not an error
+            if lngpage == 1:
+                # Extract data using the keys
+                strlistdesc = ""
+                if 'description' in data:
+                    strlistdesc = data['description']
+                strlistposterpath = ""
+                if 'poster_path' in data:
+                    strlistposterpath = data['poster_path']
+                strlistname = ""
+                if 'name' in data:
+                    strlistname = data['name']
+                strcreatedby = ""
+                if 'created_by' in data:
+                    strcreatedby = data['created_by']
+                
+                # print(f"{strlistname}")
+                # print(f"{strlistposterpath}")
+                # print(f"Description: {strlistdesc}")
+                
+                arrlistcouples = {}
+                arrlistcouples["ID_LIST"] = lnglistid
+                #arrlistcouples["API_URL"] = strtmdbapilisturl
+                #arrlistcouples["CRAWLER_VERSION"] = 1
+                #arrlistcouples["API_RESULT"] = strapilistfordb
+                arrlistcouples["DESCRIPTION"] = strlistdesc
+                if strlistposterpath is not None and strlistposterpath != "":
+                    arrlistcouples["POSTER_PATH"] = strlistposterpath
+                if strlistname != "":
+                    arrlistcouples["NAME"] = strlistname
+                if strcreatedby != "":
+                    arrlistcouples["CREATED_BY"] = strcreatedby
+                
+                strsqltablename = "T_WC_TMDB_LIST"
+                strsqlupdatecondition = f"ID_LIST = {lnglistid}"
+                cp.f_sqlupdatearray(strsqltablename,arrlistcouples,strsqlupdatecondition,1)
+            results = data['items']
+            lngtotalpages = data['total_pages']
+            for row in results:
+                lngmovieid = row['id']
+                intadult = row['adult']
+                strmediatype = row['media_type'];
+                if strmediatype == "movie":
+                    # It is a movie
+                    lngdisplayorder += 1
+                    if strmovieidlist != "":
+                        strmovieidlist += ","
+                    strmovieidlist += str(lngmovieid)
                     arrlistcouples = {}
                     arrlistcouples["ID_LIST"] = lnglistid
-                    #arrlistcouples["API_URL"] = strtmdbapilisturl
-                    #arrlistcouples["CRAWLER_VERSION"] = 1
-                    #arrlistcouples["API_RESULT"] = strapilistfordb
-                    arrlistcouples["DESCRIPTION"] = strlistdesc
-                    if strlistposterpath is not None and strlistposterpath != "":
-                        arrlistcouples["POSTER_PATH"] = strlistposterpath
-                    if strlistname != "":
-                        arrlistcouples["NAME"] = strlistname
-                    if strcreatedby != "":
-                        arrlistcouples["CREATED_BY"] = strcreatedby
-                    
-                    strsqltablename = "T_WC_TMDB_LIST"
-                    strsqlupdatecondition = f"ID_LIST = {lnglistid}"
+                    arrlistcouples["ID_MOVIE"] = lngmovieid
+                    arrlistcouples["DISPLAY_ORDER"] = lngdisplayorder
+                    strsqltablename = "T_WC_TMDB_MOVIE_LIST"
+                    strsqlupdatecondition = f"ID_LIST = {lnglistid} AND ID_MOVIE = {lngmovieid}"
                     cp.f_sqlupdatearray(strsqltablename,arrlistcouples,strsqlupdatecondition,1)
-                results = data['items']
-                lngtotalpages = data['total_pages']
-                for row in results:
-                    lngmovieid = row['id']
-                    intadult = row['adult']
-                    strmediatype = row['media_type'];
-                    if strmediatype == "movie":
-                        # It is a movie
-                        lngdisplayorder += 1
-                        if strmovieidlist != "":
-                            strmovieidlist += ","
-                        strmovieidlist += str(lngmovieid)
-                        arrlistcouples = {}
-                        arrlistcouples["ID_LIST"] = lnglistid
-                        arrlistcouples["ID_MOVIE"] = lngmovieid
-                        arrlistcouples["DISPLAY_ORDER"] = lngdisplayorder
-                        strsqltablename = "T_WC_TMDB_MOVIE_LIST"
-                        strsqlupdatecondition = f"ID_LIST = {lnglistid} AND ID_MOVIE = {lngmovieid}"
-                        cp.f_sqlupdatearray(strsqltablename,arrlistcouples,strsqlupdatecondition,1)
-                    else:
-                        # It is a TV serie
-                        lngdisplayorder += 1
-                        if strserieidlist != "":
-                            strserieidlist += ","
-                        strserieidlist += str(lngmovieid)
-                        arrlistcouples = {}
-                        arrlistcouples["ID_LIST"] = lnglistid
-                        arrlistcouples["ID_SERIE"] = lngmovieid
-                        arrlistcouples["DISPLAY_ORDER"] = lngdisplayorder
-                        strsqltablename = "T_WC_TMDB_SERIE_LIST"
-                        strsqlupdatecondition = f"ID_LIST = {lnglistid} AND ID_SERIE = {lngmovieid}"
-                        cp.f_sqlupdatearray(strsqltablename,arrlistcouples,strsqlupdatecondition,1)
+                else:
+                    # It is a TV serie
+                    lngdisplayorder += 1
+                    if strserieidlist != "":
+                        strserieidlist += ","
+                    strserieidlist += str(lngmovieid)
+                    arrlistcouples = {}
+                    arrlistcouples["ID_LIST"] = lnglistid
+                    arrlistcouples["ID_SERIE"] = lngmovieid
+                    arrlistcouples["DISPLAY_ORDER"] = lngdisplayorder
+                    strsqltablename = "T_WC_TMDB_SERIE_LIST"
+                    strsqlupdatecondition = f"ID_LIST = {lnglistid} AND ID_SERIE = {lngmovieid}"
+                    cp.f_sqlupdatearray(strsqltablename,arrlistcouples,strsqlupdatecondition,1)
             lngpage += 1
             if lngpage > lngtotalpages:
                 intencore = False
@@ -5051,6 +5545,8 @@ def f_tmdblisttosql(lnglistid):
                 print("DEBUG: list-poster: skipping (strlistposterpath not defined in locals)")
         except Exception as e:
             print(f"Warning: failed to set list poster from highest IMDb-rated movie: {e}")
+        return INT_TMDB_FETCH_OK
+    return INT_TMDB_FETCH_ERROR
 
 def f_tmdblistsetcreditscompleted(lnglistid):
     """
@@ -5089,10 +5585,16 @@ def f_tmdblisttosqleverything(lnglistid):
 
     Returns:
     --------
-    None
+    int
+        One of the INT_TMDB_FETCH_* outcomes of the list details call
     """
-    f_tmdblisttosql(lnglistid)
+    if f_tmdbentityisgone("list", lnglistid, "f_tmdblisttosqleverything"):
+        return INT_TMDB_FETCH_GONE
+    intfetchresult = f_tmdblisttosql(lnglistid)
+    if intfetchresult != INT_TMDB_FETCH_OK:
+        return intfetchresult
     f_tmdblistsetcreditscompleted(lnglistid)
+    return INT_TMDB_FETCH_OK
 
 def f_genrestranslatefr(strmoviegenres):
     """

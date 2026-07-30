@@ -1776,8 +1776,6 @@ def f_tmdbprunestaleneighbours(strsqltablename, strownercolumn, lngownerid, strn
         cursor.execute(strsqldelete)
         lngdeleted = cursor.rowcount
         connectioncp.commit()
-        if lngdeleted and lngdeleted > 0:
-            print(f"{strsqltablename}: removed {lngdeleted} stale neighbour(s) for {strownercolumn} {lngownerid}")
         return lngdeleted or 0
     except Exception as err:
         print(f"Could not prune stale neighbours in {strsqltablename} for {strownercolumn} {lngownerid}: {err}")

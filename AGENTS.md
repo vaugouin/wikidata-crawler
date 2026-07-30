@@ -91,7 +91,9 @@ A full rerun **loads on top of the existing target tables**. Never advise cleari
 
 The incremental path is safe because three things hold together:
 
-1. `derive_statement_identity` / `derive_qualifier_identity` in `wikidata_dump_etl.py` hash the Wikidata `STATEMENT_GUID` (resp. snak hash) into a stable BIGINT — the same claim yields the same `ID_STATEMENT` in every run.
+1. `derive_statement_identity` / `derive_qualifier_identity` in `wikidata_dump_etl.py` hash the Wikidata `STATEMENT_GUID` (resp. the statement GUID **plus** the qualifier property and snak hash) into a stable BIGINT — the same claim yields the same `ID_STATEMENT` in every run.
+
+   > **Never make a qualifier's identity its snak hash alone.** A dump snak's `hash` covers the snak's *content* (property + value), so "P1545 = 1" carries the same hash on every statement that uses it. Identity built on it collides across statements, and the `UNIQUE KEY` on `QUALIFIER_HASH` then keeps **one row per distinct value instead of one per occurrence** — silently, since the ETL still emits every row and the load reports no error. That bug shipped and was only caught in the database months later (2026-07-30): P453, P1686 and P155 each had exactly as many rows as distinct values, 97,6 % of `P166` award statements had lost their `P585` date, and episode ordinals were gone. The identity must therefore include the parent statement GUID, which is what turns a value into an occurrence. `tests/test_etl_smoke.py` guards this.
 2. Step 110 is upsert-only (`ON DUPLICATE KEY UPDATE` throughout `03_bulk_load_from_staging_FULL.sql`), so re-loaded rows are updated in place rather than duplicated.
 3. Step 114 (`08_cleanup_old_batches.sql`) deletes rows whose `IMPORT_BATCH_ID` is strictly older than the current batch — the same deletion the reset would have done, but after the new data has landed.
 

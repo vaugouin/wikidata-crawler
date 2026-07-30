@@ -644,13 +644,35 @@ def derive_statement_identity(subject_id: str, property_id: str, claim: Any) -> 
 
 
 def derive_qualifier_identity(statement_guid: Optional[str], qualifier_property_id: str, snak: Any, display_order: int) -> tuple[int, str]:
+    # A qualifier's identity must be its OCCURRENCE, not its content.
+    #
+    # The `hash` field of a dump snak hashes the snak itself (property + value), so the
+    # very same hash comes back on every statement carrying that value: "P1545 = 1"
+    # hashes identically on all 173k episodes numbered 1. Using it alone as the identity
+    # made every repeated qualifier collide on ID_STATEMENT_QUALIFIER and on the UNIQUE
+    # KEY over QUALIFIER_HASH, so the bulk load kept ONE row per distinct value instead
+    # of one per occurrence. Measured on the 2026-07-26 batch before the fix: P453, P1686
+    # and P155 each had exactly as many rows as distinct values (42 572 / 30 811 /
+    # 34 102), only 2,4 % of P166 statements still carried their P585 date, and the
+    # episode ordinals were gone. See WIKIDATA-CRAWLER-019.
+    #
+    # The parent statement GUID is what turns a value into an occurrence. display_order
+    # is deliberately NOT part of the identity when a GUID is available: Wikidata may
+    # reorder the qualifiers of a statement between dumps, which would needlessly churn
+    # the ids, and (guid, property, snak) is already unique since one statement cannot
+    # carry the same qualifier snak twice for one property. It is kept in the no-GUID
+    # fallback, where nothing else can separate two occurrences.
     snak_hash = None
     try:
         value = snak.get("hash") if isinstance(snak, dict) else None
         snak_hash = value if isinstance(value, str) else None
     except Exception:
         snak_hash = None
-    identity_text = snak_hash or f"{statement_guid or 'no-guid'}|{qualifier_property_id}|{display_order}|{stable_json_text(snak)}"
+    occurrence_key = snak_hash or stable_json_text(snak)
+    if statement_guid:
+        identity_text = f"{statement_guid}|{qualifier_property_id}|{occurrence_key}"
+    else:
+        identity_text = f"no-guid|{qualifier_property_id}|{display_order}|{occurrence_key}"
     qualifier_hash = f"qualifier|{identity_text}"
     return stable_bigint_from_text(qualifier_hash), qualifier_hash
 
@@ -1534,6 +1556,13 @@ class WikidataDumpETL:
                             if not id_item:
                                 continue
                             qualifier_payload = {"ID_ITEM": id_item}
+                            # Same referenced-item bookkeeping as for main values above:
+                            # an item that only ever appears as a qualifier value (a role
+                            # in P453, a work in P1686) would otherwise never enter the
+                            # item_cache pass and would sit in V2 with no label at all.
+                            # Measured on the 2026-07-26 batch: 26 924 items lost this way.
+                            # See WIKIDATA-CRAWLER-019.
+                            self.referenced_item_ids.add(id_item)
 
                         elif qualifier_local_value_type == "string":
                             s = extract_string_value(qualifier_value)

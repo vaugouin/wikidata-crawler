@@ -30,7 +30,7 @@ REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 os.environ.pop("DB_HOST", None)
 
-from wikidata_dump_etl import WikidataDumpETL  # noqa: E402
+from wikidata_dump_etl import WikidataDumpETL, derive_qualifier_identity  # noqa: E402
 
 
 # --- synthetic entity builders ------------------------------------------------
@@ -184,6 +184,27 @@ def run() -> int:
         item_ids = ids_in(ic / "T_WC_WIKIDATA_ITEM.jsonl")
         check("Q184781" in item_ids, "referenced non-core value emitted to ITEM cache")
         check("Q1001" not in item_ids, "core entity NOT duplicated into ITEM cache")
+
+    # qualifier identity (WIKIDATA-CRAWLER-019) -----------------------------
+    # Regression guard for a defect that was invisible in the pipeline itself and only
+    # showed up in the database, months later: the identity used to be the snak's own
+    # hash, which is content-based, so the same qualifier value on two statements
+    # produced one id, and the UNIQUE KEY on QUALIFIER_HASH silently kept a single row.
+    print()
+    print("qualifier identity:")
+    same_snak = {"snaktype": "value", "property": "P1545", "hash": "sharedhash",
+                 "datavalue": {"value": "1", "type": "string"}}
+    id_one, _ = derive_qualifier_identity("Q100$AAA", "P1545", same_snak, 1)
+    id_two, _ = derive_qualifier_identity("Q200$BBB", "P1545", same_snak, 1)
+    check(id_one != id_two,
+          "the same qualifier value on two statements gets two ids (no collapse)")
+    check(id_one == derive_qualifier_identity("Q100$AAA", "P1545", same_snak, 1)[0],
+          "identity is deterministic across runs (reloads stay idempotent)")
+    check(id_one == derive_qualifier_identity("Q100$AAA", "P1545", same_snak, 9)[0],
+          "identity survives Wikidata reordering the qualifiers of a statement")
+    other_snak = dict(same_snak, hash="otherhash", datavalue={"value": "2", "type": "string"})
+    check(id_one != derive_qualifier_identity("Q100$AAA", "P1545", other_snak, 2)[0],
+          "two different qualifiers of one statement stay distinct")
 
     print()
     if failures:

@@ -194,17 +194,28 @@ def run() -> int:
     print("qualifier identity:")
     same_snak = {"snaktype": "value", "property": "P1545", "hash": "sharedhash",
                  "datavalue": {"value": "1", "type": "string"}}
-    id_one, _ = derive_qualifier_identity("Q100$AAA", "P1545", same_snak, 1)
-    id_two, _ = derive_qualifier_identity("Q200$BBB", "P1545", same_snak, 1)
+    id_one, hash_one = derive_qualifier_identity(1001, "P1545", same_snak, 1)
+    id_two, _ = derive_qualifier_identity(2002, "P1545", same_snak, 1)
     check(id_one != id_two,
           "the same qualifier value on two statements gets two ids (no collapse)")
-    check(id_one == derive_qualifier_identity("Q100$AAA", "P1545", same_snak, 1)[0],
+    check(id_one == derive_qualifier_identity(1001, "P1545", same_snak, 1)[0],
           "identity is deterministic across runs (reloads stay idempotent)")
-    check(id_one == derive_qualifier_identity("Q100$AAA", "P1545", same_snak, 9)[0],
+    check(id_one == derive_qualifier_identity(1001, "P1545", same_snak, 9)[0],
           "identity survives Wikidata reordering the qualifiers of a statement")
     other_snak = dict(same_snak, hash="otherhash", datavalue={"value": "2", "type": "string"})
-    check(id_one != derive_qualifier_identity("Q100$AAA", "P1545", other_snak, 2)[0],
+    check(id_one != derive_qualifier_identity(1001, "P1545", other_snak, 2)[0],
           "two different qualifiers of one statement stay distinct")
+
+    # The offline repair script (migrations/repair_qualifier_identity.py) recomputes this
+    # identity from the NDJSON alone, so it carries its own copy of the two functions. If
+    # the two ever drift, a repaired pass2 output would load ids that the next ETL run no
+    # longer matches, and the reload would duplicate instead of update. Pin them together.
+    sys.path.insert(0, str(REPO / "migrations"))
+    import repair_qualifier_identity as repair  # noqa: E402
+    repair_id, repair_hash = repair.new_identity(
+        1001, "P1545", repair.occurrence_key_from_old_hash("qualifier|sharedhash"))
+    check(repair_id == id_one and repair_hash == hash_one,
+          "the offline repair script derives byte-identical ids to the ETL")
 
     print()
     if failures:

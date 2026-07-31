@@ -643,7 +643,7 @@ def derive_statement_identity(subject_id: str, property_id: str, claim: Any) -> 
     return stable_bigint_from_text(f"statement|{identity_text}"), statement_guid
 
 
-def derive_qualifier_identity(statement_guid: Optional[str], qualifier_property_id: str, snak: Any, display_order: int) -> tuple[int, str]:
+def derive_qualifier_identity(statement_id: int, qualifier_property_id: str, snak: Any, display_order: int) -> tuple[int, str]:
     # A qualifier's identity must be its OCCURRENCE, not its content.
     #
     # The `hash` field of a dump snak hashes the snak itself (property + value), so the
@@ -656,12 +656,18 @@ def derive_qualifier_identity(statement_guid: Optional[str], qualifier_property_
     # 34 102), only 2,4 % of P166 statements still carried their P585 date, and the
     # episode ordinals were gone. See WIKIDATA-CRAWLER-019.
     #
-    # The parent statement GUID is what turns a value into an occurrence. display_order
-    # is deliberately NOT part of the identity when a GUID is available: Wikidata may
-    # reorder the qualifiers of a statement between dumps, which would needlessly churn
-    # the ids, and (guid, property, snak) is already unique since one statement cannot
-    # carry the same qualifier snak twice for one property. It is kept in the no-GUID
-    # fallback, where nothing else can separate two occurrences.
+    # The PARENT STATEMENT is what turns a value into an occurrence, and we key on
+    # statement_id rather than on the statement GUID for three reasons: it carries the
+    # same identity (ID_STATEMENT is itself derived from the GUID), it is the actual
+    # foreign key the child row will hold, and it is the only one of the two that is
+    # present in the emitted NDJSON. That last point is what lets migrations/
+    # repair_qualifier_identity.py renumber an existing pass2 output offline instead of
+    # re-running a 19-hour dump scan just to change a key.
+    #
+    # display_order is deliberately NOT part of the identity: Wikidata may reorder the
+    # qualifiers of a statement between dumps, which would churn the ids for nothing,
+    # and (statement, property, snak) is already unique since one statement cannot carry
+    # the same qualifier snak twice for a given property. It is kept as a stored column.
     snak_hash = None
     try:
         value = snak.get("hash") if isinstance(snak, dict) else None
@@ -669,10 +675,7 @@ def derive_qualifier_identity(statement_guid: Optional[str], qualifier_property_
     except Exception:
         snak_hash = None
     occurrence_key = snak_hash or stable_json_text(snak)
-    if statement_guid:
-        identity_text = f"{statement_guid}|{qualifier_property_id}|{occurrence_key}"
-    else:
-        identity_text = f"no-guid|{qualifier_property_id}|{display_order}|{occurrence_key}"
+    identity_text = f"{statement_id}|{qualifier_property_id}|{occurrence_key}"
     qualifier_hash = f"qualifier|{identity_text}"
     return stable_bigint_from_text(qualifier_hash), qualifier_hash
 
@@ -894,7 +897,6 @@ class StatementEmitter:
         self,
         *,
         statement_id: int,
-        statement_guid: Optional[str],
         qualifier_property_id: str,
         snak: Any,
         local_value_type: str,
@@ -902,7 +904,7 @@ class StatementEmitter:
         payload: Dict[str, Any],
         display_order: int,
     ) -> int:
-        qualifier_id, qualifier_hash = derive_qualifier_identity(statement_guid, qualifier_property_id, snak, display_order)
+        qualifier_id, qualifier_hash = derive_qualifier_identity(statement_id, qualifier_property_id, snak, display_order)
         self.writers.write("T_WC_WIKIDATA_STATEMENT_QUALIFIER", {
             "ID_STATEMENT_QUALIFIER": qualifier_id,
             "ID_STATEMENT": statement_id,
@@ -1536,7 +1538,6 @@ class WikidataDumpETL:
                     wikidata_datatype=wikidata_datatype,
                     payload=payload,
                 )
-                statement_guid = extract_statement_guid(claim)
                 qualifiers = claim.get("qualifiers") if isinstance(claim, dict) else None
                 if not isinstance(qualifiers, dict):
                     continue
@@ -1614,7 +1615,6 @@ class WikidataDumpETL:
 
                         self.statement_emitter.emit_qualifier(
                             statement_id=statement_id,
-                            statement_guid=statement_guid,
                             qualifier_property_id=qualifier_property_id,
                             snak=snak,
                             local_value_type=qualifier_local_value_type,

@@ -42,6 +42,12 @@
 -- CONVENTION DELETED : V1.DELETED NULL vaut actif, d'ou COALESCE(DELETED,0)=0.
 -- ============================================================================
 
+-- La connexion doit parler la meme collation que les tables (toutes en
+-- utf8mb4_unicode_ci depuis la standardisation). Sans cette ligne, la collation
+-- de connexion reste utf8mb4_general_ci et toute valeur FABRIQUEE par une
+-- fonction (CAST, CONVERT, CONCAT sur un nombre) porte general_ci : la comparer
+-- a une colonne leve l'erreur 1267 "Illegal mix of collations".
+SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
 SET SESSION max_statement_time = 0;
 
 SELECT NOW() AS lance_le, DATABASE() AS base, VERSION() AS version_serveur;

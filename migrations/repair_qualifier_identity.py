@@ -119,83 +119,103 @@ def repair(directory: Path, dry_run: bool) -> int:
         print("        le pipeline depuis l'etape 104 (python wikidata_crawler.py --start-step 104).", file=sys.stderr)
         return 1
 
-    # Pass 1: read the parent file, build old id -> [new ids]. Only the ids are kept in
-    # memory (two int64 per occurrence), never the rows themselves.
-    print(f"Lecture de {qualifier_path.name} ...")
-    remap: Dict[int, list] = {}
-    occurrences = 0
-    collisions = 0
-    seen_new: set = set()
-    repaired_rows = []
-
-    for row in read_jsonl(qualifier_path):
-        occurrences += 1
-        old_id = int(row["ID_STATEMENT_QUALIFIER"])
-        statement_id = int(row["ID_STATEMENT"])
-        prop = row["ID_QUALIFIER_PROPERTY"]
-        key = occurrence_key_from_old_hash(row.get("QUALIFIER_HASH") or "")
-        nid, nhash = new_identity(statement_id, prop, key)
-        if nid in seen_new:
-            collisions += 1
-        seen_new.add(nid)
-        remap.setdefault(old_id, []).append(nid)
-        row["ID_STATEMENT_QUALIFIER"] = nid
-        row["QUALIFIER_HASH"] = nhash
-        repaired_rows.append(row)
-
-    distinct_old = len(remap)
-    distinct_new = len(seen_new)
-    print(f"  occurrences lues                : {occurrences:>12,}")
-    print(f"  identifiants distincts AVANT    : {distinct_old:>12,}   <- ce que la base a garde")
-    print(f"  identifiants distincts APRES    : {distinct_new:>12,}")
-    print(f"  collisions residuelles          : {collisions:>12,}")
-    if occurrences:
-        print(f"  facteur de recuperation         : {occurrences / max(distinct_old, 1):>12.1f}x")
-
-    if collisions:
-        print("\nATTENTION: des collisions subsistent apres renumerotation. Elles signalent")
-        print("deux occurrences que (statement, propriete, snak) ne separe pas, ce qui ne")
-        print("devrait pas exister dans un dump Wikidata. Ne pas charger sans comprendre.")
-        return 2
-
-    if dry_run:
-        print("\n--dry-run: aucun fichier ecrit.")
-        return 0
-
-    # Parent file.
-    shutil.copy2(qualifier_path, qualifier_path.with_name(qualifier_path.name + BACKUP_SUFFIX))
-    with qualifier_path.open("w", encoding="utf-8") as out:
-        for row in repaired_rows:
-            out.write(json.dumps(row, ensure_ascii=False, separators=(",", ":")))
-            out.write("\n")
-    print(f"\n{qualifier_path.name}: reecrit ({occurrences:,} lignes)")
-    del repaired_rows
-
-    # Value files: one stored row per old id, fanned out over its new ids.
+    # Memory shape matters here: the parent file holds one line per OCCURRENCE (tens of
+    # millions), while the value files hold one usable line per DISTINCT OLD ID (~1,4 M,
+    # since that id was the value's own hash). So we load the small side and stream the
+    # big one. Nothing proportional to the occurrence count is ever held in RAM.
+    print("Lecture des fichiers de valeurs (le petit cote) ...")
+    payload_by_old: Dict[int, Tuple[str, dict]] = {}
+    present_files = []
     for name in VALUE_FILES:
         path = directory / name
         if not path.exists():
-            print(f"{name}: absent, ignore")
+            print(f"  {name}: absent, ignore")
             continue
-        payload_by_old: Dict[int, dict] = {}
+        present_files.append(name)
+        before = len(payload_by_old)
         for row in read_jsonl(path):
-            payload_by_old.setdefault(int(row["ID_STATEMENT_QUALIFIER"]), row)
+            payload_by_old.setdefault(int(row["ID_STATEMENT_QUALIFIER"]), (name, row))
+        print(f"  {name}: {len(payload_by_old) - before:,} valeur(s)")
+
+    if dry_run:
+        occurrences = 0
+        distinct_old: set = set()
+        distinct_new: set = set()
+        for row in read_jsonl(qualifier_path):
+            occurrences += 1
+            distinct_old.add(int(row["ID_STATEMENT_QUALIFIER"]))
+            nid, _ = new_identity(int(row["ID_STATEMENT"]), row["ID_QUALIFIER_PROPERTY"],
+                                  occurrence_key_from_old_hash(row.get("QUALIFIER_HASH") or ""))
+            distinct_new.add(nid)
+        collisions = occurrences - len(distinct_new)
+        print(f"\n  occurrences lues                : {occurrences:>14,}")
+        print(f"  identifiants distincts AVANT    : {len(distinct_old):>14,}   <- ce que la base a garde")
+        print(f"  identifiants distincts APRES    : {len(distinct_new):>14,}")
+        print(f"  collisions residuelles          : {collisions:>14,}")
+        print(f"  facteur de recuperation         : {occurrences / max(len(distinct_old), 1):>14.1f}x")
+        if collisions:
+            print("\nATTENTION: des collisions subsistent. Elles signalent deux occurrences que")
+            print("(statement, propriete, snak) ne separe pas, ce qui ne devrait pas exister dans")
+            print("un dump Wikidata. Ne pas charger sans comprendre.")
+            return 2
+        print("\n--dry-run: aucun fichier ecrit.")
+        return 0
+
+    # Single streaming pass: rewrite the parent line and fan its value out at the same
+    # moment, so the occurrence count never has to be materialised.
+    for name in [QUALIFIER_FILE] + present_files:
+        path = directory / name
         shutil.copy2(path, path.with_name(path.name + BACKUP_SUFFIX))
-        written = 0
-        orphans = 0
-        with path.open("w", encoding="utf-8") as out:
-            for old_id, row in payload_by_old.items():
-                new_ids = remap.get(old_id)
-                if not new_ids:
+    print("\nSauvegardes ecrites (*.jsonl" + BACKUP_SUFFIX + ").")
+
+    source = qualifier_path.with_name(qualifier_path.name + BACKUP_SUFFIX)
+    handles = {name: (directory / name).open("w", encoding="utf-8") for name in present_files}
+    written_by_file = {name: 0 for name in present_files}
+    occurrences = 0
+    orphans = 0
+    collisions = 0
+    seen_new: set = set()
+    try:
+        with qualifier_path.open("w", encoding="utf-8") as parent_out:
+            for row in read_jsonl(source):
+                occurrences += 1
+                old_id = int(row["ID_STATEMENT_QUALIFIER"])
+                nid, nhash = new_identity(
+                    int(row["ID_STATEMENT"]), row["ID_QUALIFIER_PROPERTY"],
+                    occurrence_key_from_old_hash(row.get("QUALIFIER_HASH") or ""))
+                if nid in seen_new:
+                    collisions += 1
+                seen_new.add(nid)
+                row["ID_STATEMENT_QUALIFIER"] = nid
+                row["QUALIFIER_HASH"] = nhash
+                parent_out.write(json.dumps(row, ensure_ascii=False, separators=(",", ":")))
+                parent_out.write("\n")
+
+                found = payload_by_old.get(old_id)
+                if found is None:
                     orphans += 1
                     continue
-                for nid in new_ids:
-                    row["ID_STATEMENT_QUALIFIER"] = nid
-                    out.write(json.dumps(row, ensure_ascii=False, separators=(",", ":")))
-                    out.write("\n")
-                    written += 1
-        note = f", {orphans} valeur(s) sans parent ignoree(s)" if orphans else ""
-        print(f"{name}: {len(payload_by_old):,} valeur(s) -> {written:,} ligne(s){note}")
+                value_file, value_row = found
+                value_row["ID_STATEMENT_QUALIFIER"] = nid
+                handles[value_file].write(json.dumps(value_row, ensure_ascii=False, separators=(",", ":")))
+                handles[value_file].write("\n")
+                written_by_file[value_file] += 1
+    finally:
+        for handle in handles.values():
+            handle.close()
+
+    print(f"\n{QUALIFIER_FILE}: {occurrences:,} ligne(s)")
+    for name in present_files:
+        print(f"{name}: {written_by_file[name]:,} ligne(s)")
+    print(f"\n  identifiants distincts AVANT    : {len(payload_by_old):>14,}   <- ce que la base a garde")
+    print(f"  identifiants distincts APRES    : {len(seen_new):>14,}")
+    print(f"  collisions residuelles          : {collisions:>14,}")
+    if orphans:
+        print(f"  qualificatifs sans valeur       : {orphans:>14,}  (ecrits quand meme, sans enfant)")
+    if collisions:
+        print("\nATTENTION: des collisions subsistent apres renumerotation. Ne pas charger")
+        print("sans comprendre: deux occurrences que (statement, propriete, snak) ne separe pas.")
+        return 2
 
     print("\nTermine. Originaux conserves en *.jsonl" + BACKUP_SUFFIX + ".")
     print("Suite: vider les 7 tables de qualificatifs (06_repair_qualifier_tables.sql),")

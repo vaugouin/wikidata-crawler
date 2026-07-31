@@ -140,7 +140,13 @@ CREATE TABLE T_WC_WIKIDATA_QUALIFIER_TIME_VALUE (
     TIME_PRECISION         INT DEFAULT NULL,
     CALENDAR_MODEL         VARCHAR(255) DEFAULT NULL,
     TIMEZONE_OFFSET        INT DEFAULT NULL,
-    YEAR_VALUE             INT DEFAULT NULL,
+    -- BIGINT, jamais INT : Wikidata porte des annees geologiques et cosmologiques
+    -- (l'ordre de grandeur du milliard), qui debordent un INT signe. Ce script a
+    -- retreci la colonne le 2026-07-31, ce qui a fait echouer le rechargement des
+    -- qualificatifs en 1264 "Out of range value for column YEAR_VALUE" a la
+    -- 841847e ligne. Le schema de reference (01_create_schema.sql:485), les tables
+    -- de staging et la table jumelle T_WC_WIKIDATA_TIME_VALUE disent toutes BIGINT.
+    YEAR_VALUE             BIGINT DEFAULT NULL,
     MONTH_VALUE            INT DEFAULT NULL,
     DAY_VALUE              INT DEFAULT NULL,
     DATE_START             DATE DEFAULT NULL,

@@ -80,7 +80,30 @@ ORDER BY qt.YEAR_VALUE;
 -- La jointure hierarchique tient en une ligne : la categorie gagnee doit avoir
 -- P31 -> Q19020. Aucun filtre sur le libelle, aucune liste a maintenir.
 
-SELECT '=== Q2 . nombre d Oscars, par la hierarchie P31 -> Q19020 ===' AS section;
+-- ############################################################################
+-- ###  ATTENTION : Q2, Q2-bis et Q3 RENVOIENT VIDE (constate 2026-07-31)    ###
+-- ############################################################################
+-- Le raisonnement est juste, la donnee manque. Sur wikidata.org, Q103618
+-- « Academy Award for Best Actress » porte bien P31 -> Q19020. Mais en V2 cette
+-- categorie n'est qu'un ITEM MIS EN CACHE : le pass item_cache ecrit son libelle
+-- et JAMAIS ses claims (wikidata_dump_etl.py:1330-1344). Elle n'a donc aucun
+-- statement P31 en base, et la jointure hierarchique ne trouve rien.
+--
+-- C'est la meme cause que les 93,9 % d'items « muets » mesures le 2026-07-31 :
+-- le cache d'items porte des noms, pas des faits. Le graphe de sous-classes P279
+-- existe pourtant, mais dans /shared/pass1/subclass_edges.jsonl, jamais charge
+-- en base.
+--
+-- CONSEQUENCE GENERALE, au-dela des prix : aucune question hierarchique n'est
+-- interrogeable en V2 aujourd'hui (categories de prix, genres, professions...).
+-- Correctif propose : que item_cache emette P31 et P279 pour les items en cache,
+-- soit environ 2 claims pour 600 000 items. Trace en WIKIDATA-CRAWLER-020.
+--
+-- Q2 et Q3 sont conservees telles quelles : elles sont la forme CIBLE, celle qui
+-- marchera sans y toucher une fois -020 livre. Le palliatif est en Q2-ter.
+-- ############################################################################
+
+SELECT '=== Q2 . nombre d Oscars, par la hierarchie P31 -> Q19020 (VIDE avant -020) ===' AS section;
 
 SELECT p.LABEL_EN AS personne,
        COUNT(*)   AS nb_oscars
@@ -119,8 +142,36 @@ WHERE  st.ID_PROPERTY = 'P166'
 ORDER BY personne, annee;
 
 
+SELECT '=== Q2-ter . LA PREUVE : la categorie de prix est-elle muette ? ===' AS section;
+-- Attendu aujourd'hui : un libelle present, zero statement. C'est ce qui vide Q2.
+
+SELECT 'Q103618 (Academy Award for Best Actress)' AS categorie,
+       (SELECT LABEL_EN FROM T_WC_WIKIDATA_ITEM WHERE ID_WIKIDATA='Q103618')            AS libelle_en_cache,
+       (SELECT COUNT(*) FROM T_WC_WIKIDATA_STATEMENT WHERE ID_WIKIDATA='Q103618')       AS nb_statements,
+       (SELECT COUNT(*) FROM T_WC_WIKIDATA_STATEMENT WHERE ID_WIKIDATA='Q19020')        AS nb_statements_du_parent;
+
+SELECT '=== Q2-quater . PALLIATIF par le libelle, en attendant -020 ===' AS section;
+-- C'est exactement l'approche que le backlog voulait eviter (`Like '%Academy
+-- award%'`), et elle a tous les defauts qu'on lui prete : elle rate les libelles
+-- non anglais, elle rate « Oscar » quand c'est le nom retenu, et elle attrape ce
+-- qui commence pareil sans etre un Oscar. A n'utiliser que comme depannage, et a
+-- retirer des que -020 rend la hierarchie interrogeable.
+--
+-- Sur Hepburn elle doit rendre 4, ce que Q1 confirme a la main.
+
+SELECT p.LABEL_EN AS personne, COUNT(*) AS nb_oscars_approx
+FROM   T_WC_WIKIDATA_STATEMENT st
+JOIN   T_WC_WIKIDATA_PERSON p ON p.ID_WIKIDATA = st.ID_WIKIDATA
+JOIN   T_WC_WIKIDATA_ITEM_VALUE iv ON iv.ID_STATEMENT = st.ID_STATEMENT
+JOIN   T_WC_WIKIDATA_ITEM prix ON prix.ID_WIKIDATA = iv.ID_ITEM
+WHERE  st.ID_PROPERTY = 'P166'
+  AND  st.ID_WIKIDATA IN ('Q56016','Q8704')
+  AND  prix.LABEL_EN LIKE 'Academy Award%'
+GROUP BY p.LABEL_EN;
+
+
 -- ############################################################################
--- ### Q3 . Les actrices qui ont plusieurs Oscars                            ###
+-- ### Q3 . Les actrices qui ont plusieurs Oscars (VIDE avant -020)          ###
 -- ############################################################################
 -- « Actresses with several Academy Awards » (eid 2301).
 -- Le genre vient de P21 -> Q6581072 (femme). On aurait pu filtrer sur les seules

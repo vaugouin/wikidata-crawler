@@ -65,8 +65,16 @@ BATCH="wikidata_full_$(date -u '+%Y%m%d_%H%M')"
 if [ "$DRY_RUN" = "1" ]; then
   echo "--dry-run : je m'arrete ici. J'aurais fait :"
   echo "  IMPORT_BATCH_ID=$BATCH dans $STACK/.env"
-  echo "  rm -rf $SHARED/*   (dont le dump de 102 Go)"
+  echo "  vider $SHARED, soit :"
+  echo "      le dump latest-all.json.bz2 (102 Go)"
+  echo "      $SHARED/pass1"
+  echo "      $SHARED/pass2"
+  echo "      $SHARED/item_cache"
+  echo "    depuis un conteneur, parce que ces trois repertoires appartiennent a root"
   echo "  ./wikidata-crawler.sh"
+  echo
+  echo "  Contenu actuel :"
+  ls -la "$SHARED" 2>/dev/null | tail -n +2 | sed 's/^/    /'
   exit 0
 fi
 
@@ -80,15 +88,36 @@ else
 fi
 echo "IMPORT_BATCH_ID = $BATCH"
 
-# 3. Table rase du volume partage : le dump perime et les sorties des trois passes.
-#    ${SHARED:?} refuse d'agir si la variable etait vide, garde-fou classique
-#    contre le rm -rf /*. Le repertoire lui-meme est conserve.
-if [ -d "$SHARED" ]; then
-  echo "Effacement de $SHARED ..."
-  rm -rf "${SHARED:?}"/* "${SHARED:?}"/.[!.]* 2>/dev/null
-else
-  mkdir -p "$SHARED"
+# 3. Table rase du volume partage : le dump perime ET les sorties des trois
+#    passes, /shared/pass1, /shared/pass2 et /shared/item_cache.
+#
+#    L'EFFACEMENT SE FAIT DANS UN CONTENEUR, et ce n'est pas un principe, c'est une
+#    necessite. Ces trois sous-repertoires sont crees par le crawler, qui tourne en
+#    root : ils appartiennent donc a root. Or supprimer un fichier depend des droits
+#    d'ecriture sur son REPERTOIRE parent, pas sur le fichier lui-meme. L'utilisateur
+#    debian peut donc effacer le dump, pose a la racine de $SHARED qui lui appartient,
+#    mais PAS le contenu de pass1, pass2 et item_cache. Un `rm -rf` cote hote laisserait
+#    silencieusement les sorties des trois passes en place, et pass1 relirait
+#    core_entity_ids.txt d'un run precedent.
+#
+#    find -mindepth 1 -delete vide sans supprimer /shared lui-meme (le point de
+#    montage), et -delete implique -depth, donc le contenu part avant les repertoires.
+mkdir -p "$SHARED"
+echo "Effacement du volume partage (dump, pass1, pass2, item_cache) ..."
+docker run --rm -v "$SHARED":/shared --entrypoint find "$IMAGE" /shared -mindepth 1 -delete
+if [ $? -ne 0 ]; then
+  echo "ERREUR : l'effacement a echoue. On ne lance pas : un run demarre sur des"
+  echo "sorties de passes perimees produirait un resultat faux sans le signaler."
+  exit 2
 fi
+
+RESTE=$(ls -A "$SHARED" 2>/dev/null | wc -l)
+if [ "$RESTE" -ne 0 ]; then
+  echo "ERREUR : $RESTE entree(s) subsistent dans $SHARED :"
+  ls -la "$SHARED"
+  exit 2
+fi
+echo "  volume partage vide, verifie."
 
 # 4. Depart. wikidata-crawler.sh reconstruit l'image, lance en detache et suit
 #    les journaux.

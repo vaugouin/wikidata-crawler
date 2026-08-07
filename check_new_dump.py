@@ -60,6 +60,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--url", default=os.environ.get("DUMP_URL") or DEFAULT_URL,
                         help="URL du dump a surveiller (defaut: DUMP_URL du .env, sinon latest-all.json.bz2)")
+    parser.add_argument("--dump-file", default=os.environ.get("DUMP_FILE", "/shared/latest-all.json.bz2"),
+                        help="chemin du dump local, utilise comme reference tant que la variable serveur est vide")
     parser.add_argument("--quiet", action="store_true", help="ne rien afficher, ne rendre que le code retour")
     args = parser.parse_args()
 
@@ -104,21 +106,34 @@ def main() -> int:
         except Exception:
             pass
 
-    # Ce que le dernier run a reellement traite.
-    reference = (cp.f_getservervariable(f"{CRAWLER_PREFIX}dumpsize", 0) or "").strip()
     say(f"Dump propose par le serveur : {human_go(taille_distante)} ({taille_distante} octets)")
     say(f"  publie le                 : {modifie_le or 'inconnu'}{age}")
 
+    # Ce que le dernier run a reellement traite. La variable serveur est la
+    # reference : elle survit a l'effacement du volume partage, qui est la premiere
+    # etape de la procedure de lancement.
+    reference = (cp.f_getservervariable(f"{CRAWLER_PREFIX}dumpsize", 0) or "").strip()
+    origine = "dernier run traite"
+
+    # Repli tant que la variable n'existe pas : le fichier encore sur le disque.
+    # Elle ne sera ecrite qu'a la prochaine etape 101, or la comparaison est utile
+    # des maintenant. Ce repli disparait de lui-meme au premier run.
+    if not reference.isdigit() and args.dump_file:
+        chemin = os.path.expanduser(args.dump_file)
+        if os.path.isfile(chemin):
+            reference = str(os.path.getsize(chemin))
+            origine = "fichier local (variable serveur pas encore ecrite)"
+
     if not reference.isdigit():
-        say("  dernier run               : aucune taille enregistree")
+        say("  dernier run               : aucune reference, ni en base ni sur disque")
         say("")
-        say("IMPOSSIBLE DE CONCLURE : la variable serveur "
-            f"{CRAWLER_PREFIX}dumpsize est vide. Elle sera ecrite par la prochaine")
-        say("etape 101. D'ici la, comparer a la main avec la taille du fichier local.")
+        say("IMPOSSIBLE DE CONCLURE : ni la variable serveur "
+            f"{CRAWLER_PREFIX}dumpsize ni le fichier")
+        say("local n'existent. La variable sera ecrite par la prochaine etape 101.")
         return 2
 
     taille_traitee = int(reference)
-    say(f"  dernier run traite        : {human_go(taille_traitee)} ({taille_traitee} octets)")
+    say(f"  {origine:25} : {human_go(taille_traitee)} ({taille_traitee} octets)")
     say("")
 
     if taille_distante == taille_traitee:

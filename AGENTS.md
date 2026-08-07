@@ -115,6 +115,8 @@ Reset is the right call in exactly four cases: the ID-derivation logic changed; 
 
 That happened on 2026-08-03: **3 days 18 hours** of VPS for a byte-identical result (120 986 268 entities, 35 122 018 statements, the same figures as the 26 July run). Nothing in the logs flagged it, because the run *was* a success. The trap is sharpened by the launch procedure itself, which deletes the local file first, destroying the only thing you could have compared against.
 
+**`run-if-new-dump.sh` wraps the whole decision**: it checks, and only if the dump is new does it write a fresh `IMPORT_BATCH_ID` into `.env` (backing the file up first), wipe `/home/debian/docker/shared_data/wikidata-crawler`, and launch. Put *that* in cron, not the crawler itself: six days out of seven it does nothing. `--dry-run` prints what it would do. Every step that can run in a container does (the VPS has no host-side Python), the glue stays in this versioned script rather than in a command line to retype, because it contains an `rm -rf` over 102 GB.
+
 `check_new_dump.py` sends a HEAD request (no download) and compares the advertised size to the size recorded by the last run in `strwikidatacrawlerdumpsize` — two consecutive dumps differ by hundreds of MB. Exit code 0 = new dump, 1 = same as last run, 2 = cannot tell. It needs `WIKIMEDIA_USER_AGENT` set in `.env`: Wikimedia answers 403 to default library agents, so an unset variable makes the check silently inconclusive rather than wrong.
 
 NDJSON output dirs (inside the container): `/shared/pass1`, `/shared/pass2`, `/shared/item_cache` (host: `/home/debian/docker/shared_data/wikidata-crawler/<pass>`).

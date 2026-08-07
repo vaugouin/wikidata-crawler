@@ -20,26 +20,86 @@
 #   3. vide /home/debian/docker/shared_data/wikidata-crawler ;
 #   4. lance ./wikidata-crawler.sh, qui reconstruit l'image et part sur 101.
 #
+# DEUX GARDES, pour qu'il puisse tourner toutes les heures sans surveillance :
+#   1. un verrou flock : une seule execution a la fois ;
+#   2. si le conteneur wikidata-crawler tourne, on sort immediatement, sans meme
+#      interroger Wikimedia. Un run dure trois a quatre jours, et pendant ce temps
+#      l'ancre de comparaison est instable : l'etape 101 a deja telecharge le
+#      nouveau dump mais n'a pas encore enregistre sa taille. Verifier la serait au
+#      mieux inutile, au pire destructeur, puisque relancer effacerait le volume
+#      partage sous les pieds du run en cours.
+#
 # USAGE
 #   ./run-if-new-dump.sh              # verifie, et lance s'il y a du neuf
 #   ./run-if-new-dump.sh --dry-run    # verifie et dit ce qu'il ferait, sans agir
 #
-# CRON, tous les jours a 8h : ne fait rien les six jours ou il n'y a rien a faire.
-#   0 8 * * * /home/debian/docker/wikidata-crawler/run-if-new-dump.sh >> \
-#             /home/debian/docker/wikidata-crawler/run-if-new-dump.log 2>&1
+# CRON, toutes les heures a la minute 17, decalee du haut de l'heure ou tout le
+# monde interroge Wikimedia en meme temps. Une verification coute une requete HEAD,
+# et 167 fois sur 168 elle ne fait rien.
+#   17 * * * * /home/debian/docker/wikidata-crawler/run-if-new-dump.sh >> \
+#              /home/debian/docker/wikidata-crawler/run-if-new-dump.log 2>&1
+#
+# Les journaux du run NE partent PAS dans ce fichier : wikidata-crawler.sh ne suit
+# les journaux du conteneur que devant un terminal, sans quoi la tache cron
+# resterait vivante trois jours a ecrire des giga-octets. Les suivre a la main :
+#   docker logs -f wikidata-crawler
 # =============================================================================
 
 set -uo pipefail
 
+# cron demarre avec un PATH minimal, qui ne contient pas toujours docker.
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+export PATH
+
 STACK=/home/debian/docker/wikidata-crawler
 SHARED=/home/debian/docker/shared_data/wikidata-crawler
 IMAGE=wikidata-crawler-python-app
+CONTENEUR=wikidata-crawler
+VERROU=/tmp/run-if-new-dump.lock
 
 DRY_RUN=0
 [ "${1:-}" = "--dry-run" ] && DRY_RUN=1
 
-echo "=== $(date -u '+%Y-%m-%d %H:%M:%S UTC') : verification du dump Wikidata ==="
 cd "$STACK" || { echo "ERREUR : $STACK introuvable."; exit 2; }
+
+# --------------------------------------------------------------------------
+# GARDE 1 : une seule execution a la fois.
+# Le verrou protege la fenetre entre la verification et le demarrage du
+# conteneur : deux executions simultanees pourraient toutes deux conclure « dump
+# nouveau » et lancer deux crawlers sur le meme volume partage. -n = ne pas
+# attendre, sortir tout de suite : une execution horaire n'a aucune raison de
+# faire la queue.
+# --------------------------------------------------------------------------
+# flock absent et verrou deja pris se ressemblent : `! flock` est vrai dans les
+# deux cas. Sans ce test, un flock manquant ferait taire le script pour toujours,
+# sous un message qui accuserait une execution concurrente inexistante.
+if ! command -v flock >/dev/null 2>&1; then
+  echo "ERREUR : flock introuvable (paquet util-linux). Sans verrou, deux executions"
+  echo "simultanees pourraient lancer deux crawlers sur le meme volume. On s'arrete."
+  exit 2
+fi
+exec 9>"$VERROU" || { echo "ERREUR : verrou $VERROU inaccessible."; exit 2; }
+if ! flock -n 9; then
+  echo "$(date -u '+%Y-%m-%d %H:%M:%S UTC') : une autre execution est en cours, on passe."
+  exit 0
+fi
+
+echo "=== $(date -u '+%Y-%m-%d %H:%M:%S UTC') : verification du dump Wikidata ==="
+
+# --------------------------------------------------------------------------
+# GARDE 2 : ne rien verifier pendant que le crawler tourne.
+# Un run dure trois a quatre jours. Pendant ce temps l'ancre de comparaison est
+# instable : l'etape 101 a deja telecharge le nouveau dump mais n'a pas encore
+# enregistre sa taille, et le volume partage se remplit. Une verification dans
+# cette fenetre pourrait conclure « nouveau dump » et relancer par-dessus le run
+# en cours, ce qui detruirait ses fichiers de travail. On sort donc sans rien
+# faire, silencieusement : c'est le cas normal 99 fois sur 100 apres un depart.
+# --------------------------------------------------------------------------
+if [ -n "$(docker ps -q -f name="^${CONTENEUR}$" 2>/dev/null)" ]; then
+  DEPUIS=$(docker inspect -f '{{.State.StartedAt}}' "$CONTENEUR" 2>/dev/null | cut -c1-19)
+  echo "Le crawler tourne deja (demarre le ${DEPUIS:-?}). Rien a faire."
+  exit 0
+fi
 
 # L'image doit exister pour que le guetteur tourne. Sans cache c'est long, avec
 # cache c'est instantane, donc on la construit sans condition.
@@ -122,4 +182,7 @@ echo "  volume partage vide, verifie."
 # 4. Depart. wikidata-crawler.sh reconstruit l'image, lance en detache et suit
 #    les journaux.
 echo "Lancement du crawler (environ 3 a 4 jours) ..."
-exec ./wikidata-crawler.sh
+./wikidata-crawler.sh
+echo "Conteneur lance. Suivre avec : docker logs -f $CONTENEUR"
+echo "Les verifications horaires suivantes sortiront sans rien faire tant qu'il tourne."
+

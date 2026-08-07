@@ -23,5 +23,14 @@ else
     # docker run -it --rm --network="host" --name wikidata-crawler --env-file .env -v /home/debian/docker/shared_data/wikidata-crawler:/shared wikidata-crawler-python-app "$@"
     docker run -d --rm --network="host" --name wikidata-crawler --env-file .env -v /home/debian/docker/shared_data/wikidata-crawler:/shared wikidata-crawler-python-app "$@"
     echo "wikidata-crawler Docker container started."
-    docker logs -f wikidata-crawler
+    # Follow the logs only when someone is watching. Under cron (or any pipe),
+    # `docker logs -f` would keep the caller alive for the three to four days the
+    # run lasts, writing gigabytes into the cron log. The container is detached
+    # (-d), so not following changes nothing about the run itself.
+    if [ -t 1 ]; then
+        docker logs -f wikidata-crawler
+    else
+        echo "Logs not followed (non-interactive output). Follow them with:"
+        echo "  docker logs -f wikidata-crawler"
+    fi
 fi

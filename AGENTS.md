@@ -109,6 +109,14 @@ Consequences worth knowing when reasoning about the data:
 
 Reset is the right call in exactly four cases: the ID-derivation logic changed; the target schema changed such that existing rows are meaningless; the data is known corrupt; or the entity tables need pruning of out-of-scope rows. Flag the downtime explicitly when recommending it.
 
+## Before launching: is there actually a new dump?
+
+**Check with `python check_new_dump.py` before deleting the local dump file.** Wikidata's weekly JSON dump *starts* on its cycle date but takes about **four days** to finish, and `latest-all.json.bz2` is only refreshed when that generation completes: the `20260803` cycle only became available on **7 Aug 03:57 UTC**. Launching in between re-downloads the *previous* dump under a fresh `IMPORT_BATCH_ID` and re-ingests data already in the database.
+
+That happened on 2026-08-03: **3 days 18 hours** of VPS for a byte-identical result (120 986 268 entities, 35 122 018 statements, the same figures as the 26 July run). Nothing in the logs flagged it, because the run *was* a success. The trap is sharpened by the launch procedure itself, which deletes the local file first, destroying the only thing you could have compared against.
+
+`check_new_dump.py` sends a HEAD request (no download) and compares the advertised size to the size recorded by the last run in `strwikidatacrawlerdumpsize` — two consecutive dumps differ by hundreds of MB. Exit code 0 = new dump, 1 = same as last run, 2 = cannot tell. It needs `WIKIMEDIA_USER_AGENT` set in `.env`: Wikimedia answers 403 to default library agents, so an unset variable makes the check silently inconclusive rather than wrong.
+
 NDJSON output dirs (inside the container): `/shared/pass1`, `/shared/pass2`, `/shared/item_cache` (host: `/home/debian/docker/shared_data/wikidata-crawler/<pass>`).
 
 ## Database tables

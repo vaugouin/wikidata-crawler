@@ -31,6 +31,14 @@
 --
 -- Prix parents utiles : Q19020 Academy Awards, Q174389 Cesar Awards.
 --
+-- CORRECTION DU 2026-08-07. Le libelle d'une ceremonie etait cherche dans le seul
+-- cache d'items, et sortait donc en identifiant brut. Motif : depuis la
+-- reintegration de Q15416 « television program » dans SERIES_ROOTS, une ceremonie
+-- retransmise est une entite de plein droit. Q85314819 vit dans
+-- T_WC_WIKIDATA_SERIE sous le nom « 96th Academy Awards ». Les jointures de
+-- libelle cherchent desormais dans les deux tables. Lecon generale : ne jamais
+-- presupposer la table ou vit un QID, le classement V2 depend des racines P31.
+--
 -- LECTURE SEULE. Executer avec --force -t.
 -- ============================================================================
 
@@ -51,7 +59,7 @@ SELECT '=== Q1 . les prix de Katharine Hepburn (Q56016) ===' AS section;
 SELECT COALESCE(prix.LABEL_EN, iv.ID_ITEM)         AS recompense,
        qt.YEAR_VALUE                               AS annee,
        COALESCE(film.LABEL_EN, qi_work.ID_ITEM)    AS pour_l_oeuvre,
-       COALESCE(cer.LABEL_EN, qi_cer.ID_ITEM)      AS ceremonie
+       COALESCE(cer.LABEL_EN, cer2.LABEL_EN, qi_cer.ID_ITEM) AS ceremonie
 FROM   T_WC_WIKIDATA_STATEMENT st
 JOIN   T_WC_WIKIDATA_ITEM_VALUE iv ON iv.ID_STATEMENT = st.ID_STATEMENT
 LEFT JOIN T_WC_WIKIDATA_ITEM prix ON prix.ID_WIKIDATA = iv.ID_ITEM
@@ -65,7 +73,8 @@ LEFT JOIN T_WC_WIKIDATA_MOVIE film ON film.ID_WIKIDATA = qi_work.ID_ITEM
 LEFT JOIN T_WC_WIKIDATA_STATEMENT_QUALIFIER q_ce ON q_ce.ID_STATEMENT = st.ID_STATEMENT
        AND q_ce.ID_QUALIFIER_PROPERTY = 'P805'
 LEFT JOIN T_WC_WIKIDATA_QUALIFIER_ITEM_VALUE qi_cer ON qi_cer.ID_STATEMENT_QUALIFIER = q_ce.ID_STATEMENT_QUALIFIER
-LEFT JOIN T_WC_WIKIDATA_ITEM cer ON cer.ID_WIKIDATA = qi_cer.ID_ITEM
+LEFT JOIN T_WC_WIKIDATA_ITEM  cer  ON cer.ID_WIKIDATA  = qi_cer.ID_ITEM
+LEFT JOIN T_WC_WIKIDATA_SERIE cer2 ON cer2.ID_WIKIDATA = qi_cer.ID_ITEM
 WHERE  st.ID_WIKIDATA = 'Q56016'
   AND  st.ID_PROPERTY = 'P166'
 ORDER BY qt.YEAR_VALUE;

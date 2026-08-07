@@ -117,19 +117,40 @@ FROM ( SELECT EXISTS (SELECT 1 FROM T_WC_WIKIDATA_STATEMENT_QUALIFIER q
                         AND q.ID_QUALIFIER_PROPERTY = 'P1545') AS a_p1545
        FROM T_WC_WIKIDATA_STATEMENT st WHERE st.ID_PROPERTY IN ('P179','P4908') ) t;
 
-SELECT '=== B4 . le second defaut de -019 est-il comble ? ===' AS section;
+SELECT '=== B4 . combien d items ne sont connus que par les qualificatifs ? ===' AS section;
 -- Les items qui n'apparaissent QUE comme valeur de qualificatif n'entraient pas
--- dans le cache de libelles : 26 924 items concernes, dont les ceremonies. Le
--- correctif est dans le code depuis le 30/07 mais demande pass2 ET item_cache.
--- Temoin : Q85314819, la 96e ceremonie des Oscars, qui s'affichait en identifiant
--- brut dans les requetes de prix. Si ce run a rejoue item_cache avec le
--- correctif, elle a maintenant un libelle.
+-- dans le cache de libelles : 26 924 items le 31/07. Le correctif est dans le code
+-- depuis le 30/07 et demande pass2 ET item_cache.
+--
+-- CE CONTROLE A ETE REECRIT LE 2026-08-07. Sa premiere version prenait Q85314819,
+-- la 96e ceremonie des Oscars, comme temoin, et la cherchait dans le cache d'items.
+-- Elle a rendu un faux negatif : la ceremonie est en fait dans T_WC_WIKIDATA_SERIE,
+-- entite de plein droit, parce que la reintegration de Q15416 « television program »
+-- dans SERIES_ROOTS a fait entrer les ceremonies retransmises. Un temoin nomme est
+-- fragile : on mesure desormais la population entiere, sans presupposer ou vit un
+-- item donne.
 
-SELECT 'Q85314819 (96th Academy Awards)' AS temoin,
-       (SELECT LABEL_EN FROM T_WC_WIKIDATA_ITEM WHERE ID_WIKIDATA='Q85314819') AS libelle,
-       CASE WHEN (SELECT COUNT(*) FROM T_WC_WIKIDATA_ITEM WHERE ID_WIKIDATA='Q85314819') = 0
-            THEN 'toujours absente : item_cache n a pas rejoue avec le correctif'
-            ELSE 'presente : le second defaut est comble' END AS verdict;
+SELECT COUNT(*) AS items_connus_seulement_par_qualificatif,
+       '26 924 le 31/07, doit tendre vers 0' AS repere
+FROM ( SELECT DISTINCT qv.ID_ITEM
+       FROM   T_WC_WIKIDATA_QUALIFIER_ITEM_VALUE qv
+       WHERE  NOT EXISTS (SELECT 1 FROM T_WC_WIKIDATA_ITEM      x WHERE x.ID_WIKIDATA = qv.ID_ITEM)
+         AND  NOT EXISTS (SELECT 1 FROM T_WC_WIKIDATA_MOVIE     x WHERE x.ID_WIKIDATA = qv.ID_ITEM)
+         AND  NOT EXISTS (SELECT 1 FROM T_WC_WIKIDATA_SERIE     x WHERE x.ID_WIKIDATA = qv.ID_ITEM)
+         AND  NOT EXISTS (SELECT 1 FROM T_WC_WIKIDATA_PERSON    x WHERE x.ID_WIKIDATA = qv.ID_ITEM)
+         AND  NOT EXISTS (SELECT 1 FROM T_WC_WIKIDATA_CHARACTER x WHERE x.ID_WIKIDATA = qv.ID_ITEM)
+         AND  NOT EXISTS (SELECT 1 FROM T_WC_WIKIDATA_SEASON    x WHERE x.ID_WIKIDATA = qv.ID_ITEM)
+         AND  NOT EXISTS (SELECT 1 FROM T_WC_WIKIDATA_EPISODE   x WHERE x.ID_WIKIDATA = qv.ID_ITEM) ) t;
+
+SELECT '=== B4-bis . le temoin, cherche dans TOUTES les tables d entite ===' AS section;
+
+SELECT 'movie' AS table_v2, LABEL_EN FROM T_WC_WIKIDATA_MOVIE     WHERE ID_WIKIDATA='Q85314819'
+UNION ALL SELECT 'serie',   LABEL_EN FROM T_WC_WIKIDATA_SERIE     WHERE ID_WIKIDATA='Q85314819'
+UNION ALL SELECT 'item',    LABEL_EN FROM T_WC_WIKIDATA_ITEM      WHERE ID_WIKIDATA='Q85314819'
+UNION ALL SELECT 'person',  LABEL_EN FROM T_WC_WIKIDATA_PERSON    WHERE ID_WIKIDATA='Q85314819'
+UNION ALL SELECT 'character',LABEL_EN FROM T_WC_WIKIDATA_CHARACTER WHERE ID_WIKIDATA='Q85314819'
+UNION ALL SELECT 'season',  LABEL_EN FROM T_WC_WIKIDATA_SEASON    WHERE ID_WIKIDATA='Q85314819'
+UNION ALL SELECT 'episode', LABEL_EN FROM T_WC_WIKIDATA_EPISODE   WHERE ID_WIKIDATA='Q85314819';
 
 SELECT '=== B5 . et la hierarchie (-020) ? ===' AS section;
 -- Attendu tant que -020 n'est pas livre : zero statement. Les categories de prix

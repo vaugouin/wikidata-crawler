@@ -229,6 +229,31 @@ class WikidataCrawler:
         else:
             raise ValidationError("Set DUMP_URL and/or DUMP_FILE in the environment.")
         cp.f_setservervariable(f"{CRAWLER_PREFIX}resolveddumpsource", str(self.resolved_dump_file or self.resolved_dump_url), "Resolved dump source used by the Wikidata dump crawler", 0)
+        self._record_dump_identity()
+
+    def _record_dump_identity(self) -> None:
+        """Record the size of the dump actually processed, so a later run can tell
+        whether Wikimedia has published a new one.
+
+        Wikidata's weekly `latest-all.json.bz2` is only refreshed when the whole
+        generation finishes, which takes about four days after the cycle date. A run
+        launched too early re-downloads the PREVIOUS dump under a new batch id and
+        re-ingests data it already has: that happened on 2026-08-03, and it cost
+        3 days 18 hours for nothing (identical entity and statement counts, byte for
+        byte). The size is the cheapest reliable discriminator: two consecutive dumps
+        differ by hundreds of megabytes. check_new_dump.py compares it to what the
+        server offers today.
+        """
+        try:
+            if self.resolved_dump_file and self.resolved_dump_file.exists():
+                size = self.resolved_dump_file.stat().st_size
+                cp.f_setservervariable(f"{CRAWLER_PREFIX}dumpsize", str(size),
+                                       "Byte size of the dump file processed by the last run", 0)
+                mtime = datetime.fromtimestamp(self.resolved_dump_file.stat().st_mtime, cp.paris_tz)
+                cp.f_setservervariable(f"{CRAWLER_PREFIX}dumpfiledate", mtime.strftime("%Y-%m-%d %H:%M:%S"),
+                                       "Local timestamp of the dump file processed by the last run", 0)
+        except Exception as exc:  # never let bookkeeping break the run
+            print(f"Could not record dump identity: {exc}")
 
     def step_run_pass1(self) -> None:
         self._run_pass(

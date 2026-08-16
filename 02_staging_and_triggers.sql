@@ -702,4 +702,27 @@ END $$
 
 DELIMITER ;
 
+
+-- ----------------------------------------------------------------------------
+-- Staging for the P279 subclass graph (source: /shared/pass1/subclass_edges.jsonl).
+-- No trigger: the pair carries no VALUE_TYPE to keep consistent, and duplicates
+-- are absorbed by the target table's composite primary key at load time.
+-- ----------------------------------------------------------------------------
+DROP TABLE IF EXISTS STG_T_WC_WIKIDATA_SUBCLASS;
+
+CREATE TABLE STG_T_WC_WIKIDATA_SUBCLASS (
+    ID_STG_ROW BIGINT NOT NULL AUTO_INCREMENT,
+    IMPORT_BATCH_ID VARCHAR(100) DEFAULT NULL,
+    SOURCE_FILE VARCHAR(500) DEFAULT NULL,
+    ID_CHILD VARCHAR(50) NOT NULL,
+    ID_PARENT VARCHAR(50) NOT NULL,
+    ROW_STATUS VARCHAR(20) DEFAULT 'NEW',
+    ERROR_MESSAGE TEXT DEFAULT NULL,
+    DAT_IMPORT DATETIME DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (ID_STG_ROW),
+    KEY IDX_STG_SUBCLASS_BATCH (IMPORT_BATCH_ID),
+    KEY IDX_STG_SUBCLASS_STATUS (ROW_STATUS)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
 SET FOREIGN_KEY_CHECKS = 1;

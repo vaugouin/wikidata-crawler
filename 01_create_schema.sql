@@ -698,4 +698,37 @@ CREATE TABLE T_WC_WIKIDATA_MEDIA_RESOURCE_CHECK (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
+-- ----------------------------------------------------------------------------
+-- P279 subclass graph.
+--
+-- pass1 already collects every subclass-of edge (collect_subclass_edges,
+-- wikidata_dump_etl.py) and writes them to /shared/pass1/subclass_edges.jsonl,
+-- but until 2026-08-16 nothing loaded that file: the graph existed on disk and
+-- was invisible to SQL. Consequence, recorded in wikidata-v2-awards-queries.sql:
+-- no hierarchical question was answerable in V2.
+--
+-- The entity pools are derived from this graph at every run
+-- (descendants_of_roots(MOVIE_ROOTS) and friends), so what counts as a "film"
+-- is defined by Wikidata's P279 edges of the day, not by this codebase. Loading
+-- the edges makes that definition auditable and, run over run, makes its drift
+-- measurable. 5 228 221 edges on batch wikidata_full_20260807_1043.
+--
+-- No FK to any entity table: an edge routinely names classes that are not
+-- imported as entities, exactly like T_WC_WIKIDATA_ITEM_VALUE.
+-- PK (ID_CHILD, ID_PARENT) makes reloads idempotent; the index on ID_PARENT
+-- serves the descent parent -> children, which is the direction pools use.
+-- ----------------------------------------------------------------------------
+CREATE TABLE T_WC_WIKIDATA_SUBCLASS (
+    ID_CHILD             VARCHAR(50) NOT NULL,
+    ID_PARENT            VARCHAR(50) NOT NULL,
+    DELETED              TINYINT(1) DEFAULT 0,
+    DAT_CREAT            DATETIME DEFAULT CURRENT_TIMESTAMP,
+    TIM_UPDATED          DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    IMPORT_BATCH_ID      VARCHAR(100) DEFAULT NULL,
+    PRIMARY KEY (ID_CHILD, ID_PARENT),
+    KEY IDX_T_WC_WIKIDATA_SUBCLASS_PARENT (ID_PARENT),
+    KEY IDX_T_WC_WIKIDATA_SUBCLASS_BATCH (IMPORT_BATCH_ID)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
 SET FOREIGN_KEY_CHECKS = 1;

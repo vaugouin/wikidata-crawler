@@ -1386,4 +1386,38 @@ SET ROW_STATUS = 'LOADED',
 WHERE IMPORT_BATCH_ID = @IMPORT_BATCH_ID
   AND ROW_STATUS IN ('NEW','VALID');
 
+
+-- ----------------------------------------------------------------------------
+-- P279 subclass graph. Duplicate edges are absorbed by the composite primary key
+-- (ID_CHILD, ID_PARENT), so re-running a batch is idempotent. IMPORT_BATCH_ID is
+-- refreshed on conflict, which lets one tell an edge Wikidata still asserts from
+-- one carried over by an older run.
+-- ----------------------------------------------------------------------------
+INSERT INTO T_WC_WIKIDATA_SUBCLASS (
+    ID_CHILD,
+    ID_PARENT,
+    DELETED,
+    IMPORT_BATCH_ID,
+    TIM_UPDATED
+)
+SELECT
+    s.ID_CHILD,
+    s.ID_PARENT,
+    0,
+    s.IMPORT_BATCH_ID,
+    NOW()
+FROM STG_T_WC_WIKIDATA_SUBCLASS s
+WHERE s.IMPORT_BATCH_ID = @IMPORT_BATCH_ID
+  AND s.ROW_STATUS IN ('NEW','VALID')
+ON DUPLICATE KEY UPDATE
+    DELETED         = VALUES(DELETED),
+    IMPORT_BATCH_ID = VALUES(IMPORT_BATCH_ID),
+    TIM_UPDATED     = NOW();
+
+UPDATE STG_T_WC_WIKIDATA_SUBCLASS
+SET ROW_STATUS = 'LOADED',
+    ERROR_MESSAGE = NULL
+WHERE IMPORT_BATCH_ID = @IMPORT_BATCH_ID
+  AND ROW_STATUS IN ('NEW','VALID');
+
 COMMIT;

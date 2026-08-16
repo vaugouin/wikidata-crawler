@@ -33,6 +33,15 @@ TABLE_SPECS: List[TableSpec] = [
         table_name="STG_T_WC_WIKIDATA_PROPERTY_METADATA",
         additional_columns={"IMPORT_BATCH_ID": None, "SOURCE_FILE": None, "ROW_STATUS": "NEW"},
     ),
+    # The P279 subclass graph. pass1 has always written this file; it was loaded
+    # nowhere until 2026-08-16, which left every hierarchical question unanswerable
+    # and the entity pools unauditable. ~5.2 M edges on a full dump.
+    TableSpec(
+        stg_file_name="subclass_edges.jsonl",
+        stg_file_location="pass1",
+        table_name="STG_T_WC_WIKIDATA_SUBCLASS",
+        additional_columns={"IMPORT_BATCH_ID": None, "SOURCE_FILE": None, "ROW_STATUS": "NEW"},
+    ),
     TableSpec(
         stg_file_name="T_WC_WIKIDATA_MOVIE.jsonl",
         stg_file_location="pass2",

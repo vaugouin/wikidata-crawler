@@ -641,6 +641,43 @@ CREATE TABLE IF NOT EXISTS STG_T_WC_WIKIDATA_MEDIA_RESOURCE_CHECK (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
+-- P279 subclass graph, added 2026-08-16.
+--
+-- pass1 has always written /shared/pass1/subclass_edges.jsonl; nothing loaded it,
+-- so the class graph was invisible to SQL and no hierarchical question could be
+-- answered. Both the target table and its staging table are created here because
+-- 01_create_schema.sql only ever runs on a fresh database.
+--
+-- Populating it needs no ETL re-run when the pass1 directory of the last run is
+-- still on disk: step 108 picks the file up through load_staging_jsonl.py.
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS T_WC_WIKIDATA_SUBCLASS (
+    ID_CHILD             VARCHAR(50) NOT NULL,
+    ID_PARENT            VARCHAR(50) NOT NULL,
+    DELETED              TINYINT(1) DEFAULT 0,
+    DAT_CREAT            DATETIME DEFAULT CURRENT_TIMESTAMP,
+    TIM_UPDATED          DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    IMPORT_BATCH_ID      VARCHAR(100) DEFAULT NULL,
+    PRIMARY KEY (ID_CHILD, ID_PARENT),
+    KEY IDX_T_WC_WIKIDATA_SUBCLASS_PARENT (ID_PARENT),
+    KEY IDX_T_WC_WIKIDATA_SUBCLASS_BATCH (IMPORT_BATCH_ID)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS STG_T_WC_WIKIDATA_SUBCLASS (
+    ID_STG_ROW BIGINT NOT NULL AUTO_INCREMENT,
+    IMPORT_BATCH_ID VARCHAR(100) DEFAULT NULL,
+    SOURCE_FILE VARCHAR(500) DEFAULT NULL,
+    ID_CHILD VARCHAR(50) NOT NULL,
+    ID_PARENT VARCHAR(50) NOT NULL,
+    ROW_STATUS VARCHAR(20) DEFAULT 'NEW',
+    ERROR_MESSAGE TEXT DEFAULT NULL,
+    DAT_IMPORT DATETIME DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (ID_STG_ROW),
+    KEY IDX_STG_SUBCLASS_BATCH (IMPORT_BATCH_ID),
+    KEY IDX_STG_SUBCLASS_STATUS (ROW_STATUS)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------------------------
 -- Widen YEAR_VALUE to BIGINT: Wikidata stores astronomical/geological years
 -- (e.g. Big Bang +13800000000) that overflow signed INT (max 2147483647),
 -- which raised error 1264 "Out of range value for column 'YEAR_VALUE'".

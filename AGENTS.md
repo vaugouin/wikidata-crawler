@@ -125,6 +125,8 @@ That happened on 2026-08-03: **3 days 18 hours** of VPS for a byte-identical res
 
 NDJSON output dirs (inside the container): `/shared/pass1`, `/shared/pass2`, `/shared/item_cache` (host: `/home/debian/docker/shared_data/wikidata-crawler/<pass>`).
 
+**The P279 subclass graph is loaded since 2026-08-16.** `collect_subclass_edges` had always written `/shared/pass1/subclass_edges.jsonl` (5 228 221 edges on a full dump) and nothing loaded it, so the class graph lived on disk and was invisible to SQL, which is why no hierarchical question was answerable in V2. It now lands in `T_WC_WIKIDATA_SUBCLASS` through the ordinary path: `STG_T_WC_WIKIDATA_SUBCLASS`, a `TableSpec` in `load_staging_jsonl.py`, and a section at the end of `03_bulk_load_from_staging_FULL.sql`. This matters beyond convenience: the entity pools are derived from that graph at every run (`descendants_of_roots(MOVIE_ROOTS)` and friends), so what counts as a "film" is defined by the P279 edges Wikidata publishes that day, not by this codebase. Loading them makes the definition auditable and its run-over-run drift measurable. To backfill a run that predates this change without replaying any ETL step, use `12_bulk_load_subclass_only.sql`; it works only while that run's `pass1` directory is still on disk, since `run-if-new-dump.sh` wipes it at the next launch. Note this covers **P279 only**: WIKIDATA-CRAWLER-020 track (a), making `item_cache` emit `P31` and `P279` for cached items, remains the fix for award-category questions and still needs an item_cache replay.
+
 ## Database tables
 
 Staging tables (`STG_T_WC_WIKIDATA_*`, created by `02_staging_and_triggers.sql`, loaded in step 108):

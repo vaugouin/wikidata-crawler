@@ -163,4 +163,81 @@ SELECT 'Q103618 (Academy Award for Best Actress)' AS temoin,
             THEN 'attendu : -020 n est pas livre, pas de question hierarchique'
             ELSE 'nouveau : -020 est livre, relancer Q2/Q3 des requetes de prix' END AS verdict;
 
+-- ############################################################################
+-- ### C . LE RUN EST-IL HOMOGENE ? (une seule version du code ?)   [lent]  ###
+-- ############################################################################
+--
+-- Ajout du 2026-08-16. Les parties A et B verifient que le code QUI A TOURNE
+-- portait le correctif -019. Elles supposent un run d'un seul tenant. Or un run
+-- de plusieurs jours peut avoir ete repris apres incident (README : reprise par
+-- --start-step, image reconstruite a chaque lancement), et deux portions du meme
+-- resultat auraient alors ete produites par deux versions du code. B1 rendrait
+-- dans ce cas un verdict global qui masque une cohorte defectueuse minoritaire.
+-- Les deux tables porteuses ont un IMPORT_BATCH_ID indexe et un DAT_CREAT : la
+-- question se mesure au lieu de se supposer.
+
+SELECT '=== C1 . quels lots ont ecrit dans cette base, et sur quelle duree ? ===' AS section;
+-- Un lot par run attendu. Le nom porte l'horodatage (wikidata_full_AAAAMMJJ_HHMM),
+-- donc l'ordre lexicographique est l'ordre chronologique.
+
+SELECT IMPORT_BATCH_ID,
+       COUNT(*)                                            AS lignes,
+       MIN(DAT_CREAT)                                      AS premiere_ecriture,
+       MAX(DAT_CREAT)                                      AS derniere_ecriture,
+       TIMESTAMPDIFF(HOUR, MIN(DAT_CREAT), MAX(DAT_CREAT)) AS etalement_heures
+FROM   T_WC_WIKIDATA_STATEMENT
+GROUP  BY IMPORT_BATCH_ID
+ORDER  BY IMPORT_BATCH_ID DESC;
+
+
+SELECT '=== C2 . chronologie du dernier lot : y a-t-il un trou ? ===' AS section;
+-- Mesure sur la table des qualificatifs, six fois plus petite que STATEMENT pour
+-- la meme information de rythme. Un trou de plusieurs heures au milieu du lot est
+-- la signature d'un arret suivi d'une reprise : c'est la que deux versions du code
+-- ont pu se succeder. Un rythme regulier ferme la question.
+
+SET @BATCH = (SELECT MAX(IMPORT_BATCH_ID) FROM T_WC_WIKIDATA_STATEMENT_QUALIFIER);
+SELECT @BATCH AS lot_analyse;
+
+SELECT DATE_FORMAT(DAT_CREAT, '%Y-%m-%d %H:00') AS heure,
+       COUNT(*)                                 AS lignes_ecrites
+FROM   T_WC_WIKIDATA_STATEMENT_QUALIFIER
+WHERE  IMPORT_BATCH_ID = @BATCH
+GROUP  BY 1
+ORDER  BY 1;
+
+
+SELECT '=== C3 . le controle B1, rejoue lot par lot ===' AS section;
+-- Le controle decisif de la partie B, mais cohorte par cohorte. Si un lot est
+-- effondre et un autre non, le code a change entre les deux, et le verdict global
+-- de B1 n'etait qu'un artefact de moyenne.
+
+SELECT q.IMPORT_BATCH_ID,
+       q.ID_QUALIFIER_PROPERTY,
+       COUNT(*)                   AS lignes,
+       COUNT(DISTINCT qi.ID_ITEM) AS valeurs_distinctes,
+       CASE WHEN COUNT(*) = COUNT(DISTINCT qi.ID_ITEM)
+            THEN 'ALERTE : cette cohorte est effondree'
+            ELSE 'ok' END          AS verdict
+FROM   T_WC_WIKIDATA_STATEMENT_QUALIFIER q
+JOIN   T_WC_WIKIDATA_QUALIFIER_ITEM_VALUE qi
+       ON qi.ID_STATEMENT_QUALIFIER = q.ID_STATEMENT_QUALIFIER
+WHERE  q.ID_QUALIFIER_PROPERTY IN ('P453','P1686','P155')
+GROUP  BY q.IMPORT_BATCH_ID, q.ID_QUALIFIER_PROPERTY
+ORDER  BY q.IMPORT_BATCH_ID DESC, q.ID_QUALIFIER_PROPERTY;
+
+
+-- C4 . QUELLE VERSION DU CODE A PRODUIT CE LOT ? (hors SQL, a faire ensuite)
+--
+-- Aucune requete ne peut y repondre : la reponse est dans le depot, pas dans la
+-- base. wikidata-crawler.sh reconstruit l'image a chaque lancement, donc l'image
+-- porte l'etat du depot a l'heure du lancement. Relever startdatetime en A1, puis
+-- dans le depot :
+--
+--   git log --oneline --until="AAAA-MM-JJ HH:MM" -15
+--
+-- Les commits listes sont ceux que ce run contient ; ceux d'apres n'y sont pas,
+-- meme s'ils figurent dans les fichiers aujourd'hui. Consigner le SHA de tete a
+-- cote des chiffres du run : sans lui, les chiffres ne sont pas reproductibles.
+
 SELECT '========== FIN ==========' AS section;

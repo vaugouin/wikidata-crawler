@@ -174,7 +174,21 @@ All files are UTF-8. The database and connections use `utf8mb4` / `utf8mb4_unico
 
 ---
 
-**Last Updated**: 2026-07-26
+## Never conclude from `information_schema`
+
+Use it to explore, never to decide. Three of its columns misled a run review on 2026-08-16, and each failure mode costs an afternoon if you meet it fresh.
+
+- **`TABLE_ROWS` is a statistical estimate, not a count.** On batch `wikidata_full_20260807_1043` it reported 340 401 rows for `T_WC_WIKIDATA_MOVIE` against **438 956 actual**, a 22 % under-estimate. Compared against a stored reference figure, that reads as "one film in five has vanished", and the whole anomaly was the estimator. Entity tables are small: `COUNT(*)` them, it costs seconds. Keep the estimate only for `T_WC_WIKIDATA_STATEMENT` and `_STATEMENT_QUALIFIER`, where a real count costs minutes, and never compare an estimate to a reference.
+- **A stale estimate looks exactly like a table the run never touched.** `T_WC_WIKIDATA_EPISODE` reported its previous value to the unit, 188 721, which read as "not rewritten". It actually held 187 463 rows; the statistics had simply not been refreshed. `ANALYZE TABLE` refreshes the estimate when one is genuinely needed.
+- **`UPDATE_TIME` is UTC while the application's `TIM_UPDATED` columns are local time.** `MOVIE_V1` and `PERSON_V1` each showed exactly two hours of difference (Europe/Paris is UTC+2 in summer). Read last-write times from `MAX(TIM_UPDATED)`, not from the catalogue, or you will date a write to the wrong evening.
+
+Corollary for the review scripts: `doc/sql/wikidata-run-report.sql` §A3 was split on 2026-08-16 into **A3a**, which counts entity tables for real and carries exact reference figures, and **A3b**, explicitly labelled indicative and reference-free so nothing invites a comparison.
+
+Related but distinct: the V1 tables keep being written after both SPARQL crawlers are stopped. That is `wikipedia-crawler`, which fills the image columns only (`WIKIPEDIA_POSTER_PATH` on `MOVIE_V1`/`SERIE_V1`, `WIKIPEDIA_PROFILE_PATH` on `PERSON_V1`/`CHARACTER_V1`, `WIKIPEDIA_IMAGE_PATH` on `ITEM_V1`). A recent write time on a V1 table is not evidence that a SPARQL crawler is still running.
+
+---
+
+**Last Updated**: 2026-08-16
 **Current Version**: 1.0.0
 
 ## Backlog (Nestor second-brain)

@@ -6,6 +6,7 @@
 --
 --   A . Comment le run s'est-il passe ? (statut, duree, etapes, volumes)
 --   B . A-t-il PRESERVE les acquis du 2026-07-31, ou les a-t-il defaits ?
+--   C . Le run est-il HOMOGENE, ou deux versions du code l'ont-elles produit ?
 --
 -- La partie B n'est pas de la paranoia. Le correctif des qualificatifs
 -- (WIKIDATA-CRAWLER-019) vit dans le code de l'ETL : un run lance depuis une
@@ -16,6 +17,15 @@
 --
 -- Chaque controle porte sa valeur de reference, mesuree le 2026-07-31 sur le
 -- batch wikidata_full_20260726_1300 apres reparation.
+--
+-- AMENDEMENT 2026-08-16. Le bloc A3 lisait information_schema.TABLE_ROWS et
+-- comparait cette ESTIMATION a des reperes chiffres. Applique au run du 09/08 au
+-- 14/08, il a annonce une chute de 22 % de T_WC_WIKIDATA_MOVIE qui n'a jamais eu
+-- lieu : 340 401 lignes estimees contre 438 956 comptees. Toutes les entites
+-- etaient en legere HAUSSE, comme il se doit sur un dump plus recent. A3 est
+-- desormais scinde en A3a, qui compte reellement les tables d'entite, et A3b,
+-- explicitement indicatif. Regle qui en decoule, portee dans AGENTS.md :
+-- information_schema sert a explorer, jamais a conclure.
 --
 -- LECTURE SEULE. Executer avec --force -t.
 -- ============================================================================
@@ -49,25 +59,47 @@ FROM   T_WC_SERVER_VARIABLE
 WHERE  VAR_NAME LIKE 'strwikidatacrawlerstep1%'
 ORDER BY VAR_NAME;
 
-SELECT '=== A3 . volumetrie, avec les reperes du 2026-07-31 ===' AS section;
--- TABLE_ROWS est une estimation InnoDB, pas un COUNT(*). Suffisant pour situer.
+SELECT '=== A3a . volumetrie EXACTE des tables d entite ===' AS section;
+-- REECRIT LE 2026-08-16, APRES UNE FAUSSE ALERTE. La version precedente lisait
+-- information_schema.TABLE_ROWS et comparait cette ESTIMATION a des reperes. Sur
+-- le run du 09/08 au 14/08, elle a sous-evalue T_WC_WIKIDATA_MOVIE de 22 %
+-- (340 401 estime contre 438 956 reel) et fait conclure a la disparition d un
+-- film sur cinq. Rien n avait disparu. Les tables d entite sont petites : on les
+-- compte pour de vrai, cela coute quelques secondes et cela ne ment pas.
+--
+-- Reperes : comptages EXACTS du 2026-08-16, batch wikidata_full_20260807_1043.
+-- Ecart attendu d un run a l autre : quelques dixiemes de pour cent a la hausse,
+-- le dump grossissant. Une BAISSE franche est le signal a instruire.
 
-SELECT TABLE_NAME, TABLE_ROWS AS lignes_estimees,
+SELECT            'T_WC_WIKIDATA_MOVIE'     AS table_entite, COUNT(*) AS lignes, '438 956'         AS repere_20260816 FROM T_WC_WIKIDATA_MOVIE
+UNION ALL SELECT  'T_WC_WIKIDATA_SERIE',                     COUNT(*),           '357 683'                            FROM T_WC_WIKIDATA_SERIE
+UNION ALL SELECT  'T_WC_WIKIDATA_PERSON',                    COUNT(*),           '783 141'                            FROM T_WC_WIKIDATA_PERSON
+UNION ALL SELECT  'T_WC_WIKIDATA_ITEM',                      COUNT(*),           '702 502'                            FROM T_WC_WIKIDATA_ITEM
+UNION ALL SELECT  'T_WC_WIKIDATA_EPISODE',                   COUNT(*),           '187 463'                            FROM T_WC_WIKIDATA_EPISODE
+UNION ALL SELECT  'T_WC_WIKIDATA_SEASON',                    COUNT(*),           '(jamais compte)'                    FROM T_WC_WIKIDATA_SEASON
+UNION ALL SELECT  'T_WC_WIKIDATA_CHARACTER',                 COUNT(*),           '(jamais compte)'                    FROM T_WC_WIKIDATA_CHARACTER;
+
+
+SELECT '=== A3b . taille disque et grosses tables (INDICATIF, ne rien conclure) ===' AS section;
+-- Ce bloc sert a voir l occupation disque et l ordre de grandeur des deux grosses
+-- tables, qu on ne compte pas ici parce qu un COUNT(*) sur 35 millions de lignes
+-- coute plusieurs minutes. Trois pieges d information_schema, tous rencontres le
+-- 2026-08-16, justifient qu aucune decision ne sorte de ce tableau :
+--   1. TABLE_ROWS est une estimation statistique, qui a devie de 22 % sur MOVIE.
+--   2. Une estimation PERIMEE se lit comme une table figee : EPISODE affichait
+--      exactement son ancienne valeur (188 721) alors qu il en comptait 187 463.
+--      ANALYZE TABLE rafraichit l estimation quand on en a besoin.
+--   3. UPDATE_TIME est en UTC, alors que les colonnes TIM_UPDATED sont en heure
+--      locale : deux heures d ecart en ete, verifiees sur MOVIE_V1 et PERSON_V1.
+-- Ordres de grandeur au 2026-08-16 : STATEMENT ~34,8 M, STATEMENT_QUALIFIER ~5,58 M.
+
+SELECT TABLE_NAME, TABLE_ROWS AS lignes_ESTIMEES,
        ROUND((DATA_LENGTH + INDEX_LENGTH)/1024/1024/1024, 2) AS taille_go,
-       UPDATE_TIME AS derniere_ecriture,
-       CASE TABLE_NAME
-         WHEN 'T_WC_WIKIDATA_STATEMENT'           THEN '37 218 735 le 30/07'
-         WHEN 'T_WC_WIKIDATA_STATEMENT_QUALIFIER' THEN '5 577 076 apres reparation'
-         WHEN 'T_WC_WIKIDATA_MOVIE'               THEN '438 146'
-         WHEN 'T_WC_WIKIDATA_SERIE'               THEN '356 481'
-         WHEN 'T_WC_WIKIDATA_PERSON'              THEN '780 430'
-         WHEN 'T_WC_WIKIDATA_ITEM'                THEN '629 439'
-         WHEN 'T_WC_WIKIDATA_EPISODE'             THEN '188 721'
-         ELSE NULL END AS repere_precedent
+       UPDATE_TIME AS derniere_ecriture_UTC
 FROM   information_schema.TABLES
 WHERE  TABLE_SCHEMA = DATABASE()
   AND  TABLE_NAME LIKE 'T_WC_WIKIDATA%'
-ORDER BY TABLE_ROWS DESC;
+ORDER BY (DATA_LENGTH + INDEX_LENGTH) DESC;
 
 
 -- ############################################################################

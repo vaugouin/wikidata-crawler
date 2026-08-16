@@ -2,6 +2,35 @@
 -- Pourquoi un film sur cinq a-t-il disparu ? (batch wikidata_full_20260807_1043)
 -- ============================================================================
 --
+-- /!\ AMENDEMENT 2026-08-16, A LIRE AVANT TOUT LE RESTE : LA PREMISSE EST TOMBEE.
+--
+-- Aucun film n'avait disparu. Le constat ci-dessous reposait sur A3, qui lisait
+-- information_schema.TABLE_ROWS, une ESTIMATION, et la comparait a des reperes.
+-- Les comptages exacts du 2026-08-16 donnent, en face des reperes du 31/07 :
+--
+--   MOVIE    438 956  contre  438 146   ->  +0,18 %
+--   SERIE    357 683  contre  356 481   ->  +0,34 %
+--   PERSON   783 141  contre  780 430   ->  +0,35 %
+--   ITEM     702 502  contre  629 439   -> +11,6 %  (effet du correctif B4)
+--   EPISODE  187 463  contre  188 721   ->  -0,67 % (bruit)
+--
+-- Tout monte, comme il se doit sur un dump plus recent. L'estimation sous-evaluait
+-- MOVIE de 22,45 %, soit trait pour trait l'ampleur de la « disparition ».
+--
+-- CE QUI RESTE VALABLE ICI. D2 et D3-bis comparent utilement V1 et V2 : 1332 films
+-- de V1 sont absents de toute la base V2, et la verification directe chez Wikidata
+-- (six identifiants testes le 16/08) montre que quatre sur six ont ete SUPPRIMES de
+-- Wikidata, fiches de films annonces sans source. Le dump ne peut pas les contenir,
+-- V1 les garde parce que le crawler SPARQL n'efface jamais. Ce sont des fantomes
+-- dans V1, pas des pertes dans V2.
+--
+-- CE QUI EST INEXPLOITABLE. D0 rend 3202 statements P279, la ou le graphe reel en
+-- compte des millions : le graphe n'est pas persiste, seules subsistent les aretes
+-- des entites retenues. D1 ne trouve donc que 9 classes, et la colonne
+-- « diagnostic » de D3 est un artefact. Ne rien conclure de « classe HORS pool ».
+--
+-- ============================================================================
+--
 -- CONSTAT qui motive ce fichier. Le run du 2026-08-09 au 2026-08-14 s'est termine
 -- en SUCCESS, d'un seul tenant, avec tous les controles de non-regression au vert
 -- (voir wikidata-run-report.sql). Mais la volumetrie a baisse sur un dump PLUS

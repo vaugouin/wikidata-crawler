@@ -65,10 +65,18 @@ SELECT '=== D1 . taille du pool « film » reconstitue depuis la base ===' AS se
 -- dans Wikidata. Repere : aucun, c'est la premiere fois qu'on le mesure. Le chiffre
 -- vaut surtout pour etre compare a celui du PROCHAIN run.
 
+-- PIEGE (rencontre le 2026-08-16, ERROR 1406 « Data too long for column 'qid' »).
+-- Dans un CTE recursif, MariaDB fixe le type de la colonne d'apres la partie NON
+-- recursive uniquement. Une ancre ecrite « SELECT 'Q11424' » type qid sur 7
+-- caracteres, puis la recursion y injecte des ID_WIKIDATA plus longs et le serveur
+-- refuse. D'ou le CAST en CHAR(50) dans l'ancre, aligne sur la colonne source. Le
+-- COLLATE explicite est pose sur cette valeur produite par fonction, jamais sur la
+-- colonne indexee, pour eviter ERROR 1267 sans perdre l'index (cf. AGENTS.md).
+
 WITH RECURSIVE pool_film (qid) AS (
-    SELECT 'Q11424'  AS qid          -- film
+    SELECT CAST('Q11424' AS CHAR(50)) COLLATE utf8mb4_unicode_ci AS qid   -- film
     UNION
-    SELECT 'Q506240'                 -- television film
+    SELECT CAST('Q506240' AS CHAR(50)) COLLATE utf8mb4_unicode_ci         -- television film
     UNION
     SELECT st.ID_WIKIDATA
     FROM   T_WC_WIKIDATA_STATEMENT  st
@@ -113,9 +121,9 @@ SELECT '=== D3 . LA question : la classe des disparus est-elle dans le pool ? ==
 --                                    dans l'ETL, et c'est plus grave.
 
 WITH RECURSIVE pool_film (qid) AS (
-    SELECT 'Q11424'  AS qid
+    SELECT CAST('Q11424' AS CHAR(50)) COLLATE utf8mb4_unicode_ci AS qid   -- voir le piege note en D1
     UNION
-    SELECT 'Q506240'
+    SELECT CAST('Q506240' AS CHAR(50)) COLLATE utf8mb4_unicode_ci
     UNION
     SELECT st.ID_WIKIDATA
     FROM   T_WC_WIKIDATA_STATEMENT  st

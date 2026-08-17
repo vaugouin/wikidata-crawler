@@ -88,7 +88,23 @@ def fast_entity_id(entity_json: bytes) -> Optional[str]:
 P_INSTANCE_OF = "P31"
 P_SUBCLASS_OF = "P279"
 P_IMDB_ID = "P345"
+P_DATE_OF_BIRTH = "P569"
+P_DATE_OF_DEATH = "P570"
+P_PUBLICATION_DATE = "P577"
 P_FORMATTER_URL = "P1630"
+# Properties emitted for an entity that exists in the DB only as a cached label.
+# Closed set on purpose, so the added volume stays provable. P31/P279 unlock class
+# grouping (WIKIDATA-CRAWLER-020); the other three restore V1 columns that had no V2
+# equivalent for cached entities (WIKIDATA-CRAWLER-015). Adding a property here costs
+# a 23 h replay of step 106, so weigh it before extending.
+CACHED_ENTITY_PROPERTIES = (
+    P_INSTANCE_OF,       # P31,  class membership, and MOVIE_V1/ITEM_V1.INSTANCE_OF
+    P_SUBCLASS_OF,       # P279, class hierarchy
+    P_IMDB_ID,           # P345, PERSON_V1.ID_IMDB and MOVIE_V1.ID_IMDB
+    P_DATE_OF_BIRTH,     # P569, PERSON_V1.BIRTHDAY
+    P_DATE_OF_DEATH,     # P570, PERSON_V1.DEATHDAY
+    P_PUBLICATION_DATE,  # P577, MOVIE_V1.DAT_RELEASE
+)
 P_FORMATTER_URI_FOR_RDF = "P3303"
 
 SUPPORTED_LOCAL_VALUE_TYPES = {
@@ -1474,36 +1490,64 @@ class WikidataDumpETL:
         write_id_set(self.out_dir / "candidate_person_ids.txt", candidate_persons)
 
     def emit_class_claims_for_cached_item(self, doc: Any, entity_id: str) -> None:
-        """Emit P31 and P279 only, for an entity that exists in the DB solely as a
-        cached label (WIKIDATA-CRAWLER-020).
+        """Emit CACHED_ENTITY_PROPERTIES for an entity that exists in the DB solely as
+        a cached label. Serves two tickets with one mechanism.
 
-        Deliberately NOT emit_claims_for_in_scope_entity with a filter. Three reasons.
-        The full emitter walks every property of the document and also feeds
-        `referenced_item_ids` / `referenced_person_ids`; item_cache is the last pass,
-        so those sets are already consumed and mutating them would be a pure side
-        effect. It also emits qualifiers, which P31 and P279 rarely carry and which
-        would multiply volume for nothing. And a closed property tuple keeps the cost
-        provable: about two claims per cached item, ~1.2 M statements against the
-        35 M already loaded.
+        -020 needs P31/P279, without which no hierarchical question works at all:
+        Q103618 "Academy Award for Best Actress" existed by name with zero statements.
+        -015 needs the facts that PERSON_V1 and MOVIE_V1 keep as columns (ID_IMDB,
+        BIRTHDAY, DEATHDAY, DAT_RELEASE) to be reachable somewhere in V2, and for a
+        cached entity they were reachable nowhere: measured 2026-07-30, 6 794 of the
+        18 792 persons shared with V1 had neither P31, nor P569, nor P570. Decommission
+        of the SPARQL crawlers cannot be argued while that hole exists.
 
-        Both properties are wikibase-item, hence the single "item" branch: any other
-        datatype on them is malformed and skipped rather than guessed at.
+        Deliberately NOT emit_claims_for_in_scope_entity behind a property filter. The
+        full emitter walks every property and feeds referenced_item_ids /
+        referenced_person_ids; item_cache is the last pass, so those sets are already
+        consumed and mutating them would be a pure side effect. It also emits
+        qualifiers, which these properties rarely carry usefully.
+
+        The payload shapes below are therefore a deliberate, isolated subset of the
+        full emitter's. If the value model changes, both places need editing: that cost
+        is accepted to keep pass2's critical path untouched. Three value types are
+        handled because the tuple spans three (item, external_id, time); any other
+        datatype on these properties is malformed and skipped rather than guessed at.
         """
-        for property_id in (P_INSTANCE_OF, P_SUBCLASS_OF):
+        for property_id in CACHED_ENTITY_PROPERTIES:
             for claim in get_claim_list(doc, property_id):
                 wikidata_datatype, value = extract_mainsnak_datatype_and_value(claim)
-                if WIKIDATA_DATATYPE_TO_LOCAL.get(wikidata_datatype) != "item":
+                local_value_type = WIKIDATA_DATATYPE_TO_LOCAL.get(wikidata_datatype)
+                payload: Optional[Dict[str, Any]] = None
+
+                if local_value_type == "item":
+                    id_item = extract_qid_from_wikibase_value(value)
+                    if id_item:
+                        payload = {"ID_ITEM": id_item}
+
+                elif local_value_type == "external_id":
+                    s = extract_string_value(value)
+                    if s is not None:
+                        payload = {
+                            "VALUE_EXTERNAL_ID": s,
+                            "VALUE_EXTERNAL_ID_NORMALIZED": s,
+                            "FORMATTER_URL": None,
+                            "FORMATTER_URI_RDF": None,
+                            "VALIDATION_STATUS": None,
+                        }
+
+                elif local_value_type == "time":
+                    payload = extract_time_payload(value) or None
+
+                if payload is None:
                     continue
-                id_item = extract_qid_from_wikibase_value(value)
-                if not id_item:
-                    continue
+
                 self.statement_emitter.emit(
                     subject_id=entity_id,
                     property_id=property_id,
                     claim=claim,
-                    local_value_type="item",
+                    local_value_type=local_value_type,
                     wikidata_datatype=wikidata_datatype,
-                    payload={"ID_ITEM": id_item},
+                    payload=payload,
                 )
 
     def emit_claims_for_in_scope_entity(self, doc: Any, entity_id: str) -> None:

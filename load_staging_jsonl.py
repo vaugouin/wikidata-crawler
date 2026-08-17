@@ -131,6 +131,14 @@ TABLE_SPECS: List[TableSpec] = [
         table_name="STG_T_WC_WIKIDATA_EXTERNAL_ID_VALUE",
         additional_columns={"IMPORT_BATCH_ID": None, "ROW_STATUS": "NEW"},
     ),
+    # P345 on cached entities lands here (CACHED_ENTITY_PROPERTIES spans three value
+    # types, so item_cache now writes three value files, not one).
+    TableSpec(
+        stg_file_name="T_WC_WIKIDATA_EXTERNAL_ID_VALUE.jsonl",
+        stg_file_location="item_cache",
+        table_name="STG_T_WC_WIKIDATA_EXTERNAL_ID_VALUE",
+        additional_columns={"IMPORT_BATCH_ID": None, "ROW_STATUS": "NEW"},
+    ),
     TableSpec(
         stg_file_name="T_WC_WIKIDATA_MEDIA_VALUE.jsonl",
         stg_file_location="pass2",
@@ -140,6 +148,13 @@ TABLE_SPECS: List[TableSpec] = [
     TableSpec(
         stg_file_name="T_WC_WIKIDATA_TIME_VALUE.jsonl",
         stg_file_location="pass2",
+        table_name="STG_T_WC_WIKIDATA_TIME_VALUE",
+        additional_columns={"IMPORT_BATCH_ID": None, "ROW_STATUS": "NEW"},
+    ),
+    # P569, P570 and P577 on cached entities land here.
+    TableSpec(
+        stg_file_name="T_WC_WIKIDATA_TIME_VALUE.jsonl",
+        stg_file_location="item_cache",
         table_name="STG_T_WC_WIKIDATA_TIME_VALUE",
         additional_columns={"IMPORT_BATCH_ID": None, "ROW_STATUS": "NEW"},
     ),

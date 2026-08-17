@@ -96,9 +96,26 @@ TABLE_SPECS: List[TableSpec] = [
         table_name="STG_T_WC_WIKIDATA_STATEMENT",
         additional_columns={"IMPORT_BATCH_ID": None, "SOURCE_FILE": None, "ROW_STATUS": "NEW"},
     ),
+    # item_cache emits P31/P279 for cached entities since WIKIDATA-CRAWLER-020, so it
+    # now produces statements too. Without these two specs the files would be written
+    # and never loaded, which is exactly how the subclass graph stayed invisible for
+    # months. Order matters here: statements before their item values, since
+    # FK_T_WC_WIKIDATA_ITEM_VALUE_STATEMENT is enforced at bulk-load time.
+    TableSpec(
+        stg_file_name="T_WC_WIKIDATA_STATEMENT.jsonl",
+        stg_file_location="item_cache",
+        table_name="STG_T_WC_WIKIDATA_STATEMENT",
+        additional_columns={"IMPORT_BATCH_ID": None, "SOURCE_FILE": None, "ROW_STATUS": "NEW"},
+    ),
     TableSpec(
         stg_file_name="T_WC_WIKIDATA_ITEM_VALUE.jsonl",
         stg_file_location="pass2",
+        table_name="STG_T_WC_WIKIDATA_ITEM_VALUE",
+        additional_columns={"IMPORT_BATCH_ID": None, "ROW_STATUS": "NEW"},
+    ),
+    TableSpec(
+        stg_file_name="T_WC_WIKIDATA_ITEM_VALUE.jsonl",
+        stg_file_location="item_cache",
         table_name="STG_T_WC_WIKIDATA_ITEM_VALUE",
         additional_columns={"IMPORT_BATCH_ID": None, "ROW_STATUS": "NEW"},
     ),

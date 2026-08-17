@@ -24,10 +24,15 @@
 -- V1 les garde parce que le crawler SPARQL n'efface jamais. Ce sont des fantomes
 -- dans V1, pas des pertes dans V2.
 --
--- CE QUI EST INEXPLOITABLE. D0 rend 3202 statements P279, la ou le graphe reel en
--- compte des millions : le graphe n'est pas persiste, seules subsistent les aretes
--- des entites retenues. D1 ne trouve donc que 9 classes, et la colonne
--- « diagnostic » de D3 est un artefact. Ne rien conclure de « classe HORS pool ».
+-- D0, D1 ET D3 SONT REPARES DEPUIS LE 2026-08-17. Ils ne valaient rien tant que le
+-- graphe des sous-classes restait sur le disque : D0 rendait 3202 aretes la ou le
+-- graphe reel en compte des millions, D1 ne trouvait que 9 classes, et la colonne
+-- « diagnostic » de D3 etait un artefact dont il ne fallait rien conclure.
+--
+-- WIKIDATA-CRAWLER-020 voie (b) a charge le graphe complet dans
+-- T_WC_WIKIDATA_SUBCLASS, 5 227 784 aretes. Les trois blocs s'appuient desormais
+-- sur cette table, c'est-a-dire sur le meme graphe que celui dont l'ETL derive ses
+-- pools, et le verdict « classe HORS pool » de D3 redevient interpretable.
 --
 -- ============================================================================
 --
@@ -77,15 +82,21 @@ SET SESSION max_statement_time = 0;
 
 
 SELECT '=== D0 . le graphe des sous-classes est-il en base ? ===' AS section;
--- Le graphe est bati en memoire pendant pass1, il n'est pas persiste comme graphe.
--- Ne subsistent en base que les statements P279 des entites retenues. Si ce compte
--- est nul ou derisoire, D1 mesurera le reflet appauvri du graphe reel, et non le
--- graphe qui a servi a classer : le dire franchement plutot que de lire un chiffre
--- faux avec confiance.
+-- REECRIT LE 2026-08-17. La premiere version comptait les statements P279 de
+-- T_WC_WIKIDATA_STATEMENT et rendait 3202, la ou le graphe reel en compte des
+-- millions : seules y figuraient les aretes des entites retenues. D1 et D3 ne
+-- mesuraient donc qu'un reflet appauvri, et leur verdict etait un artefact.
+--
+-- Depuis WIKIDATA-CRAWLER-020 voie (b), le graphe complet est charge dans sa propre
+-- table depuis /shared/pass1/subclass_edges.jsonl : 5 227 784 aretes distinctes pour
+-- le batch wikidata_full_20260807_1043. C'est desormais le meme graphe que celui que
+-- l'ETL construit en memoire pour calculer ses pools, donc D1 et D3 mesurent enfin
+-- ce qu'ils pretendent mesurer.
 
-SELECT COUNT(*) AS statements_p279_en_base
-FROM   T_WC_WIKIDATA_STATEMENT
-WHERE  ID_PROPERTY = 'P279';
+SELECT COUNT(*) AS aretes_p279_en_base,
+       '5 227 784 pour le batch du 07/08' AS repere_20260816
+FROM   T_WC_WIKIDATA_SUBCLASS
+WHERE  DELETED = 0;
 
 
 SELECT '=== D1 . taille du pool « film » reconstitue depuis la base ===' AS section;
@@ -94,26 +105,42 @@ SELECT '=== D1 . taille du pool « film » reconstitue depuis la base ===' AS se
 -- dans Wikidata. Repere : aucun, c'est la premiere fois qu'on le mesure. Le chiffre
 -- vaut surtout pour etre compare a celui du PROCHAIN run.
 
--- PIEGE (rencontre le 2026-08-16, ERROR 1406 « Data too long for column 'qid' »).
--- Dans un CTE recursif, MariaDB fixe le type de la colonne d'apres la partie NON
--- recursive uniquement. Une ancre ecrite « SELECT 'Q11424' » type qid sur 7
--- caracteres, puis la recursion y injecte des ID_WIKIDATA plus longs et le serveur
--- refuse. D'ou le CAST en CHAR(50) dans l'ancre, aligne sur la colonne source. Le
--- COLLATE explicite est pose sur cette valeur produite par fonction, jamais sur la
--- colonne indexee, pour eviter ERROR 1267 sans perdre l'index (cf. AGENTS.md).
+-- DEUX PIEGES DU CTE RECURSIF SOUS MARIADB, rencontres l'un apres l'autre. Le
+-- second est le plus dangereux : il ne dit rien.
+--
+-- 1. ERROR 1406 « Data too long for column 'qid' » (2026-08-16). MariaDB fixe le
+--    type de la colonne d'apres la partie NON recursive uniquement. Une ancre
+--    ecrite « SELECT 'Q11424' » type qid sur 7 caracteres, puis la recursion y
+--    injecte des ID_WIKIDATA plus longs et le serveur refuse. D'ou le CAST en
+--    CHAR(50), aligne sur la colonne source. Le COLLATE explicite est pose sur
+--    cette valeur produite par fonction, jamais sur la colonne indexee, pour
+--    eviter ERROR 1267 sans perdre l'index (cf. AGENTS.md).
+--
+-- 2. ANCRE SILENCIEUSEMENT AMPUTEE (2026-08-17). Ecrite en TROIS branches
+--    (racine UNION racine UNION recursion), la requete a rendu 1, alors que
+--    l'ancre a elle seule porte deux racines et que Q11424 compte 166
+--    sous-classes directes en base. MariaDB ne retient que la premiere branche
+--    comme partie non recursive, et la descente ne part jamais. Aucun message,
+--    aucune erreur : un chiffre faux qu'on peut lire avec confiance. Forme
+--    canonique retenue : les racines sont regroupees dans une sous-requete, donc
+--    UNE branche d'ancrage et UNE branche recursive, ce que toutes les
+--    implementations traitent pareil. Le controle « plancher 167 » ci-dessous
+--    existe pour que ce mode de defaillance ne puisse plus passer inapercu.
 
 WITH RECURSIVE pool_film (qid) AS (
-    SELECT CAST('Q11424' AS CHAR(50)) COLLATE utf8mb4_unicode_ci AS qid   -- film
+    SELECT CAST(r.qid AS CHAR(50)) COLLATE utf8mb4_unicode_ci AS qid
+    FROM   (SELECT 'Q11424' AS qid          -- film
+            UNION ALL SELECT 'Q506240') AS r -- television film
     UNION
-    SELECT CAST('Q506240' AS CHAR(50)) COLLATE utf8mb4_unicode_ci         -- television film
-    UNION
-    SELECT st.ID_WIKIDATA
-    FROM   T_WC_WIKIDATA_STATEMENT  st
-    JOIN   T_WC_WIKIDATA_ITEM_VALUE iv ON iv.ID_STATEMENT = st.ID_STATEMENT
-    JOIN   pool_film                p  ON p.qid = iv.ID_ITEM
-    WHERE  st.ID_PROPERTY = 'P279'
+    SELECT sc.ID_CHILD
+    FROM   T_WC_WIKIDATA_SUBCLASS sc
+    JOIN   pool_film              p ON p.qid = sc.ID_PARENT
+    WHERE  sc.DELETED = 0
 )
-SELECT COUNT(*) AS classes_dans_le_pool_film FROM pool_film;
+SELECT COUNT(*) AS classes_dans_le_pool_film,
+       '842 le 2026-08-17, batch wikidata_full_20260807_1043'           AS repere,
+       'plancher 167 : 2 racines + 166 sous-classes directes de Q11424' AS garde_fou
+FROM   pool_film;
 
 
 SELECT '=== D2 . les films V1 absents de MOVIE : perdus, ou reclasses ? ===' AS section;
@@ -149,16 +176,14 @@ SELECT '=== D3 . LA question : la classe des disparus est-elle dans le pool ? ==
 --                                    l'entite n'a pas ete emise : la cause est
 --                                    dans l'ETL, et c'est plus grave.
 
-WITH RECURSIVE pool_film (qid) AS (
-    SELECT CAST('Q11424' AS CHAR(50)) COLLATE utf8mb4_unicode_ci AS qid   -- voir le piege note en D1
+WITH RECURSIVE pool_film (qid) AS (   -- voir les deux pieges notes en D1
+    SELECT CAST(r.qid AS CHAR(50)) COLLATE utf8mb4_unicode_ci AS qid
+    FROM   (SELECT 'Q11424' AS qid UNION ALL SELECT 'Q506240') AS r
     UNION
-    SELECT CAST('Q506240' AS CHAR(50)) COLLATE utf8mb4_unicode_ci
-    UNION
-    SELECT st.ID_WIKIDATA
-    FROM   T_WC_WIKIDATA_STATEMENT  st
-    JOIN   T_WC_WIKIDATA_ITEM_VALUE iv ON iv.ID_STATEMENT = st.ID_STATEMENT
-    JOIN   pool_film                p  ON p.qid = iv.ID_ITEM
-    WHERE  st.ID_PROPERTY = 'P279'
+    SELECT sc.ID_CHILD
+    FROM   T_WC_WIKIDATA_SUBCLASS sc
+    JOIN   pool_film              p ON p.qid = sc.ID_PARENT
+    WHERE  sc.DELETED = 0
 )
 SELECT v1.INSTANCE_OF                                AS classe_p31,
        COUNT(*)                                      AS films_disparus,

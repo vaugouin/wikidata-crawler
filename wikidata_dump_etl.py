@@ -1362,10 +1362,21 @@ class WikidataDumpETL:
                 "DESCRIPTIONS_JSON": extract_descriptions(doc),
             }
             # Rule 2: persons referenced in movie/series statements go to T_WC_WIKIDATA_PERSON
+            cached = False
             if entity_id in self.referenced_person_ids_filter:
                 self.writers.write("T_WC_WIKIDATA_PERSON", base_row)
+                cached = True
             elif entity_id in self.referenced_item_ids_filter:
                 self.writers.write("T_WC_WIKIDATA_ITEM", base_row)
+                cached = True
+
+            # WIKIDATA-CRAWLER-020. A cached entity used to carry its label and not a
+            # single fact, so "Academy Award for Best Actress" existed by name and had
+            # no P31: every hierarchical question was dead. Emit its class claims, and
+            # only when the entity row was actually written, so that no statement ever
+            # points at an entity absent from the entity tables.
+            if cached:
+                self.emit_class_claims_for_cached_item(doc, entity_id)
 
     def collect_subclass_edges(self, doc: Any) -> None:
         child_qid = doc.get("id")
@@ -1461,6 +1472,39 @@ class WikidataDumpETL:
         self.candidate_person_ids = candidate_persons
         write_id_set(self.out_dir / "core_entity_ids.txt", core)
         write_id_set(self.out_dir / "candidate_person_ids.txt", candidate_persons)
+
+    def emit_class_claims_for_cached_item(self, doc: Any, entity_id: str) -> None:
+        """Emit P31 and P279 only, for an entity that exists in the DB solely as a
+        cached label (WIKIDATA-CRAWLER-020).
+
+        Deliberately NOT emit_claims_for_in_scope_entity with a filter. Three reasons.
+        The full emitter walks every property of the document and also feeds
+        `referenced_item_ids` / `referenced_person_ids`; item_cache is the last pass,
+        so those sets are already consumed and mutating them would be a pure side
+        effect. It also emits qualifiers, which P31 and P279 rarely carry and which
+        would multiply volume for nothing. And a closed property tuple keeps the cost
+        provable: about two claims per cached item, ~1.2 M statements against the
+        35 M already loaded.
+
+        Both properties are wikibase-item, hence the single "item" branch: any other
+        datatype on them is malformed and skipped rather than guessed at.
+        """
+        for property_id in (P_INSTANCE_OF, P_SUBCLASS_OF):
+            for claim in get_claim_list(doc, property_id):
+                wikidata_datatype, value = extract_mainsnak_datatype_and_value(claim)
+                if WIKIDATA_DATATYPE_TO_LOCAL.get(wikidata_datatype) != "item":
+                    continue
+                id_item = extract_qid_from_wikibase_value(value)
+                if not id_item:
+                    continue
+                self.statement_emitter.emit(
+                    subject_id=entity_id,
+                    property_id=property_id,
+                    claim=claim,
+                    local_value_type="item",
+                    wikidata_datatype=wikidata_datatype,
+                    payload={"ID_ITEM": id_item},
+                )
 
     def emit_claims_for_in_scope_entity(self, doc: Any, entity_id: str) -> None:
         for property_id, claim_list in iter_claims_map(doc):

@@ -101,14 +101,25 @@ SELECT (SELECT COUNT(*) FROM T_WC_WIKIDATA_SUBCLASS)     AS aretes_distinctes_ch
 -- rendait 9. Noter le chiffre : c'est le premier point d'une serie qui rendra la
 -- derive de la classification mesurable d'un run a l'autre.
 --
--- Le CAST dans l'ancre est obligatoire : MariaDB type la colonne d'un CTE recursif
--- d'apres sa seule partie non recursive, et un litteral court fait echouer la
--- descente avec ERROR 1406 (cf. doc/sql/wikidata-movie-drop-diagnostic.sql).
+-- DEUX PIEGES DU CTE RECURSIF, tous deux rencontres pour de vrai :
+--
+-- 1. ERROR 1406 « Data too long ». MariaDB type la colonne d'apres la SEULE partie
+--    non recursive : une ancre ecrite « SELECT 'Q11424' » dimensionne qid sur 7
+--    caracteres, et la descente casse des qu'un ID_WIKIDATA plus long arrive.
+--    D'ou le CAST en CHAR(50), aligne sur la colonne source.
+--
+-- 2. Ancre silencieusement amputee. Ecrite en TROIS branches (racine UNION racine
+--    UNION recursion), la requete a rendu 1 le 2026-08-16, alors que l'ancre a elle
+--    seule porte deux racines et que Q11424 compte 166 sous-classes directes en
+--    base. MariaDB ne retient que la premiere branche comme partie non recursive et
+--    la descente ne part jamais. C'est un faux resultat SANS message d'erreur, le
+--    pire des cas. Forme canonique retenue : les racines sont regroupees dans une
+--    sous-requete, le CTE n'a donc qu'UNE branche d'ancrage et UNE branche
+--    recursive, ce que toutes les implementations traitent pareil.
 -- ----------------------------------------------------------------------------
 WITH RECURSIVE pool_film (qid) AS (
-    SELECT CAST('Q11424' AS CHAR(50)) COLLATE utf8mb4_unicode_ci AS qid
-    UNION
-    SELECT CAST('Q506240' AS CHAR(50)) COLLATE utf8mb4_unicode_ci
+    SELECT CAST(r.qid AS CHAR(50)) COLLATE utf8mb4_unicode_ci AS qid
+    FROM   (SELECT 'Q11424' AS qid UNION ALL SELECT 'Q506240') AS r
     UNION
     SELECT sc.ID_CHILD
     FROM   T_WC_WIKIDATA_SUBCLASS sc
@@ -116,4 +127,5 @@ WITH RECURSIVE pool_film (qid) AS (
     WHERE  sc.DELETED = 0
 )
 SELECT COUNT(*) AS classes_dans_le_pool_film,
-       '9 avant chargement, artefact d un graphe absent' AS repere;
+       '842 le 2026-08-17, batch wikidata_full_20260807_1043' AS repere,
+       'plancher 167 : 2 racines + 166 sous-classes directes de Q11424' AS garde_fou;

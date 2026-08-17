@@ -32,6 +32,13 @@ DEFAULT_MEDIA_RESOLVE_SQL_NAME = "07_resolve_media_resources.sql"
 DEFAULT_CLEANUP_SQL_NAME = "08_cleanup_old_batches.sql"
 DEFAULT_LIVE_DB_SCHEMA_NAME = "apply_to_live_db.sql"
 CRAWLER_PREFIX = "strwikidatacrawler"
+# Steps that stream the dump. Step 101 is what turns DUMP_FILE / DUMP_URL into
+# resolved_dump_file, so resuming straight at one of these without it fails deep in
+# the ETL on a bare `assert self.dump_file is not None` (met 2026-08-17 on a
+# --start-step 106). Listed here so run() can resolve the source on demand, and only
+# when one of these steps will actually execute: a resume at 108 or 110 needs no dump
+# and must never trigger a 102 GB download.
+DUMP_CONSUMING_STEPS = (102, 104, 106)
 
 
 @dataclass(frozen=True)
@@ -102,6 +109,14 @@ class WikidataCrawler:
         cp.f_setservervariable(f"{CRAWLER_PREFIX}startstep", str(self.start_step), "First workflow step executed by the Wikidata dump crawler", 0)
 
         try:
+            # A resume that skips step 101 but replays a dump-streaming step still
+            # needs the dump resolved. Run 101 for real rather than resolving on the
+            # side, so processesexecuted and step101status tell the truth about what
+            # happened. It costs nothing when the file is already on disk: step 101
+            # only downloads when DUMP_FILE is absent.
+            if self.start_step > 101 and any(code >= self.start_step for code in DUMP_CONSUMING_STEPS):
+                self._run_step(101, self.steps[101])
+
             for code, step in self.steps.items():
                 if code < self.start_step:
                     continue

@@ -71,7 +71,7 @@ The orchestrator (`wikidata_crawler.py`) runs an ordered, resumable workflow. `-
 | 103 | validate ETL pass1 | Assert pass1 outputs exist, no parse errors, core entities detected. |
 | 104 | run ETL pass2 | Entity/statement pass: emit entity rows + statements + typed values for in-scope movies/series/persons; produce `referenced_item_ids.txt`, `referenced_person_ids.txt`. Requires pass1 outputs. |
 | 105 | validate ETL pass2 | Assert `T_WC_WIKIDATA_STATEMENT.jsonl` exists, no parse errors, statements emitted. |
-| 106 | run ETL item_cache | Item-cache pass: emit `T_WC_WIKIDATA_ITEM` rows for referenced items and extra `T_WC_WIKIDATA_PERSON` rows for referenced (no-IMDb) persons. Requires pass1 + pass2 outputs. |
+| 106 | run ETL item_cache | Item-cache pass: emit `T_WC_WIKIDATA_ITEM` rows for referenced items and extra `T_WC_WIKIDATA_PERSON` rows for referenced (no-IMDb) persons, plus their `P31`/`P279` claims. Requires pass1 + pass2 outputs **and the dump**. |
 | 107 | validate ETL item_cache | Assert `run_summary.json` and item/person outputs exist. |
 | 108 | load staging tables | Delete prior rows for this `IMPORT_BATCH_ID`, then load every NDJSON file into its `STG_*` table via `load_staging_jsonl.load_table`. |
 | 109 | validate staging data | Assert staged statement rows exist for the batch and none have NULL `IMPORT_BATCH_ID`. |
@@ -81,7 +81,12 @@ The orchestrator (`wikidata_crawler.py`) runs an ordered, resumable workflow. `-
 | 113 | validate media resources | Assert media-resource tables non-empty; record per-platform counts. |
 | 114 | cleanup old import batches | Execute `08_cleanup_old_batches.sql`; delete every target row whose `IMPORT_BATCH_ID` is strictly older than the current batch (stale "orphans" the upsert-only bulk load never overwrites). Guarded: refuses to run if the current batch has no statements. Idempotent; safe to run alone via `--start-step 114`. |
 
-Important: do **not** start from `104` unless the code is changed to initialize the dump source when `101` is skipped — pass2/item_cache rely on `resolved_dump_file`/`resolved_dump_url` set by step 101.
+**Resuming at a dump-streaming step (102, 104, 106) is safe since 2026-08-17.** This note used to read "do not start from 104 unless the code is changed to initialize the dump source when 101 is skipped". That change is now made: `run()` executes step 101 first whenever the resume point would skip it and a step in `DUMP_CONSUMING_STEPS` is still due. Before the fix, `--start-step 106` died deep in the ETL on a bare `assert self.dump_file is not None`, naming neither the cause nor the remedy. Resolution stays on demand, so resuming at 108 or 110 still never touches the dump.
+
+Two things to check before resuming at 102, 104 or 106, because all three stream the **full 102 GB dump**, they do not work from the pass1/pass2 NDJSON:
+
+- Is `latest-all.json.bz2` still in `/shared`? It is routinely deleted after a run to reclaim disk space. If it is gone, step 101 will re-download it, which costs about 7 h 30.
+- If it is gone, what comes back is a **different, more recent dump** than the one pass1 and pass2 consumed. Mixing an item_cache built from this week's dump with pools and filters derived from last week's produces a batch whose provenance can no longer be stated. In that case prefer a full run on the new dump over a partial resume. Compare the file size against `strwikidatacrawlerdumpsize` to confirm you have the same dump.
 
 The ETL passes each stream the full multi-GB dump and can take **multiple days** (the full ETL can exceed a week). Treat them as expensive: prefer resuming from a later step over re-running passes. The bulk load (110) and media resolution (112) are both idempotent and cheap by comparison.
 

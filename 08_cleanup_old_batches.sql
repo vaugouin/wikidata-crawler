@@ -143,4 +143,23 @@ WHERE s.IMPORT_BATCH_ID COLLATE utf8mb4_unicode_ci < @IMPORT_BATCH_ID;
 DELETE FROM T_WC_WIKIDATA_STATEMENT
 WHERE IMPORT_BATCH_ID COLLATE utf8mb4_unicode_ci < @IMPORT_BATCH_ID;
 
+-- ----------------------------------------------------------------------------
+-- 6. P279 SUBCLASS GRAPH (added 2026-08-17)
+-- ----------------------------------------------------------------------------
+-- Standalone table, no FK, so order does not matter here.
+--
+-- Why it must be pruned like the rest. The bulk load upserts on the composite key
+-- (ID_CHILD, ID_PARENT) and refreshes IMPORT_BATCH_ID, so an edge Wikidata still
+-- asserts is carried forward under the current batch. An edge DELETED upstream
+-- between two dumps is never overwritten and keeps its old batch id: without this
+-- prune the graph could only ever grow.
+--
+-- That would quietly ruin the one thing this table was loaded for. The entity pools
+-- are the transitive closure of this graph, and the run-over-run comparison of that
+-- closure (842 classes under Q11424/Q506240 on 2026-08-17) is how a silent upstream
+-- reclassification becomes visible. A closure computed over accumulated dead edges
+-- can only rise, and an instrument that cannot fall measures nothing.
+DELETE FROM T_WC_WIKIDATA_SUBCLASS
+WHERE IMPORT_BATCH_ID COLLATE utf8mb4_unicode_ci < @IMPORT_BATCH_ID;
+
 SET FOREIGN_KEY_CHECKS = 1;

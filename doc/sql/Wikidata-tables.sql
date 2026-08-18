@@ -1033,6 +1033,20 @@ DELIMITER ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_WIKIDATA_SUBCLASS` (
+  `ID_CHILD` varchar(50) NOT NULL,
+  `ID_PARENT` varchar(50) NOT NULL,
+  `DELETED` tinyint(1) DEFAULT 0,
+  `DAT_CREAT` datetime DEFAULT current_timestamp(),
+  `TIM_UPDATED` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `IMPORT_BATCH_ID` varchar(100) DEFAULT NULL,
+  PRIMARY KEY (`ID_CHILD`,`ID_PARENT`),
+  KEY `IDX_T_WC_WIKIDATA_SUBCLASS_PARENT` (`ID_PARENT`),
+  KEY `IDX_T_WC_WIKIDATA_SUBCLASS_BATCH` (`IMPORT_BATCH_ID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `T_WC_WIKIDATA_TIME_VALUE` (
   `ID_STATEMENT` bigint(20) NOT NULL,
   `RAW_TIME_VALUE` varchar(100) DEFAULT NULL,

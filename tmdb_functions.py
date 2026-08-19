@@ -144,6 +144,13 @@ _lngidnotfoundretrydays = None
 _lngidnotfoundretrymaxfactor = None
 _lngidnotfoundnewcount = 0   # ids recorded during this run, reported by the crawler
 
+# Additive movie release-date history and movie/series watch-provider snapshots.
+# Kept separate from T_WC_TMDB_MOVIE.DAT_RELEASE on purpose: DAT_RELEASE remains
+# sourced from Movie Details, while these tables mirror the two dedicated TMDb
+# endpoints authoritatively after a complete response.
+_inttmdbavailabilitytablesready = None
+ARR_TMDB_WATCH_MONETIZATION_TYPES = ("flatrate", "free", "ads", "rent", "buy")
+
 def _f_tmdbservervariableint(strvarname, lngdefault, strvardesc):
     """Read an integer setting from T_WC_SERVER_VARIABLE, seeding it when absent."""
     strvalue = cp.f_getservervariable(strvarname, 0)
@@ -214,6 +221,235 @@ def f_tmdbidnotfoundensuretable():
         return True
     except Exception as err:
         print(f"Could not create T_WC_TMDB_ID_NOT_FOUND: {err}")
+        return False
+
+def _f_tmdbwatchproviderddl(strtablename, stridcolumn):
+    """Return the runtime DDL for one movie/series watch-provider table."""
+    return f"""CREATE TABLE IF NOT EXISTS `{strtablename}` (
+  `ID_ROW` int(11) NOT NULL AUTO_INCREMENT,
+  `{stridcolumn}` int(11) NOT NULL,
+  `COUNTRY_CODE` varchar(2) NOT NULL,
+  `MONETIZATION_TYPE` varchar(20) NOT NULL,
+  `ID_PROVIDER` int(11) NOT NULL,
+  `PROVIDER_NAME` varchar(250) DEFAULT NULL,
+  `LOGO_PATH` varchar(200) DEFAULT NULL,
+  `PROVIDER_DISPLAY_PRIORITY` int(11) DEFAULT NULL,
+  `TMDB_LINK` varchar(1000) DEFAULT NULL,
+  `COUNTRY_DISPLAY_ORDER` int(11) DEFAULT NULL,
+  `DISPLAY_ORDER` int(11) DEFAULT NULL,
+  `TIM_PROVIDER_UPDATED` datetime DEFAULT NULL,
+  `DELETED` int(5) DEFAULT NULL,
+  `ID_CREATOR` int(5) DEFAULT NULL,
+  `DAT_CREAT` date DEFAULT NULL,
+  `ID_OWNER` int(5) DEFAULT NULL,
+  `TIM_UPDATED` datetime DEFAULT NULL,
+  `ID_USER_UPDATED` int(5) DEFAULT NULL,
+  PRIMARY KEY (`ID_ROW`),
+  UNIQUE KEY `UK_{strtablename[5:]}` (`{stridcolumn}`,`COUNTRY_CODE`,`MONETIZATION_TYPE`,`ID_PROVIDER`),
+  KEY `{stridcolumn}` (`{stridcolumn}`),
+  KEY `COUNTRY_CODE` (`COUNTRY_CODE`),
+  KEY `MONETIZATION_TYPE` (`MONETIZATION_TYPE`),
+  KEY `ID_PROVIDER` (`ID_PROVIDER`),
+  KEY `TIM_PROVIDER_UPDATED` (`TIM_PROVIDER_UPDATED`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"""
+
+def f_tmdbavailabilityensuretables():
+    """
+    Ensure the additive release-date and watch-provider storage is available.
+
+    The crawler has no migration runner. Like T_WC_TMDB_ID_NOT_FOUND, these
+    acquisition-owned tables bootstrap on startup, and their canonical DDL is
+    mirrored in doc/sql/TMDb-tables.sql. Dedicated completion columns let the
+    backfill distinguish a successful empty snapshot from a call never made.
+
+    Returns:
+    --------
+    bool
+        True when all tables and completion columns are available.
+    """
+    global connectioncp
+    global _inttmdbavailabilitytablesready
+
+    if _inttmdbavailabilitytablesready is not None:
+        return _inttmdbavailabilitytablesready
+
+    strmoviereleasedateddl = """CREATE TABLE IF NOT EXISTS `T_WC_TMDB_MOVIE_RELEASE_DATE` (
+  `ID_ROW` int(11) NOT NULL AUTO_INCREMENT,
+  `ID_MOVIE` int(11) NOT NULL,
+  `COUNTRY_CODE` varchar(2) NOT NULL,
+  `LANG` varchar(10) DEFAULT NULL,
+  `CERTIFICATION` varchar(100) DEFAULT NULL,
+  `NOTE` mediumtext DEFAULT NULL,
+  `RELEASE_DATE_RAW` varchar(40) DEFAULT NULL,
+  `TIM_RELEASE` datetime DEFAULT NULL,
+  `RELEASE_TYPE` int(5) DEFAULT NULL,
+  `DESCRIPTORS_JSON` mediumtext DEFAULT NULL,
+  `COUNTRY_DISPLAY_ORDER` int(11) DEFAULT NULL,
+  `DISPLAY_ORDER` int(11) DEFAULT NULL,
+  `DELETED` int(5) DEFAULT NULL,
+  `ID_CREATOR` int(5) DEFAULT NULL,
+  `DAT_CREAT` date DEFAULT NULL,
+  `ID_OWNER` int(5) DEFAULT NULL,
+  `TIM_UPDATED` datetime DEFAULT NULL,
+  `ID_USER_UPDATED` int(5) DEFAULT NULL,
+  PRIMARY KEY (`ID_ROW`),
+  UNIQUE KEY `UK_TMDB_MOVIE_RELEASE_DATE` (`ID_MOVIE`,`COUNTRY_CODE`,`DISPLAY_ORDER`),
+  KEY `ID_MOVIE` (`ID_MOVIE`),
+  KEY `COUNTRY_CODE` (`COUNTRY_CODE`),
+  KEY `RELEASE_TYPE` (`RELEASE_TYPE`),
+  KEY `TIM_RELEASE` (`TIM_RELEASE`),
+  KEY `TIM_UPDATED` (`TIM_UPDATED`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"""
+
+    arrcreatestatements = [
+        strmoviereleasedateddl,
+        _f_tmdbwatchproviderddl("T_WC_TMDB_MOVIE_WATCH_PROVIDER", "ID_MOVIE"),
+        _f_tmdbwatchproviderddl("T_WC_TMDB_SERIE_WATCH_PROVIDER", "ID_SERIE")
+    ]
+    arrcompletioncolumns = [
+        ("T_WC_TMDB_MOVIE", "TIM_RELEASE_DATES_COMPLETED"),
+        ("T_WC_TMDB_MOVIE", "TIM_WATCH_PROVIDERS_COMPLETED"),
+        ("T_WC_TMDB_SERIE", "TIM_WATCH_PROVIDERS_COMPLETED")
+    ]
+
+    try:
+        cursor2 = connectioncp.cursor()
+        for strsqlcreate in arrcreatestatements:
+            cursor2.execute(strsqlcreate)
+        for strtablename, strcolumnname in arrcompletioncolumns:
+            cursor2.execute(f"SHOW COLUMNS FROM `{strtablename}` LIKE %s", (strcolumnname,))
+            if cursor2.fetchone() is None:
+                cursor2.execute(
+                    f"ALTER TABLE `{strtablename}` ADD COLUMN `{strcolumnname}` datetime DEFAULT NULL")
+                cursor2.execute(
+                    f"ALTER TABLE `{strtablename}` ADD KEY `{strcolumnname}` (`{strcolumnname}`)")
+        connectioncp.commit()
+        _inttmdbavailabilitytablesready = True
+    except Exception as err:
+        connectioncp.rollback()
+        _inttmdbavailabilitytablesready = False
+        print(f"Could not create release-date/watch-provider storage: {err}")
+    return _inttmdbavailabilitytablesready
+
+def _f_tmdbreleasedatetime(strreleasedate):
+    """Convert a TMDb ISO-8601 release timestamp to a UTC-naive SQL datetime."""
+    if not isinstance(strreleasedate, str) or not strreleasedate:
+        return None
+    try:
+        strnormalizeddate = strreleasedate.replace("Z", "+00:00")
+        datrelease = datetime.fromisoformat(strnormalizeddate)
+        if datrelease.tzinfo is not None:
+            datrelease = datrelease.astimezone(pytz.UTC).replace(tzinfo=None)
+        return datrelease.strftime("%Y-%m-%d %H:%M:%S")
+    except ValueError:
+        return None
+
+def _f_tmdbbuildmoviereleasedaterows(lngmovieid, data, strsnapshotupdated):
+    """Validate and flatten every country/release row from /release_dates."""
+    if not isinstance(data, dict) or not isinstance(data.get("results"), list):
+        raise ValueError("release_dates payload has no results list")
+
+    arrrows = []
+    for lngcountryorder, arrcountry in enumerate(data["results"], start=1):
+        if not isinstance(arrcountry, dict):
+            raise ValueError("release_dates country entry is not an object")
+        strcountrycode = arrcountry.get("iso_3166_1")
+        arrreleasedates = arrcountry.get("release_dates")
+        if not isinstance(strcountrycode, str) or not isinstance(arrreleasedates, list):
+            raise ValueError("release_dates country entry is incomplete")
+        for lngdisplayorder, arrreleasedate in enumerate(arrreleasedates, start=1):
+            if not isinstance(arrreleasedate, dict):
+                raise ValueError("release_dates item is not an object")
+            strreleasedateraw = arrreleasedate.get("release_date")
+            lngreleasetype = arrreleasedate.get("type")
+            arrdescriptors = arrreleasedate.get("descriptors", [])
+            if not isinstance(strreleasedateraw, str) or not isinstance(lngreleasetype, int):
+                raise ValueError("release_dates item has no release_date/type")
+            if not isinstance(arrdescriptors, list):
+                raise ValueError("release_dates descriptors is not a list")
+            arrrows.append((
+                lngmovieid,
+                strcountrycode[:2],
+                arrreleasedate.get("iso_639_1"),
+                arrreleasedate.get("certification"),
+                arrreleasedate.get("note"),
+                strreleasedateraw[:40],
+                _f_tmdbreleasedatetime(strreleasedateraw),
+                lngreleasetype,
+                json.dumps(arrdescriptors, ensure_ascii=False),
+                lngcountryorder,
+                lngdisplayorder,
+                0,
+                strsnapshotupdated[:10],
+                strsnapshotupdated
+            ))
+    return arrrows
+
+def _f_tmdbbuildwatchproviderrows(lngcontentid, data, strsnapshotupdated):
+    """Validate and flatten every country/mode/provider row from /watch/providers."""
+    if not isinstance(data, dict) or not isinstance(data.get("results"), dict):
+        raise ValueError("watch/providers payload has no results object")
+
+    arrrows = []
+    for lngcountryorder, (strcountrycode, arrcountry) in enumerate(data["results"].items(), start=1):
+        if not isinstance(strcountrycode, str) or not isinstance(arrcountry, dict):
+            raise ValueError("watch/providers country entry is incomplete")
+        strtmdblink = arrcountry.get("link")
+        for strmonetizationtype in ARR_TMDB_WATCH_MONETIZATION_TYPES:
+            arrproviders = arrcountry.get(strmonetizationtype, [])
+            if not isinstance(arrproviders, list):
+                raise ValueError(f"watch/providers {strmonetizationtype} entry is not a list")
+            for lngdisplayorder, arrprovider in enumerate(arrproviders, start=1):
+                if not isinstance(arrprovider, dict) or not isinstance(arrprovider.get("provider_id"), int):
+                    raise ValueError("watch/providers provider entry has no provider_id")
+                strprovidername = arrprovider.get("provider_name")
+                strlogopath = arrprovider.get("logo_path")
+                arrrows.append((
+                    lngcontentid,
+                    strcountrycode[:2],
+                    strmonetizationtype,
+                    arrprovider["provider_id"],
+                    strprovidername[:250] if isinstance(strprovidername, str) else None,
+                    strlogopath[:200] if isinstance(strlogopath, str) else None,
+                    arrprovider.get("display_priority"),
+                    strtmdblink[:1000] if isinstance(strtmdblink, str) else None,
+                    lngcountryorder,
+                    lngdisplayorder,
+                    strsnapshotupdated,
+                    0,
+                    strsnapshotupdated[:10],
+                    strsnapshotupdated
+                ))
+    return arrrows
+
+def _f_tmdbreplaceadditivesnapshot(strtablename, stridcolumn, lngcontentid,
+                                   arrcolumns, arrrows, strmastertable,
+                                   strcompletioncolumn, strcontext):
+    """Atomically replace one title's additive snapshot and completion marker."""
+    global connectioncp
+
+    if not f_tmdbavailabilityensuretables():
+        return False
+
+    strcolumnlist = ", ".join(f"`{strcolumn}`" for strcolumn in arrcolumns)
+    strplaceholders = ", ".join(["%s"] * len(arrcolumns))
+    strsqlinsert = f"INSERT INTO `{strtablename}` ({strcolumnlist}) VALUES ({strplaceholders})"
+    try:
+        cursor2 = connectioncp.cursor()
+        connectioncp.begin()
+        cursor2.execute(f"DELETE FROM `{strtablename}` WHERE `{stridcolumn}` = %s", (lngcontentid,))
+        if arrrows:
+            cursor2.executemany(strsqlinsert, arrrows)
+        strsnapshotupdated = datetime.now(paris_tz).strftime("%Y-%m-%d %H:%M:%S")
+        cursor2.execute(
+            f"UPDATE `{strmastertable}` SET `{strcompletioncolumn}` = %s WHERE `{stridcolumn}` = %s",
+            (strsnapshotupdated, lngcontentid))
+        connectioncp.commit()
+        print(f"{strcontext}: replaced snapshot with {len(arrrows)} rows")
+        return True
+    except Exception as err:
+        connectioncp.rollback()
+        print(f"{strcontext}: snapshot preserved after database error: {err}")
         return False
 
 def f_tmdbidnotfoundload():
@@ -1673,6 +1909,93 @@ def f_tmdbmovielangtosql(lngmovieid, strlang):
             strsqlupdatecondition = f"ID_MOVIE = {lngmovieid} AND LANG = '{strlang}'"
             cp.f_sqlupdatearray(strsqltablename,arrmoviecouples,strsqlupdatecondition,1)
 
+def f_tmdbmoviereleasedatestosql(lngmovieid):
+    """
+    Fetch every country-specific movie release date into the additive snapshot.
+
+    This deliberately does not read or write T_WC_TMDB_MOVIE.DAT_RELEASE. The
+    primary release date continues to come exclusively from Movie Details in
+    f_tmdbmovietosql(). Empty successful results authoritatively clear the old
+    snapshot; failed or malformed responses leave it untouched.
+
+    Parameters:
+    -----------
+    lngmovieid : int
+        The TMDb movie ID to fetch
+
+    Returns:
+    --------
+    bool
+        True after a successful snapshot replacement, False otherwise
+    """
+    global strtmdbapidomainurl
+
+    if lngmovieid <= 0:
+        return False
+    strcontext = f"f_tmdbmoviereleasedatestosql({lngmovieid})"
+    strtmdbapifullurl = f"{strtmdbapidomainurl}/3/movie/{lngmovieid}/release_dates"
+    data = f_tmdbfetchjson(strtmdbapifullurl, strcontext)
+    if f_tmdbfetchclassify(data, "movie", lngmovieid, strcontext) != INT_TMDB_FETCH_OK:
+        return False
+
+    strsnapshotupdated = datetime.now(paris_tz).strftime("%Y-%m-%d %H:%M:%S")
+    try:
+        arrrows = _f_tmdbbuildmoviereleasedaterows(lngmovieid, data, strsnapshotupdated)
+    except ValueError as err:
+        print(f"{strcontext}: snapshot preserved after incomplete payload: {err}")
+        return False
+
+    arrcolumns = (
+        "ID_MOVIE", "COUNTRY_CODE", "LANG", "CERTIFICATION", "NOTE",
+        "RELEASE_DATE_RAW", "TIM_RELEASE", "RELEASE_TYPE", "DESCRIPTORS_JSON",
+        "COUNTRY_DISPLAY_ORDER", "DISPLAY_ORDER", "DELETED", "DAT_CREAT", "TIM_UPDATED"
+    )
+    return _f_tmdbreplaceadditivesnapshot(
+        "T_WC_TMDB_MOVIE_RELEASE_DATE", "ID_MOVIE", lngmovieid,
+        arrcolumns, arrrows, "T_WC_TMDB_MOVIE", "TIM_RELEASE_DATES_COMPLETED", strcontext)
+
+def _f_tmdbcontentwatchproviderstosql(lngcontentid, strapientity, strentitytype,
+                                      strtablename, stridcolumn, strmastertable):
+    """Fetch and atomically replace a movie or series watch-provider snapshot."""
+    global strtmdbapidomainurl
+
+    if lngcontentid <= 0:
+        return False
+    strcontext = f"f_tmdb{strentitytype}watchproviderstosql({lngcontentid})"
+    strtmdbapifullurl = f"{strtmdbapidomainurl}/3/{strapientity}/{lngcontentid}/watch/providers"
+    data = f_tmdbfetchjson(strtmdbapifullurl, strcontext)
+    if f_tmdbfetchclassify(data, strentitytype, lngcontentid, strcontext) != INT_TMDB_FETCH_OK:
+        return False
+
+    strsnapshotupdated = datetime.now(paris_tz).strftime("%Y-%m-%d %H:%M:%S")
+    try:
+        arrrows = _f_tmdbbuildwatchproviderrows(lngcontentid, data, strsnapshotupdated)
+    except ValueError as err:
+        print(f"{strcontext}: snapshot preserved after incomplete payload: {err}")
+        return False
+
+    arrcolumns = (
+        stridcolumn, "COUNTRY_CODE", "MONETIZATION_TYPE", "ID_PROVIDER",
+        "PROVIDER_NAME", "LOGO_PATH", "PROVIDER_DISPLAY_PRIORITY", "TMDB_LINK",
+        "COUNTRY_DISPLAY_ORDER", "DISPLAY_ORDER", "TIM_PROVIDER_UPDATED",
+        "DELETED", "DAT_CREAT", "TIM_UPDATED"
+    )
+    return _f_tmdbreplaceadditivesnapshot(
+        strtablename, stridcolumn, lngcontentid, arrcolumns, arrrows,
+        strmastertable, "TIM_WATCH_PROVIDERS_COMPLETED", strcontext)
+
+def f_tmdbmoviewatchproviderstosql(lngmovieid):
+    """Fetch TMDb/JustWatch availability for a movie, grouped by country and mode."""
+    return _f_tmdbcontentwatchproviderstosql(
+        lngmovieid, "movie", "movie", "T_WC_TMDB_MOVIE_WATCH_PROVIDER",
+        "ID_MOVIE", "T_WC_TMDB_MOVIE")
+
+def f_tmdbseriewatchproviderstosql(lngserieid):
+    """Fetch TMDb/JustWatch availability for a TV series, grouped by country and mode."""
+    return _f_tmdbcontentwatchproviderstosql(
+        lngserieid, "tv", "serie", "T_WC_TMDB_SERIE_WATCH_PROVIDER",
+        "ID_SERIE", "T_WC_TMDB_SERIE")
+
 def f_tmdbmoviekeywordstosql(lngmovieid):
     """
     Fetch and store keywords for a movie from TMDb API.
@@ -1956,6 +2279,19 @@ def f_tmdbmoviedelete(lngmovieid):
         strsqlupdate = f"DELETE FROM {strsqltablename} WHERE {strsqlupdatecondition};"
         cursor2.execute(strsqlupdate)
         connectioncp.commit()
+
+        if f_tmdbavailabilityensuretables():
+            strsqltablename = "T_WC_TMDB_MOVIE_RELEASE_DATE"
+            strsqlupdatecondition = f"ID_MOVIE = {lngmovieid}"
+            strsqlupdate = f"DELETE FROM {strsqltablename} WHERE {strsqlupdatecondition};"
+            cursor2.execute(strsqlupdate)
+            connectioncp.commit()
+
+            strsqltablename = "T_WC_TMDB_MOVIE_WATCH_PROVIDER"
+            strsqlupdatecondition = f"ID_MOVIE = {lngmovieid}"
+            strsqlupdate = f"DELETE FROM {strsqltablename} WHERE {strsqlupdatecondition};"
+            cursor2.execute(strsqlupdate)
+            connectioncp.commit()
         
         strsqltablename = "T_WC_TMDB_MOVIE_LANG"
         strsqlupdatecondition = f"ID_MOVIE = {lngmovieid}"
@@ -2162,7 +2498,7 @@ def f_tmdbmovietosqleverything(lngmovieid):
     intfetchresult = f_tmdbmovietosql(lngmovieid)
     if intfetchresult != INT_TMDB_FETCH_OK:
         # Nothing to enrich: the id is gone (34) or the details call failed after
-        # its retries. The nine calls below would only repeat the same failure,
+        # its retries. The remaining calls would only repeat the same failure,
         # three of them printing an error line each (TMDB-CRAWLER-027).
         return intfetchresult
     f_tmdbmovielangtosql(lngmovieid,'fr')
@@ -2171,6 +2507,8 @@ def f_tmdbmovietosqleverything(lngmovieid):
     f_tmdbmoviesetkeywordscompleted(lngmovieid)
     f_tmdbmoviesimilartosql(lngmovieid)
     f_tmdbmovierecommendationstosql(lngmovieid)
+    f_tmdbmoviereleasedatestosql(lngmovieid)
+    f_tmdbmoviewatchproviderstosql(lngmovieid)
     f_tmdbmovieimagestosql(lngmovieid)
     f_tmdbmovievideotosql(lngmovieid,'en')
     f_tmdbmovievideotosql(lngmovieid,'fr')
@@ -2928,6 +3266,13 @@ def f_tmdbseriedelete(lngserieid):
         strsqlupdate = f"DELETE FROM {strsqltablename} WHERE {strsqlupdatecondition};"
         cursor2.execute(strsqlupdate)
         connectioncp.commit()
+
+        if f_tmdbavailabilityensuretables():
+            strsqltablename = "T_WC_TMDB_SERIE_WATCH_PROVIDER"
+            strsqlupdatecondition = f"ID_SERIE = {lngserieid}"
+            strsqlupdate = f"DELETE FROM {strsqltablename} WHERE {strsqlupdatecondition};"
+            cursor2.execute(strsqlupdate)
+            connectioncp.commit()
         
         strsqltablename = "T_WC_TMDB_SERIE_LANG"
         strsqlupdatecondition = f"ID_SERIE = {lngserieid}"
@@ -3358,7 +3703,7 @@ def f_tmdbserietosqleverything(lngserieid):
     intfetchresult = f_tmdbserietosql(lngserieid)
     if intfetchresult != INT_TMDB_FETCH_OK:
         # Nothing to enrich: the id is gone (34) or the details call failed after
-        # its retries. The nine calls below would only repeat the same failure
+        # its retries. The remaining calls would only repeat the same failure
         # (TMDB-CRAWLER-027).
         return intfetchresult
     f_tmdbserielangtosql(lngserieid,'fr')
@@ -3367,6 +3712,7 @@ def f_tmdbserietosqleverything(lngserieid):
     f_tmdbseriesetkeywordscompleted(lngserieid)
     f_tmdbseriesimilartosql(lngserieid)
     f_tmdbserierecommendationstosql(lngserieid)
+    f_tmdbseriewatchproviderstosql(lngserieid)
     f_tmdbserieimagestosql(lngserieid)
     f_tmdbserievideotosql(lngserieid,'en')
     f_tmdbserievideotosql(lngserieid,'fr')
@@ -5628,4 +5974,3 @@ def f_genrestranslatefr(strmoviegenres):
     strmoviegenres = strmoviegenres.replace("|War|","|Guerre|")
     strmoviegenres = strmoviegenres.replace("|Western|","|Western|")
     return strmoviegenres
-

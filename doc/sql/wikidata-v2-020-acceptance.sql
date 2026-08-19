@@ -137,7 +137,7 @@ SELECT '=== E2b . le detail, propriete par propriete ===' AS section;
 
 SELECT st.ID_PROPERTY AS propriete,
        st.VALUE_TYPE  AS type_valeur,
-       COALESCE(iv.ID_ITEM, ev.EXTERNAL_ID, CAST(tv.YEAR_VALUE AS CHAR)) AS valeur,
+       COALESCE(iv.ID_ITEM, ev.VALUE_EXTERNAL_ID, CAST(tv.YEAR_VALUE AS CHAR)) AS valeur,
        cible.LABEL_EN AS libelle_cible
 FROM   T_WC_WIKIDATA_STATEMENT st
 LEFT   JOIN T_WC_WIKIDATA_ITEM_VALUE        iv ON iv.ID_STATEMENT = st.ID_STATEMENT
@@ -173,10 +173,26 @@ WHERE  i.DELETED = 0;
 -- E4 . LE TUPLE EST-IL BIEN CELUI DU CODE, NI PLUS NI MOINS ?
 -- ############################################################################
 -- CACHED_ENTITY_PROPERTIES vaut exactement P31, P279, P345, P569, P570, P577.
--- Une propriete hors de cette liste sur un sujet ITEM signalerait que le filtre a
--- fui ; une propriete manquante, que la branche correspondante n'emet rien.
+--
+-- LIRE CE BLOC AVEC SA LIMITE, ELLE EST REELLE. La premiere version de E4a
+-- annoncait des centaines de proprietes « HORS TUPLE » et c'etait un artefact de
+-- la requete, pas une fuite du filtre. Deux raisons, mesurees le 2026-08-19.
+--
+-- 1. T_WC_WIKIDATA_ITEM ne contient pas que des vignettes de cache. Elle recoit
+--    aussi les entites EN PORTEE qui n'ont pas de table dediee : jeux video,
+--    livres, albums, ceremonies. Celles-la portent leurs claims complets par la
+--    voie normale, d'ou P527, P161, P1441 et la longue traine. C'etait deja vrai
+--    avant -020, et c'est ce que mesuraient les 6,1 % d'items non muets.
+-- 2. Symetriquement, une entite mise en cache n'atterrit pas forcement dans ITEM :
+--    une personne citee mais hors portee va dans PERSON. C'est pourquoi le tuple
+--    contient P569 et P570, et pourquoi la somme lue ici (1 055 186 le 2026-08-19)
+--    reste sous les 1 428 106 statements emis par l'etape 106.
+--
+-- Ce bloc dit donc ce que les sujets d'ITEM portent, pas ce que le cache a emis.
+-- Les deux lignes a regarder sont P31 et P279 : elles doivent dominer largement.
+-- La preuve que la garde n'a pas fui est en E5, pas ici.
 
-SELECT '=== E4a . proprietes emises sur les sujets du cache ===' AS section;
+SELECT '=== E4a . proprietes portees par les sujets stockes dans ITEM ===' AS section;
 
 SELECT st.ID_PROPERTY AS propriete,
        CASE st.ID_PROPERTY
@@ -186,14 +202,15 @@ SELECT st.ID_PROPERTY AS propriete,
             WHEN 'P569' THEN 'date de naissance   (attendu)'
             WHEN 'P570' THEN 'date de deces       (attendu)'
             WHEN 'P577' THEN 'date de publication (attendu)'
-            ELSE             'HORS TUPLE, a expliquer'
+            ELSE             'hors tuple, entite en portee logee dans ITEM'
        END AS statut,
        COUNT(*) AS nb_statements,
        COUNT(DISTINCT st.ID_WIKIDATA) AS nb_items_concernes
 FROM   T_WC_WIKIDATA_STATEMENT st
 JOIN   T_WC_WIKIDATA_ITEM i ON i.ID_WIKIDATA = st.ID_WIKIDATA
 GROUP  BY st.ID_PROPERTY
-ORDER  BY nb_statements DESC;
+ORDER  BY nb_statements DESC
+LIMIT  25;
 
 SELECT '=== E4b . les trois types de valeur atterrissent-ils ? ===' AS section;
 -- emit_class_claims_for_cached_item traite item, external_id et time. Chacune des
@@ -313,3 +330,35 @@ WHERE  a.DELETED IS NULL OR a.DELETED = 0
 GROUP  BY piv.ID_ITEM, c.LABEL_EN
 ORDER  BY nb_lignes_award DESC
 LIMIT  30;
+
+SELECT '=== E7c . le tri par le cone P279 sous Q618779 (award) ===' AS section;
+-- E7b montre que la pollution est plus large que « des ceremonies et des films » :
+-- des humains, des oeuvres litteraires, des series, des albums. Une liste de
+-- classes a la main raterait la traine. Les deux voies de -020 se combinent ici :
+-- la voie (a) donne le P31 de chaque ligne, la voie (b) donne le graphe qui dit
+-- si cette classe est une sorte de recompense. C'est la troisieme piste de
+-- TMDB-MOVIE-PREPROCESS-036 rendue calculable.
+--
+-- Ce bloc ne propose pas encore le filtre definitif : il mesure ce qu'il
+-- garderait et ce qu'il jetterait, pour que l'arbitrage se fasse sur des chiffres.
+
+WITH RECURSIVE cone_award (qid) AS (
+    SELECT CAST(r.qid AS CHAR(50)) COLLATE utf8mb4_unicode_ci AS qid
+    FROM   (SELECT 'Q618779' AS qid) AS r
+    UNION
+    SELECT sc.ID_CHILD
+    FROM   T_WC_WIKIDATA_SUBCLASS sc
+    JOIN   cone_award c ON c.qid = sc.ID_PARENT
+    WHERE  sc.DELETED = 0
+)
+SELECT (SELECT COUNT(*) FROM cone_award) AS classes_du_cone_award,
+       COUNT(DISTINCT a.ID_AWARD)        AS lignes_award_total,
+       COUNT(DISTINCT CASE WHEN piv.ID_ITEM IN (SELECT qid FROM cone_award)
+                           THEN a.ID_AWARD END) AS dans_le_cone,
+       COUNT(DISTINCT CASE WHEN piv.ID_ITEM NOT IN (SELECT qid FROM cone_award)
+                           THEN a.ID_AWARD END) AS hors_du_cone
+FROM   T_WC_T2S_AWARD a
+LEFT   JOIN T_WC_WIKIDATA_STATEMENT st ON st.ID_WIKIDATA = a.ID_WIKIDATA
+                                      AND st.ID_PROPERTY = 'P31'
+LEFT   JOIN T_WC_WIKIDATA_ITEM_VALUE piv ON piv.ID_STATEMENT = st.ID_STATEMENT
+WHERE  a.DELETED IS NULL OR a.DELETED = 0;

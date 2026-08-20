@@ -150,6 +150,7 @@ _lngidnotfoundnewcount = 0   # ids recorded during this run, reported by the cra
 # endpoints authoritatively after a complete response.
 _inttmdbavailabilitytablesready = None
 ARR_TMDB_WATCH_MONETIZATION_TYPES = ("flatrate", "free", "ads", "rent", "buy")
+ARR_TMDB_WATCH_CATALOG_TYPES = ("movie", "serie")
 
 def _f_tmdbservervariableint(strvarname, lngdefault, strvardesc):
     """Read an integer setting from T_WC_SERVER_VARIABLE, seeding it when absent."""
@@ -253,9 +254,90 @@ def _f_tmdbwatchproviderddl(strtablename, stridcolumn):
   KEY `TIM_PROVIDER_UPDATED` (`TIM_PROVIDER_UPDATED`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"""
 
+def _f_tmdbwatchprovidercatalogddl():
+    """Return runtime DDL for provider identity and catalogue membership tables."""
+    strproviderddl = """CREATE TABLE IF NOT EXISTS `T_WC_TMDB_WATCH_PROVIDER` (
+  `ID_PROVIDER` int(11) NOT NULL,
+  `PROVIDER_NAME` varchar(250) DEFAULT NULL,
+  `LOGO_PATH` varchar(200) DEFAULT NULL,
+  `TIM_PROVIDER_UPDATED` datetime DEFAULT NULL,
+  `DELETED` int(5) DEFAULT NULL,
+  `DISPLAY_ORDER` int(11) DEFAULT NULL,
+  `ID_CREATOR` int(5) DEFAULT NULL,
+  `DAT_CREAT` date DEFAULT NULL,
+  `ID_OWNER` int(5) DEFAULT NULL,
+  `TIM_UPDATED` datetime DEFAULT NULL,
+  `ID_USER_UPDATED` int(5) DEFAULT NULL,
+  PRIMARY KEY (`ID_PROVIDER`),
+  KEY `PROVIDER_NAME` (`PROVIDER_NAME`),
+  KEY `DELETED` (`DELETED`),
+  KEY `TIM_PROVIDER_UPDATED` (`TIM_PROVIDER_UPDATED`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"""
+
+    strcatalogddl = """CREATE TABLE IF NOT EXISTS `T_WC_TMDB_WATCH_PROVIDER_CATALOG` (
+  `ID_ROW` int(11) NOT NULL AUTO_INCREMENT,
+  `ID_PROVIDER` int(11) NOT NULL,
+  `CONTENT_TYPE` varchar(20) NOT NULL,
+  `PROVIDER_NAME` varchar(250) DEFAULT NULL,
+  `LOGO_PATH` varchar(200) DEFAULT NULL,
+  `DISPLAY_ORDER` int(11) DEFAULT NULL,
+  `TIM_PROVIDER_UPDATED` datetime DEFAULT NULL,
+  `DELETED` int(5) DEFAULT NULL,
+  `ID_CREATOR` int(5) DEFAULT NULL,
+  `DAT_CREAT` date DEFAULT NULL,
+  `ID_OWNER` int(5) DEFAULT NULL,
+  `TIM_UPDATED` datetime DEFAULT NULL,
+  `ID_USER_UPDATED` int(5) DEFAULT NULL,
+  PRIMARY KEY (`ID_ROW`),
+  UNIQUE KEY `UK_TMDB_WATCH_PROVIDER_CATALOG` (`ID_PROVIDER`,`CONTENT_TYPE`),
+  KEY `ID_PROVIDER` (`ID_PROVIDER`),
+  KEY `CONTENT_TYPE` (`CONTENT_TYPE`),
+  KEY `TIM_PROVIDER_UPDATED` (`TIM_PROVIDER_UPDATED`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"""
+
+    strregionddl = """CREATE TABLE IF NOT EXISTS `T_WC_TMDB_WATCH_PROVIDER_REGION` (
+  `ID_ROW` int(11) NOT NULL AUTO_INCREMENT,
+  `ID_PROVIDER` int(11) NOT NULL,
+  `CONTENT_TYPE` varchar(20) NOT NULL,
+  `COUNTRY_CODE` varchar(2) NOT NULL,
+  `PROVIDER_DISPLAY_PRIORITY` int(11) NOT NULL,
+  `DISPLAY_ORDER` int(11) DEFAULT NULL,
+  `TIM_PROVIDER_UPDATED` datetime DEFAULT NULL,
+  `DELETED` int(5) DEFAULT NULL,
+  `ID_CREATOR` int(5) DEFAULT NULL,
+  `DAT_CREAT` date DEFAULT NULL,
+  `ID_OWNER` int(5) DEFAULT NULL,
+  `TIM_UPDATED` datetime DEFAULT NULL,
+  `ID_USER_UPDATED` int(5) DEFAULT NULL,
+  PRIMARY KEY (`ID_ROW`),
+  UNIQUE KEY `UK_TMDB_WATCH_PROVIDER_REGION` (`ID_PROVIDER`,`CONTENT_TYPE`,`COUNTRY_CODE`),
+  KEY `ID_PROVIDER` (`ID_PROVIDER`),
+  KEY `CONTENT_TYPE` (`CONTENT_TYPE`),
+  KEY `COUNTRY_CODE` (`COUNTRY_CODE`),
+  KEY `TIM_PROVIDER_UPDATED` (`TIM_PROVIDER_UPDATED`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"""
+
+    strstateddl = """CREATE TABLE IF NOT EXISTS `T_WC_TMDB_WATCH_PROVIDER_CATALOG_STATE` (
+  `CONTENT_TYPE` varchar(20) NOT NULL,
+  `PROVIDER_COUNT` int(11) DEFAULT NULL,
+  `REGION_RELATION_COUNT` int(11) DEFAULT NULL,
+  `TIM_COMPLETED` datetime DEFAULT NULL,
+  `DELETED` int(5) DEFAULT NULL,
+  `DISPLAY_ORDER` int(11) DEFAULT NULL,
+  `ID_CREATOR` int(5) DEFAULT NULL,
+  `DAT_CREAT` date DEFAULT NULL,
+  `ID_OWNER` int(5) DEFAULT NULL,
+  `TIM_UPDATED` datetime DEFAULT NULL,
+  `ID_USER_UPDATED` int(5) DEFAULT NULL,
+  PRIMARY KEY (`CONTENT_TYPE`),
+  KEY `TIM_COMPLETED` (`TIM_COMPLETED`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"""
+
+    return strproviderddl, strcatalogddl, strregionddl, strstateddl
+
 def f_tmdbavailabilityensuretables():
     """
-    Ensure the additive release-date and watch-provider storage is available.
+    Ensure release-date, provider-entity and work-provider storage is available.
 
     The crawler has no migration runner. Like T_WC_TMDB_ID_NOT_FOUND, these
     acquisition-owned tables bootstrap on startup, and their canonical DDL is
@@ -304,7 +386,8 @@ def f_tmdbavailabilityensuretables():
     arrcreatestatements = [
         strmoviereleasedateddl,
         _f_tmdbwatchproviderddl("T_WC_TMDB_MOVIE_WATCH_PROVIDER", "ID_MOVIE"),
-        _f_tmdbwatchproviderddl("T_WC_TMDB_SERIE_WATCH_PROVIDER", "ID_SERIE")
+        _f_tmdbwatchproviderddl("T_WC_TMDB_SERIE_WATCH_PROVIDER", "ID_SERIE"),
+        *_f_tmdbwatchprovidercatalogddl()
     ]
     arrcompletioncolumns = [
         ("T_WC_TMDB_MOVIE", "TIM_RELEASE_DATES_COMPLETED"),
@@ -421,6 +504,182 @@ def _f_tmdbbuildwatchproviderrows(lngcontentid, data, strsnapshotupdated):
                     strsnapshotupdated
                 ))
     return arrrows
+
+def _f_tmdbbuildwatchprovidercatalogrows(strcontenttype, data, strsnapshotupdated):
+    """Validate one global movie/series provider catalogue and its regional priorities."""
+    if strcontenttype not in ARR_TMDB_WATCH_CATALOG_TYPES:
+        raise ValueError(f"unsupported watch-provider catalogue type: {strcontenttype}")
+    if not isinstance(data, dict) or not isinstance(data.get("results"), list):
+        raise ValueError("watch-provider catalogue payload has no results list")
+    if not data["results"]:
+        raise ValueError("watch-provider catalogue is unexpectedly empty")
+
+    arrcatalogrows = []
+    arrregionrows = []
+    arrseenproviderids = set()
+    for lngdisplayorder, arrprovider in enumerate(data["results"], start=1):
+        if not isinstance(arrprovider, dict) or not isinstance(arrprovider.get("provider_id"), int):
+            raise ValueError("watch-provider catalogue entry has no provider_id")
+        lngproviderid = arrprovider["provider_id"]
+        if lngproviderid <= 0 or lngproviderid in arrseenproviderids:
+            raise ValueError(f"watch-provider catalogue has invalid/duplicate provider_id {lngproviderid}")
+        arrseenproviderids.add(lngproviderid)
+
+        strprovidername = arrprovider.get("provider_name")
+        strlogopath = arrprovider.get("logo_path")
+        arrdisplaypriorities = arrprovider.get("display_priorities")
+        if not isinstance(arrdisplaypriorities, dict):
+            raise ValueError(f"watch-provider {lngproviderid} has no display_priorities object")
+
+        arrcatalogrows.append((
+            lngproviderid,
+            strcontenttype,
+            strprovidername[:250] if isinstance(strprovidername, str) else None,
+            strlogopath[:200] if isinstance(strlogopath, str) else None,
+            lngdisplayorder,
+            strsnapshotupdated,
+            0,
+            strsnapshotupdated[:10],
+            strsnapshotupdated
+        ))
+
+        for lngregionorder, (strcountrycode, lngpriority) in enumerate(
+                arrdisplaypriorities.items(), start=1):
+            if (not isinstance(strcountrycode, str) or len(strcountrycode) != 2 or
+                    not isinstance(lngpriority, int)):
+                raise ValueError(f"watch-provider {lngproviderid} has an invalid regional priority")
+            arrregionrows.append((
+                lngproviderid,
+                strcontenttype,
+                strcountrycode.upper(),
+                lngpriority,
+                lngregionorder,
+                strsnapshotupdated,
+                0,
+                strsnapshotupdated[:10],
+                strsnapshotupdated
+            ))
+    return arrcatalogrows, arrregionrows
+
+def _f_tmdbreplacewatchprovidercatalog(strcontenttype, arrcatalogrows, arrregionrows,
+                                       strsnapshotupdated):
+    """Atomically replace one provider catalogue and rebuild shared provider identities."""
+    global connectioncp
+
+    if not f_tmdbavailabilityensuretables():
+        return False
+    if strcontenttype not in ARR_TMDB_WATCH_CATALOG_TYPES or not arrcatalogrows:
+        return False
+
+    strcataloginsert = """INSERT INTO `T_WC_TMDB_WATCH_PROVIDER_CATALOG`
+(`ID_PROVIDER`,`CONTENT_TYPE`,`PROVIDER_NAME`,`LOGO_PATH`,`DISPLAY_ORDER`,
+ `TIM_PROVIDER_UPDATED`,`DELETED`,`DAT_CREAT`,`TIM_UPDATED`)
+VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)"""
+    strregioninsert = """INSERT INTO `T_WC_TMDB_WATCH_PROVIDER_REGION`
+(`ID_PROVIDER`,`CONTENT_TYPE`,`COUNTRY_CODE`,`PROVIDER_DISPLAY_PRIORITY`,`DISPLAY_ORDER`,
+ `TIM_PROVIDER_UPDATED`,`DELETED`,`DAT_CREAT`,`TIM_UPDATED`)
+VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)"""
+    strproviderupsert = """INSERT INTO `T_WC_TMDB_WATCH_PROVIDER`
+(`ID_PROVIDER`,`PROVIDER_NAME`,`LOGO_PATH`,`TIM_PROVIDER_UPDATED`,`DELETED`,`DISPLAY_ORDER`,
+ `DAT_CREAT`,`TIM_UPDATED`)
+SELECT ids.ID_PROVIDER,
+       COALESCE(movie.PROVIDER_NAME, serie.PROVIDER_NAME),
+       COALESCE(movie.LOGO_PATH, serie.LOGO_PATH),
+       CASE
+         WHEN movie.TIM_PROVIDER_UPDATED IS NULL THEN serie.TIM_PROVIDER_UPDATED
+         WHEN serie.TIM_PROVIDER_UPDATED IS NULL THEN movie.TIM_PROVIDER_UPDATED
+         WHEN movie.TIM_PROVIDER_UPDATED >= serie.TIM_PROVIDER_UPDATED THEN movie.TIM_PROVIDER_UPDATED
+         ELSE serie.TIM_PROVIDER_UPDATED
+       END,
+       0,
+       COALESCE(movie.DISPLAY_ORDER, serie.DISPLAY_ORDER),
+       %s,
+       %s
+FROM (SELECT DISTINCT ID_PROVIDER FROM `T_WC_TMDB_WATCH_PROVIDER_CATALOG`) ids
+LEFT JOIN `T_WC_TMDB_WATCH_PROVIDER_CATALOG` movie
+       ON movie.ID_PROVIDER = ids.ID_PROVIDER AND movie.CONTENT_TYPE = 'movie'
+LEFT JOIN `T_WC_TMDB_WATCH_PROVIDER_CATALOG` serie
+       ON serie.ID_PROVIDER = ids.ID_PROVIDER AND serie.CONTENT_TYPE = 'serie'
+ON DUPLICATE KEY UPDATE
+  `PROVIDER_NAME` = VALUES(`PROVIDER_NAME`),
+  `LOGO_PATH` = VALUES(`LOGO_PATH`),
+  `TIM_PROVIDER_UPDATED` = VALUES(`TIM_PROVIDER_UPDATED`),
+  `DELETED` = 0,
+  `DISPLAY_ORDER` = VALUES(`DISPLAY_ORDER`),
+  `TIM_UPDATED` = VALUES(`TIM_UPDATED`)"""
+
+    try:
+        cursor2 = connectioncp.cursor()
+        connectioncp.begin()
+        cursor2.execute(
+            "DELETE FROM `T_WC_TMDB_WATCH_PROVIDER_REGION` WHERE `CONTENT_TYPE` = %s",
+            (strcontenttype,))
+        cursor2.execute(
+            "DELETE FROM `T_WC_TMDB_WATCH_PROVIDER_CATALOG` WHERE `CONTENT_TYPE` = %s",
+            (strcontenttype,))
+        cursor2.executemany(strcataloginsert, arrcatalogrows)
+        if arrregionrows:
+            cursor2.executemany(strregioninsert, arrregionrows)
+        cursor2.execute(strproviderupsert, (strsnapshotupdated[:10], strsnapshotupdated))
+        cursor2.execute("""UPDATE `T_WC_TMDB_WATCH_PROVIDER` provider
+LEFT JOIN (SELECT DISTINCT ID_PROVIDER FROM `T_WC_TMDB_WATCH_PROVIDER_CATALOG`) active
+       ON active.ID_PROVIDER = provider.ID_PROVIDER
+SET provider.DELETED = 1, provider.TIM_UPDATED = %s
+WHERE active.ID_PROVIDER IS NULL AND COALESCE(provider.DELETED, 0) <> 1""",
+                        (strsnapshotupdated,))
+        cursor2.execute("""INSERT INTO `T_WC_TMDB_WATCH_PROVIDER_CATALOG_STATE`
+(`CONTENT_TYPE`,`PROVIDER_COUNT`,`REGION_RELATION_COUNT`,`TIM_COMPLETED`,`DELETED`,
+ `DISPLAY_ORDER`,`DAT_CREAT`,`TIM_UPDATED`)
+VALUES (%s,%s,%s,%s,0,1,%s,%s)
+ON DUPLICATE KEY UPDATE
+  `PROVIDER_COUNT` = VALUES(`PROVIDER_COUNT`),
+  `REGION_RELATION_COUNT` = VALUES(`REGION_RELATION_COUNT`),
+  `TIM_COMPLETED` = VALUES(`TIM_COMPLETED`),
+  `DELETED` = 0,
+  `TIM_UPDATED` = VALUES(`TIM_UPDATED`)""",
+                        (strcontenttype, len(arrcatalogrows), len(arrregionrows),
+                         strsnapshotupdated, strsnapshotupdated[:10], strsnapshotupdated))
+        connectioncp.commit()
+        print(f"watch-provider {strcontenttype} catalogue: replaced "
+              f"{len(arrcatalogrows)} providers and {len(arrregionrows)} regional priorities")
+        return True
+    except Exception as err:
+        connectioncp.rollback()
+        print(f"watch-provider {strcontenttype} catalogue preserved after database error: {err}")
+        return False
+
+def f_tmdbwatchprovidercatalogstosql():
+    """Fetch movie and TV provider entities, catalogue membership and regional priorities."""
+    global strtmdbapidomainurl
+
+    intallsucceeded = True
+    arrcatalogendpoints = (("movie", "movie"), ("serie", "tv"))
+    for strcontenttype, strapiendpoint in arrcatalogendpoints:
+        strcontext = f"f_tmdbwatchprovidercatalogstosql({strcontenttype})"
+        strtmdbapifullurl = (
+            f"{strtmdbapidomainurl}/3/watch/providers/{strapiendpoint}?language=en-US")
+        data = f_tmdbfetchjson(strtmdbapifullurl, strcontext)
+        strsnapshotupdated = datetime.now(paris_tz).strftime("%Y-%m-%d %H:%M:%S")
+        try:
+            arrcatalogrows, arrregionrows = _f_tmdbbuildwatchprovidercatalogrows(
+                strcontenttype, data, strsnapshotupdated)
+        except ValueError as err:
+            print(f"{strcontext}: catalogue preserved after incomplete payload: {err}")
+            intallsucceeded = False
+            continue
+        if not _f_tmdbreplacewatchprovidercatalog(
+                strcontenttype, arrcatalogrows, arrregionrows, strsnapshotupdated):
+            intallsucceeded = False
+            continue
+        try:
+            cp.f_setservervariable(
+                f"strtmdbcrawlerwatchprovidercatalog{strcontenttype}updated",
+                strsnapshotupdated,
+                f"Last successful TMDb {strcontenttype} watch-provider catalogue snapshot",
+                0)
+        except Exception as err:
+            print(f"{strcontext}: catalogue committed but server-variable update failed: {err}")
+    return intallsucceeded
 
 def _f_tmdbreplaceadditivesnapshot(strtablename, stridcolumn, lngcontentid,
                                    arrcolumns, arrrows, strmastertable,

@@ -9,10 +9,10 @@
 # lots. La base est alors dans son etat le plus propre et le plus petit de la
 # semaine, et le prochain run ne la touchera pas avant trois ou quatre jours.
 #
-# POURQUOI PAS DANS LE CRAWLER. Le script de sauvegarde vit sur l'hote, dans une
-# autre pile (damp-vaugouin-com), qui n'est pas montee dans le conteneur du
-# crawler. Une etape 116 ne pourrait donc pas l'appeler. La decision reste cote
-# hote, ou elle a acces aux deux.
+# POURQUOI PAS DANS LE CRAWLER. Le script de sauvegarde vit sur l'hote, dans
+# /home/debian/docker/tools, qui n'est pas monte dans le conteneur du crawler.
+# Une etape 116 ne pourrait donc pas l'appeler. La decision reste cote hote, ou
+# elle a acces aux deux.
 #
 # COMMENT IL SAIT QU'UN RUN A REUSSI. Le conteneur tourne avec --rm : une fois
 # sorti, il ne reste rien sur l'hote. Le volume partage est le seul terrain
@@ -22,8 +22,9 @@
 # un run donne declenche une sauvegarde et une seule, quel que soit le nombre de
 # passages horaires.
 #
-# CE QUE FAIT LE SCRIPT APPELE (backupvaugouindb.sh, pile damp-vaugouin-com) :
-# il source /home/debian/docker/damp-vaugouin-com/.env, puis lance mariadb-dump
+# CE QUE FAIT LE SCRIPT APPELE (backupvaugouindb.sh, dans docker/tools depuis le
+# 2026-08-31) : il source le .env de la pile de la base, dont le chemin est fixe
+# dans le script lui-meme et surchargeable par ENV_FILE, puis lance mariadb-dump
 # DANS le conteneur de la base (docker exec), et ecrit
 # /backups/<base>-backup-<horodatage>.sql.gz, chemin interne au conteneur.
 #
@@ -80,9 +81,10 @@ SENTINELLE="$SHARED/last_successful_run.json"
 MARQUEUR="$STACK/.last-backup-batch"
 VERROU=/tmp/backup-after-run.lock
 
-# Le script de sauvegarde de la pile damp-vaugouin-com. Surchargeable par
-# l'environnement pour les tests ou si la pile demenage.
-SCRIPT_SAUVEGARDE="${BACKUP_SCRIPT:-/home/debian/docker/damp-vaugouin-com/backupvaugouindb.sh}"
+# Le script de sauvegarde, dans docker/tools depuis le 2026-08-31 (il vivait
+# avant dans la pile damp-vaugouin-com). Surchargeable par l'environnement pour
+# les tests, ou le jour ou il redemenage.
+SCRIPT_SAUVEGARDE="${BACKUP_SCRIPT:-/home/debian/docker/tools/backupvaugouindb.sh}"
 
 # Plancher de taille du .gz produit, en octets. Un dump complet de vaugouindb
 # compresse pese des centaines de Mo ; 1 Mo est donc tres en dessous du normal et

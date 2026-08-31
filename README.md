@@ -567,7 +567,7 @@ The table list comes from `TABLE_SPECS` in `load_staging_jsonl.py`, the same sou
 
 The end of a run is the right moment for a full database backup: the target tables carry the current batch, step `114` has removed the previous batches' rows and step `115` has cleared their staging. The database is then in the cleanest, smallest state of the week, and nothing will touch it for another three or four days.
 
-That backup cannot be a step `116`. The backup script lives on the host, in another stack (`~/docker/damp-vaugouin-com/backupvaugouindb.sh`), which is not mounted into the crawler's container. The decision therefore stays on the host, where both are reachable.
+That backup cannot be a step `116`. The backup script lives on the host, in `~/docker/tools/backupvaugouindb.sh`, which is not mounted into the crawler's container. The decision therefore stays on the host, where both are reachable.
 
 **How the host knows a run succeeded.** The container runs with `--rm`, so once it exits nothing is left on the host and `/shared` is the only common ground. A successful run drops `/shared/last_successful_run.json` there:
 
@@ -592,7 +592,7 @@ By hand:
 
 ### Ce que fait le script appele, et pourquoi on verifie derriere lui
 
-`backupvaugouindb.sh` (source: `tmdb-front`, deploye dans `~/docker/damp-vaugouin-com/`) sources `/home/debian/docker/damp-vaugouin-com/.env`, then runs `mariadb-dump` **inside** the database container via `docker exec`, writing `/backups/<db>-backup-<timestamp>.sql.gz` (a path inside that container).
+`backupvaugouindb.sh` (source: `tmdb-front`, deployed in `~/docker/tools/` since 2026-08-31, previously in `~/docker/damp-vaugouin-com/`) sources the database stack's `.env`, whose path is set inside the script and overridable with `ENV_FILE`, then runs `mariadb-dump` **inside** the database container via `docker exec`, writing `/backups/<db>-backup-<timestamp>.sql.gz` (a path inside that container).
 
 Until 2026-08-31 its exit code could not be used as a success signal, for two independent reasons: it ended on `if [ $? -eq 0 ] ... else echo "Backup failed!"`, which **printed** the failure but never exited non-zero, so its status was that of the final `echo`, always `0`; and that internal `$?` was `gzip`'s rather than `mariadb-dump`'s, so an interrupted dump gave a truncated `.gz` and a cheerful "Backup successful!".
 

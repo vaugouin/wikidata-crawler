@@ -58,9 +58,10 @@
 -- ============================================================================
 
 SET NAMES utf8mb4;
+SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- >>> set to the CURRENT batch id, the one to KEEP <<<
-SET @IMPORT_BATCH_ID = 'BATCH_20260309_001';
+SET @IMPORT_BATCH_ID = 'wikidata_full_20260823_0317';
 
 -- ---- Pre-flight checks (run these before the DELETEs) ----------------------
 -- 1. What is actually in staging, and how much of it:

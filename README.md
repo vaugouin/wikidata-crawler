@@ -68,9 +68,13 @@ Use these documents as the main references:
   already exists in another child table); deletes stale typed-value siblings left when a
   statement's `VALUE_TYPE` flips between dumps. Same purge is built into
   `03_bulk_load_from_staging_FULL.sql`, so this is only for unblocking an in-flight load.
-- `10_clear_staging_batch.sql` — deletes all `STG_*` rows for one `@OLD_BATCH_ID`, keeping the
-  current batch; use to clear an old batch left stacked in staging (step 114 prunes targets only,
-  not staging). Surgical alternative to `04_reset_for_full_rerun.sql`.
+- `10_clear_staging_batch.sql`: deletes all `STG_*` rows for one `@OLD_BATCH_ID`, keeping every
+  other batch; use it to drop one specific batch. Surgical alternative to
+  `04_reset_for_full_rerun.sql`.
+- `13_cleanup_staging_old_batches.sql`: hand-runnable twin of step `115`, deletes every `STG_*` row
+  older than `@IMPORT_BATCH_ID`, leaving staging with just the batch that finished. The crawler does
+  not execute this file (step 115 issues the same deletes in chunks); it is for cleaning a database
+  by hand, or catching up runs that predate step 115.
 - `apply_to_live_db.sql` — idempotent additive DDL (SEASON/EPISODE/CHARACTER target tables + the
   **full** `STG_T_WC_WIKIDATA_*` staging set); auto-applied by the crawler at steps 108 and 110 so a
   long-lived DB stays in sync with new tables and any staging table that was dropped by hand is
@@ -186,6 +190,7 @@ Its steps are:
 - `112` resolve media resources
 - `113` validate media resources
 - `114` cleanup old import batches
+- `115` cleanup old staging batches
 
 For a full rerun, start from `101`.
 
@@ -212,6 +217,7 @@ Three properties make this work:
 | Step `110` (bulk load, hours) | updated row by row — never empty |
 | Steps `112` / `113` (media resolution) | current batch |
 | Step `114` (cleanup) | old-batch orphans pruned |
+| Step `115` (staging cleanup) | untouched (staging only) |
 
 Time with no Wikidata V2 data in the database: **zero**.
 
@@ -220,7 +226,7 @@ Time with no Wikidata V2 data in the database: **zero**.
 - **Disk.** Because IDs are stable, re-loading a statement updates its row instead of adding one, so the tables do not double in size. Only genuinely new statements grow them, plus the old-batch orphans that linger until step `114`. Keep headroom anyway — an InnoDB `DELETE` does not return space to the filesystem.
 - **Entity tables are never pruned.** `T_WC_WIKIDATA_MOVIE` / `SERIE` / `PERSON` / `ITEM` / `SEASON` / `EPISODE` / `CHARACTER` and `T_WC_WIKIDATA_PROPERTY_METADATA` have no `IMPORT_BATCH_ID`, so step `114` leaves them alone by design. An entity that falls out of scope keeps its row (with zero statements after the cleanup). Cosmetic, but it never self-heals — only a full reset removes it.
 - **`VALUE_TYPE` flips (trigger error 1644)** are the classic hazard of loading on top of existing data — they happen precisely *because* the old batch is still there. Already handled: the purge of stale typed-value siblings is built into `03_bulk_load_from_staging_FULL.sql` (section 3B). Just rebuild the Docker image so the container runs the current SQL.
-- **Staging is not cleared automatically.** Step `108` deletes rows for the *current* `IMPORT_BATCH_ID` before loading, but leaves older batches in place. Clear the previous batch with `10_clear_staging_batch.sql` whenever convenient — staging is not read by the front-end, so its timing is unconstrained.
+- **Staging holds two batches for the length of a run.** Step `108` deletes rows for the *current* `IMPORT_BATCH_ID` before loading (which is what makes a `--start-step 108` resume safe) and leaves older batches alone; step `115` removes them at the very end, once the bulk load has succeeded. So staging peaks at two full batches, well over 100 M rows, and comes back down to one when the run finishes. A run that fails before `115` leaves the predecessor behind: clear it with a standalone `--start-step 115` or with `13_cleanup_staging_old_batches.sql`. Staging is not read by the front-end, so the timing is unconstrained.
 
 ### When a full reset IS required
 
@@ -278,7 +284,7 @@ This lets you distinguish one full run from another in staging and in validation
 
 **Nothing to do here for a normal rerun.** Do not run `04_reset_for_full_rerun.sql`: the bulk load upserts on top of the existing rows and step `114` prunes what is left over, so the V2 tables stay populated and serviceable from start to finish. See "Rerun strategy: incremental by default (zero downtime)" above for the full rationale, the trade-offs, and the short list of situations that genuinely call for a reset.
 
-Optionally clear the *previous* batch out of staging — it is dead weight (tens of millions of rows) and invisible to the front-end, so the timing is free:
+Nothing to do about staging either: step `115` clears the previous batch at the end of the run, once the new one is loaded. To reclaim that space *before* the run instead (staging is dead weight, tens of millions of rows, invisible to the front-end), drop one named batch by hand:
 
 ```sql
 -- set @OLD_BATCH_ID to the batch you want gone, then:
@@ -372,7 +378,7 @@ When restarting everything from scratch, use this checklist in order.
 ### Database
 
 - **do not** reset the target tables — the rerun loads on top of them (see "Rerun strategy" above)
-- optionally connect to MariaDB and run `SOURCE 10_clear_staging_batch.sql;` with `@OLD_BATCH_ID` set to the previous batch, to drop stale staging rows
+- **do not** clear staging either: step `115` drops the previous batch at the end of the run; run `SOURCE 10_clear_staging_batch.sql;` by hand only if you need that disk space *before* the run
 - run `SOURCE 04_reset_for_full_rerun.sql;` only in the cases listed under "When a full reset IS required"
 
 ### Docker
@@ -397,9 +403,9 @@ docker build -t wikidata-crawler-python-app .
 
 ### 3. Skip the database reset
 
-There is deliberately no reset step here. The target tables keep serving the previous run while the new one builds; step `114` prunes the leftovers at the end.
+There is deliberately no reset step here. The target tables keep serving the previous run while the new one builds; step `114` prunes the target leftovers at the end and step `115` prunes the staging ones.
 
-Optional housekeeping — drop the previous batch from staging (set `@OLD_BATCH_ID` first):
+Optional housekeeping, drop the previous batch from staging *early*, if you need the disk space before the run rather than after it (set `@OLD_BATCH_ID` first):
 
 ```sql
 SOURCE 10_clear_staging_batch.sql;
@@ -484,7 +490,7 @@ Earlier versions of this runbook recommended clearing staging **and** the target
 
 The remaining concerns from that era still hold and are addressed elsewhere:
 
-- staging reloads can duplicate rows if rerun carelessly → step `108` deletes the current batch before loading, and `10_clear_staging_batch.sql` removes older ones;
+- staging reloads can duplicate rows if rerun carelessly → step `108` deletes the current batch before loading, and step `115` removes the older ones at the end of the run (`13_cleanup_staging_old_batches.sql` is its manual twin);
 - step `104` depends on dump-source initialization from step `101` → still true, still a reason to start full reruns at `101`;
 - statement and qualifier IDs must remain stable across reruns → still true, and it is exactly the condition under which the incremental path is safe. If you change that logic, reset (see "When a full reset IS required").
 
@@ -514,7 +520,9 @@ So the reliable rerun procedure is now:
 - `09_fix_value_type_conflicts.sql`
   - manual repair for bulk-load trigger error 1644 (`<TABLE>: statement/qualifier already exists in another child table`). When a statement's (or qualifier's) `VALUE_TYPE` changes between two dumps, the upsert-only bulk load updates the parent type but leaves the earlier batch's value row in the now-wrong sibling table, which the "one statement → one value table" triggers reject. This script deletes, for the current `@IMPORT_BATCH_ID`, every target typed-value row whose statement/qualifier is classified as a different `VALUE_TYPE` in this batch's staging. Idempotent. The same purge is built into `03_bulk_load_from_staging_FULL.sql`, so a fresh run self-heals; run this standalone only to unblock an in-flight load without rebuilding the image (set `@IMPORT_BATCH_ID`, then resume with `--start-step 110`).
 - `10_clear_staging_batch.sql`
-  - surgical staging cleanup: deletes every `STG_*` row for one `@OLD_BATCH_ID`, leaving the current batch intact. The pipeline loads staging (step 108) but never clears it, and step 114 prunes only the target tables — so an old batch left stacked in staging (tens of millions of rows) persists. Run this to reclaim that space and avoid a "two batches in staging" state. Set `@OLD_BATCH_ID` to the batch to remove. Lighter than `04_reset_for_full_rerun.sql`, which wipes all staging + targets for a full rebuild.
+  - surgical staging cleanup: deletes every `STG_*` row for one `@OLD_BATCH_ID`, leaving every other batch intact. Use it to drop one named batch, typically to reclaim its space *before* a run rather than waiting for step `115` to do it at the end. Set `@OLD_BATCH_ID` to the batch to remove. Lighter than `04_reset_for_full_rerun.sql`, which wipes all staging + targets for a full rebuild.
+- `13_cleanup_staging_old_batches.sql`
+  - hand-runnable twin of step `115`: deletes every `STG_*` row whose `IMPORT_BATCH_ID` is strictly older than `@IMPORT_BATCH_ID`, leaving staging with exactly the batch that just loaded. The crawler does **not** execute this file. Step 115 issues the same deletes in committed 50 000-row chunks, deriving its table list from `TABLE_SPECS` in `load_staging_jsonl.py`. Use it to clean a database by hand, or to catch up a run that predates step 115. Set `@IMPORT_BATCH_ID` to the batch to **keep**, and run the two guard queries in its header first.
 
 ## Cleanup of old import batches (step 114)
 
@@ -531,6 +539,27 @@ It records `strwikidatacrawlercleanuprowsdeleted` (total rows removed) and `strw
 **Safety guard.** The step refuses to delete anything unless the current `IMPORT_BATCH_ID` already has statements in `T_WC_WIKIDATA_STATEMENT`. This prevents a misconfigured or not-yet-loaded batch id from wiping every prior batch. It is a lighter, incremental alternative to `04_reset_for_full_rerun.sql`: the reset clears *everything* before a fresh rebuild, whereas step 114 keeps the current batch and removes only what is older.
 
 This is what makes the reset unnecessary: step `114` performs the same deletion, but **after** the new data has landed instead of before. That single reordering is what turns a multi-day outage of the V2 tables into no outage at all. See "Rerun strategy: incremental by default (zero downtime)".
+
+## Cleanup of old staging batches (step 115)
+
+Step `115` is the staging counterpart of step `114`, and the last step of the pipeline. Step `108` deletes only the *current* `IMPORT_BATCH_ID` from the `STG_*` tables before loading it (that is what makes a `--start-step 108` resume safe), so without a final sweep every run leaves its predecessor behind, and staging grows one full batch per run: well over 100 M rows and several GB that nothing reads again.
+
+Step `115` deletes every `STG_*` row whose `IMPORT_BATCH_ID` is **strictly older** than the current batch, using the same chronological-string comparison as step `114`. When it finishes, staging holds exactly one batch: the one that just loaded, still available for a `--start-step 110` re-load.
+
+Two details worth knowing:
+
+- **It deletes in chunks.** A whole previous batch is far more rows than step `114` ever touches, so the step issues `DELETE ... LIMIT 50000` in a loop and commits each chunk, instead of building one enormous undo log on a step whose whole point is to give disk space back. That also makes it interruptible: killing it mid-way loses nothing, and re-running finishes the job.
+- **It is guarded twice.** It refuses to run unless the current batch is present in `STG_T_WC_WIKIDATA_STATEMENT` (otherwise a wrong or empty `IMPORT_BATCH_ID` would sort above every real batch and empty staging completely) **and** already present in `T_WC_WIKIDATA_STATEMENT` (older staging is the fallback until the bulk load has succeeded).
+
+It records `strwikidatacrawlerstagingcleanuprowsdeleted`, `strwikidatacrawlerstagingcleanupbatchid` and `strwikidatacrawlerstagingcleanuplasttable` as server variables. Idempotent, and safe to run on its own:
+
+```bash
+./wikidata-crawler.sh --start-step 115      # prune old staging batches only
+```
+
+The table list comes from `TABLE_SPECS` in `load_staging_jsonl.py`, the same source step `108` uses, so a staging table added to the loader is pruned here automatically. The three `STG_T_WC_WIKIDATA_MEDIA_RESOURCE*` tables are not in that list because the pipeline never writes them (step `112` fills the target tables directly); `13_cleanup_staging_old_batches.sql` covers them anyway.
+
+**InnoDB does not return freed pages to the filesystem.** The rows are gone and the space is reused by the next batch, but the `.ibd` files do not shrink. If you need the disk back on the host, run `OPTIMIZE TABLE` on the large staging tables at a quiet moment.
 
 ## Media resolution (steps 112 & 113)
 
@@ -605,12 +634,13 @@ Before the next full run:
 - delete `latest-all.json.bz2`
 - change `IMPORT_BATCH_ID` in `.env`
 - **do not** run `04_reset_for_full_rerun.sql` — the target tables stay live and get upserted in place
-- optionally run `10_clear_staging_batch.sql` for the previous batch (staging housekeeping only)
+- **do not** clear staging: step `115` does it at the end of the run
 - rebuild Docker image
 - run with `docker run -d`
 - watch with `docker logs -f wikidata-crawler`
 - start from `--start-step 101`
-- the final step (`114`) auto-prunes rows from older `IMPORT_BATCH_ID`s — that is what replaces the up-front reset, and it runs only once the new data is in
+- step `114` auto-prunes target rows from older `IMPORT_BATCH_ID`s, which is what replaces the up-front reset, and it runs only once the new data is in
+- step `115` does the same for staging, so the run ends with exactly one batch staged
 
 ## Additional references
 

@@ -14,7 +14,10 @@
 --   After a successful run that stacked a new batch on top of an old one in
 --   staging, to reclaim space and avoid a confusing "two batches in staging"
 --   state. It is a surgical alternative to 04_reset_for_full_rerun.sql (which
---   clears BOTH staging and targets for a full rebuild).
+--   clears BOTH staging and targets for a full rebuild). To drop EVERY batch
+--   older than the current one in one pass, use 13_cleanup_staging_old_batches.sql
+--   instead; that is the routine "keep only the latest batch" cleanup, and the
+--   pipeline now does it automatically at step 115.
 --
 -- SAFETY
 --   Set @OLD_BATCH_ID to the batch you want to REMOVE. It MUST be an old batch,
@@ -53,6 +56,7 @@ DELETE FROM STG_T_WC_WIKIDATA_SEASON                   WHERE IMPORT_BATCH_ID COL
 DELETE FROM STG_T_WC_WIKIDATA_EPISODE                  WHERE IMPORT_BATCH_ID COLLATE utf8mb4_unicode_ci = @OLD_BATCH_ID;
 DELETE FROM STG_T_WC_WIKIDATA_CHARACTER                WHERE IMPORT_BATCH_ID COLLATE utf8mb4_unicode_ci = @OLD_BATCH_ID;
 DELETE FROM STG_T_WC_WIKIDATA_PROPERTY_METADATA        WHERE IMPORT_BATCH_ID COLLATE utf8mb4_unicode_ci = @OLD_BATCH_ID;
+DELETE FROM STG_T_WC_WIKIDATA_SUBCLASS                 WHERE IMPORT_BATCH_ID COLLATE utf8mb4_unicode_ci = @OLD_BATCH_ID;
 
 -- ---- Statement + main typed-value staging ---------------------------------
 DELETE FROM STG_T_WC_WIKIDATA_STATEMENT                WHERE IMPORT_BATCH_ID COLLATE utf8mb4_unicode_ci = @OLD_BATCH_ID;

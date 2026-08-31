@@ -30,6 +30,11 @@ BASE_DIR = Path(__file__).resolve().parent
 DEFAULT_BULK_SQL_NAME = "03_bulk_load_from_staging_FULL.sql"
 DEFAULT_MEDIA_RESOLVE_SQL_NAME = "07_resolve_media_resources.sql"
 DEFAULT_CLEANUP_SQL_NAME = "08_cleanup_old_batches.sql"
+# Chunk size for the step-115 staging prune. A whole previous batch is well over
+# 100 M staging rows, so a single DELETE would build one enormous undo log on a
+# step whose entire purpose is to give disk space back. Deleting in committed
+# chunks keeps the transaction small and lets the step be killed and resumed.
+STAGING_CLEANUP_CHUNK_SIZE = 50_000
 DEFAULT_LIVE_DB_SCHEMA_NAME = "apply_to_live_db.sql"
 CRAWLER_PREFIX = "strwikidatacrawler"
 # Steps that stream the dump. Step 101 is what turns DUMP_FILE / DUMP_URL into
@@ -79,6 +84,7 @@ class WikidataCrawler:
             (112, "resolve media resources"),
             (113, "validate media resources"),
             (114, "cleanup old import batches"),
+            (115, "cleanup old staging batches"),
         ])
         self.steps = OrderedDict([
             (101, ProcessStep(101, self.arrwikidatascope[101], WikidataCrawler.step_resolve_dump_source)),
@@ -95,6 +101,7 @@ class WikidataCrawler:
             (112, ProcessStep(112, self.arrwikidatascope[112], WikidataCrawler.step_resolve_media)),
             (113, ProcessStep(113, self.arrwikidatascope[113], WikidataCrawler.step_validate_media)),
             (114, ProcessStep(114, self.arrwikidatascope[114], WikidataCrawler.step_cleanup_old_batches)),
+            (115, ProcessStep(115, self.arrwikidatascope[115], WikidataCrawler.step_cleanup_staging_batches)),
         ])
 
     def run(self) -> None:
@@ -611,6 +618,83 @@ class WikidataCrawler:
         cp.f_setservervariable(f"{CRAWLER_PREFIX}cleanupbatchid", self.import_batch_id, "Current import batch id used as the cutoff by the old-batch cleanup step", 0)
         cp.f_setservervariable(f"{CRAWLER_PREFIX}cleanuprowsdeleted", str(total_deleted), "Total rows deleted from target tables by the old-batch cleanup step (step 114)", 0)
 
+    def step_cleanup_staging_batches(self) -> None:
+        # Prune STAGING the way step 114 prunes the targets: delete every STG_* row
+        # whose IMPORT_BATCH_ID is strictly older than the current batch, so that once
+        # a run has succeeded, staging holds exactly one batch, the one just loaded.
+        #
+        # Step 108 only deletes the CURRENT batch before loading it (that is what makes
+        # a --start-step 108 resume safe), so without this step every run leaves its
+        # predecessor behind: two full batches of staging, over 100 M rows and several
+        # GB that nothing reads. See 13_cleanup_staging_old_batches.sql for the
+        # hand-runnable twin of this step.
+        #
+        # Two guards, because this step deletes far more than step 114 does:
+        #   1. the current batch must actually be IN staging. A wrong or empty
+        #      IMPORT_BATCH_ID otherwise sorts above every real batch and would empty
+        #      the staging tables completely.
+        #   2. the current batch must already be in T_WC_WIKIDATA_STATEMENT. Older
+        #      staging is only disposable once the new data has landed in the targets;
+        #      until then it is the one thing a --start-step 110 resume could fall back
+        #      on. EXISTS rather than COUNT(*): a batch is tens of millions of rows and
+        #      the question is only whether there is one.
+        staged = self._fetch_scalar(
+            "SELECT EXISTS(SELECT 1 FROM STG_T_WC_WIKIDATA_STATEMENT WHERE IMPORT_BATCH_ID = %s) AS PRESENT",
+            (self.import_batch_id,),
+        )
+        if int(staged) <= 0:
+            raise ValidationError(
+                f"Refusing to clean older staging batches: no staged statements for the current "
+                f"IMPORT_BATCH_ID '{self.import_batch_id}'. Load staging first (--start-step 108)."
+            )
+        loaded = self._fetch_scalar(
+            "SELECT EXISTS(SELECT 1 FROM T_WC_WIKIDATA_STATEMENT WHERE IMPORT_BATCH_ID = %s) AS PRESENT",
+            (self.import_batch_id,),
+        )
+        if int(loaded) <= 0:
+            raise ValidationError(
+                f"Refusing to clean older staging batches: IMPORT_BATCH_ID '{self.import_batch_id}' "
+                f"is not loaded in T_WC_WIKIDATA_STATEMENT yet. Run the bulk load first "
+                f"(--start-step 110); older staging is the fallback until it succeeds."
+            )
+
+        # Same source of truth as step 108, so a table added to the loader is pruned
+        # here without a second list to keep in sync. It leaves out the three
+        # STG_*_MEDIA_RESOURCE* tables, which the pipeline never writes (step 112 fills
+        # the target tables directly); 13_cleanup_staging_old_batches.sql covers them
+        # for the rare case where something loaded them by hand.
+        staging_tables = sorted({spec.table_name for spec in TABLE_SPECS})
+        total_deleted = 0
+        connection = create_staging_connection()
+        try:
+            for table_name in staging_tables:
+                table_deleted = 0
+                while True:
+                    with connection.cursor() as cursor:
+                        cursor.execute(
+                            f"DELETE FROM {table_name} WHERE IMPORT_BATCH_ID < %s LIMIT %s",
+                            (self.import_batch_id, STAGING_CLEANUP_CHUNK_SIZE),
+                        )
+                        deleted = cursor.rowcount or 0
+                    connection.commit()
+                    table_deleted += deleted
+                    if deleted < STAGING_CLEANUP_CHUNK_SIZE:
+                        break
+                total_deleted += table_deleted
+                if table_deleted:
+                    print(f"115: {table_name}: {table_deleted} rows deleted")
+                cp.f_setservervariable(
+                    f"{CRAWLER_PREFIX}stagingcleanuplasttable",
+                    table_name,
+                    "Last staging table processed by the old-staging-batch cleanup step (step 115)",
+                    0,
+                )
+        finally:
+            connection.close()
+        print(f"115: deleted {total_deleted} staging rows from import batches older than {self.import_batch_id}")
+        cp.f_setservervariable(f"{CRAWLER_PREFIX}stagingcleanupbatchid", self.import_batch_id, "Current import batch id used as the cutoff by the old-staging-batch cleanup step (step 115)", 0)
+        cp.f_setservervariable(f"{CRAWLER_PREFIX}stagingcleanuprowsdeleted", str(total_deleted), "Total rows deleted from staging tables by the old-staging-batch cleanup step (step 115)", 0)
+
     def _run_pass(
         self,
         *,
@@ -806,7 +890,7 @@ def parse_args() -> argparse.Namespace:
         "--start-step",
         type=int,
         default=101,
-        help="Workflow step code to start from. Examples: 109 to start after staging load, 110 to run only bulk load + final validation, 112 to (re-)run only the media-resolution step, 114 to run only the old-batch cleanup.",
+        help="Workflow step code to start from. Examples: 109 to start after staging load, 110 to run only bulk load + final validation, 112 to (re-)run only the media-resolution step, 114 to run only the old-batch cleanup, 115 to run only the staging cleanup.",
     )
     return parser.parse_args()
 

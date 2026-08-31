@@ -427,6 +427,42 @@ def _f_tmdbreleasedatetime(strreleasedate):
     except ValueError:
         return None
 
+def _f_tmdblangcode(strlanguage, lngmaxlength=10):
+    """
+    Normalize a TMDb iso_639_1 field into a value the LANG column can store.
+
+    TMDb sometimes serializes the whole language object instead of its code, for
+    example '{"folded_name"=>"Swedish", "iso_639_1"=>"sv", ...}'. Such a value
+    overflows LANG and used to abort the whole release-date snapshot, so the
+    embedded code is recovered when the payload carries one and the field is
+    dropped otherwise. The release event itself stays valid either way.
+
+    Parameters:
+    -----------
+    strlanguage : any
+        The raw iso_639_1 value returned by the API
+    lngmaxlength : int
+        Width of the destination LANG column
+
+    Returns:
+    --------
+    str or None
+        A plain language code, or None when no usable code can be read
+    """
+    if not isinstance(strlanguage, str):
+        return None
+    strcleanlanguage = strlanguage.strip()
+    if not strcleanlanguage:
+        return None
+    if len(strcleanlanguage) <= lngmaxlength and re.fullmatch(
+            r"[A-Za-z]{2,3}([-_][A-Za-z0-9]{2,4})?", strcleanlanguage):
+        return strcleanlanguage
+    matchembeddedcode = re.search(
+        r'"iso_639_1"\s*(?:=>|:)\s*"([A-Za-z]{2,3})"', strcleanlanguage)
+    if matchembeddedcode:
+        return matchembeddedcode.group(1)
+    return None
+
 def _f_tmdbbuildmoviereleasedaterows(lngmovieid, data, strsnapshotupdated):
     """Validate and flatten every country/release row from /release_dates."""
     if not isinstance(data, dict) or not isinstance(data.get("results"), list):
@@ -450,11 +486,15 @@ def _f_tmdbbuildmoviereleasedaterows(lngmovieid, data, strsnapshotupdated):
                 raise ValueError("release_dates item has no release_date/type")
             if not isinstance(arrdescriptors, list):
                 raise ValueError("release_dates descriptors is not a list")
+            strlanguage = _f_tmdblangcode(arrreleasedate.get("iso_639_1"))
+            strcertification = arrreleasedate.get("certification")
+            if isinstance(strcertification, str):
+                strcertification = strcertification[:100]
             arrrows.append((
                 lngmovieid,
                 strcountrycode[:2],
-                arrreleasedate.get("iso_639_1"),
-                arrreleasedate.get("certification"),
+                strlanguage,
+                strcertification,
                 arrreleasedate.get("note"),
                 strreleasedateraw[:40],
                 _f_tmdbreleasedatetime(strreleasedateraw),
@@ -640,8 +680,6 @@ ON DUPLICATE KEY UPDATE
                         (strcontenttype, len(arrcatalogrows), len(arrregionrows),
                          strsnapshotupdated, strsnapshotupdated[:10], strsnapshotupdated))
         connectioncp.commit()
-        print(f"watch-provider {strcontenttype} catalogue: replaced "
-              f"{len(arrcatalogrows)} providers and {len(arrregionrows)} regional priorities")
         return True
     except Exception as err:
         connectioncp.rollback()
@@ -704,7 +742,6 @@ def _f_tmdbreplaceadditivesnapshot(strtablename, stridcolumn, lngcontentid,
             f"UPDATE `{strmastertable}` SET `{strcompletioncolumn}` = %s WHERE `{stridcolumn}` = %s",
             (strsnapshotupdated, lngcontentid))
         connectioncp.commit()
-        print(f"{strcontext}: replaced snapshot with {len(arrrows)} rows")
         return True
     except Exception as err:
         connectioncp.rollback()
@@ -1329,12 +1366,22 @@ def f_tmdbpersontosql(lngpersonid):
                 strpersonprofilepath = data['profile_path']
                 strpersonhomepage = data['homepage']
                 strpersonname = data['name']
-                strpersonplaceofbirth = str(data['place_of_birth'])
-                strpersonplaceofbirth = strpersonplaceofbirth.strip()
-                if strpersonplaceofbirth: 
+                # Taken raw, like every other field above: TMDb sends
+                # "place_of_birth": null for most persons and pymysql writes that None
+                # as SQL NULL. It used to go through str(), which turned the null into
+                # the 4-character text "None" -- neither NULL nor empty, so it defeated
+                # every "IS NOT NULL AND <> ''" filter downstream and left ~4.5M junk
+                # rows for tmdb-person-preprocess to parse on each of its runs.
+                strpersonplaceofbirth = data['place_of_birth']
+                if strpersonplaceofbirth:
+                    strpersonplaceofbirth = str(strpersonplaceofbirth).strip()
                     if len(strpersonplaceofbirth) > 200:
                         # If place of birth is too long, we chop it
                         strpersonplaceofbirth = strpersonplaceofbirth[:200]
+                if not strpersonplaceofbirth:
+                    # An empty or whitespace-only value carries no more information than
+                    # a missing one; store NULL for both so the filters stay meaningful.
+                    strpersonplaceofbirth = None
                 dblpersonpopularity = data['popularity']
                 strpersonknownfordepartment = data['known_for_department']
                 boopersonadult = data['adult']

@@ -37,6 +37,9 @@ DEFAULT_CLEANUP_SQL_NAME = "08_cleanup_old_batches.sql"
 STAGING_CLEANUP_CHUNK_SIZE = 50_000
 DEFAULT_LIVE_DB_SCHEMA_NAME = "apply_to_live_db.sql"
 CRAWLER_PREFIX = "strwikidatacrawler"
+# Written to the shared volume at the end of a successful run, and read from the
+# host by backup-after-run.sh. See WikidataCrawler._write_success_sentinel.
+SUCCESS_SENTINEL_NAME = "last_successful_run.json"
 # Steps that stream the dump. Step 101 is what turns DUMP_FILE / DUMP_URL into
 # resolved_dump_file, so resuming straight at one of these without it fails deep in
 # the ETL on a bare `assert self.dump_file is not None` (met 2026-08-17 on a
@@ -136,6 +139,7 @@ class WikidataCrawler:
             cp.f_setservervariable(f"{CRAWLER_PREFIX}totalruntime", duration, self.total_runtime_desc, 0)
             cp.f_setservervariable(f"{CRAWLER_PREFIX}status", "SUCCESS", "Overall status of the Wikidata dump crawler", 0)
             cp.f_setservervariable(f"{CRAWLER_PREFIX}enddatetime", datetime.now(cp.paris_tz).strftime("%Y-%m-%d %H:%M:%S"), "Date and time of the last successful end of the Wikidata dump crawler", 0)
+            self._write_success_sentinel(duration)
 
     def _run_step(self, code: int, step: ProcessStep) -> None:
         current_process = f"{code}: {step.label}"
@@ -149,6 +153,45 @@ class WikidataCrawler:
         step.handler(self)
         cp.f_setservervariable(f"{CRAWLER_PREFIX}step{code}status", "SUCCESS", f"Status of step {code}: {step.label}", 0)
         cp.f_setservervariable(f"{CRAWLER_PREFIX}step{code}finishedat", datetime.now(cp.paris_tz).strftime("%Y-%m-%d %H:%M:%S"), f"End time of step {code}: {step.label}", 0)
+
+    def _write_success_sentinel(self, duration: str) -> None:
+        """Leave, on the shared volume, the one fact the HOST needs after a run.
+
+        The container is `--rm`, so once it exits nothing on the host says whether
+        the run succeeded, short of querying the database. `/shared` is the only
+        thing the two sides have in common, so a successful run drops a one-line
+        JSON file there and `backup-after-run.sh` reads it to decide whether a
+        database backup is due. Keyed on IMPORT_BATCH_ID, so one run gets one
+        backup however many times the host script is invoked afterwards.
+
+        Never fatal. The pipeline's work is done and committed by the time this
+        runs; failing the whole run over an unwritable sentinel would misreport a
+        good run as a bad one. The failure is printed and recorded instead, which
+        is what a missing backup would otherwise be diagnosed from.
+        """
+        import json
+        payload = {
+            "status": "SUCCESS",
+            "import_batch_id": self.import_batch_id,
+            "start_step": self.start_step,
+            "steps_executed": self.processes_executed.strip().rstrip(","),
+            "total_runtime": duration,
+            "finished_at": datetime.now(cp.paris_tz).strftime("%Y-%m-%d %H:%M:%S"),
+        }
+        path = SHARED_DIR / SUCCESS_SENTINEL_NAME
+        try:
+            # Single line on purpose: the host script reads it with sed, not jq,
+            # which is not guaranteed to be installed on the VPS.
+            path.write_text(json.dumps(payload, ensure_ascii=False) + "\n", encoding="utf-8")
+            print(f"run: wrote {path}")
+        except OSError as exc:
+            print(f"run: WARNING could not write {path}: {exc}")
+            cp.f_setservervariable(
+                f"{CRAWLER_PREFIX}sentinelerror",
+                str(exc),
+                "Last error raised while writing the run-success sentinel file on the shared volume",
+                0,
+            )
 
     def _mark_failure(self, exc: Exception, start_time: float) -> None:
         duration = cp.convert_seconds_to_duration(int(time.time() - start_time))

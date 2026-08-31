@@ -15,6 +15,9 @@
 # inverse l'ordre : il verifie AVANT, et n'efface que s'il y a du neuf.
 #
 # CE QU'IL FAIT, dans cet ordre, et seulement si le dump est nouveau :
+#   0. sauvegarde la base si un run reussi l'attend (backup-after-run.sh), avant
+#      toute chose : si un nouveau run part, il va modifier la base pendant trois
+#      jours, et la sauvegarde de l'etat termine doit partir avant ;
 #   1. verifie, dans un conteneur jetable, sans telecharger un octet ;
 #   2. ecrit un nouvel IMPORT_BATCH_ID dans .env (l'ancien est sauvegarde) ;
 #   3. vide /home/debian/docker/shared_data/wikidata-crawler ;
@@ -99,6 +102,32 @@ if [ -n "$(docker ps -q -f name="^${CONTENEUR}$" 2>/dev/null)" ]; then
   DEPUIS=$(docker inspect -f '{{.State.StartedAt}}' "$CONTENEUR" 2>/dev/null | cut -c1-19)
   echo "Le crawler tourne deja (demarre le ${DEPUIS:-?}). Rien a faire."
   exit 0
+fi
+
+# --------------------------------------------------------------------------
+# SAUVEGARDE DE LA BASE, si un run reussi l'attend.
+# Placee ICI, avant la verification du dump, et ce n'est pas un detail d'ordre :
+# si le dump est nouveau, la suite de ce script efface le volume partage et lance
+# un run qui va modifier la base pendant trois jours. La sauvegarde de l'etat
+# termine doit donc partir avant, pas apres.
+#
+# Un echec de sauvegarde n'empeche pas le lancement : perdre une sauvegarde
+# hebdomadaire est moins grave que d'immobiliser la chaine derriere un script
+# casse. L'echec reste visible dans ce journal, et backup-after-run.sh
+# reessaiera au passage suivant puisqu'il n'ecrit son marqueur qu'en cas de
+# succes.
+# --------------------------------------------------------------------------
+if [ -x "$STACK/backup-after-run.sh" ]; then
+  if [ "$DRY_RUN" = "1" ]; then
+    "$STACK/backup-after-run.sh" --dry-run
+  else
+    if ! "$STACK/backup-after-run.sh"; then
+      echo "AVERTISSEMENT : la sauvegarde a echoue (voir ci-dessus). On continue."
+    fi
+  fi
+else
+  echo "AVERTISSEMENT : $STACK/backup-after-run.sh absent ou non executable."
+  echo "Aucune sauvegarde ne sera declenchee apres les runs."
 fi
 
 # L'image doit exister pour que le guetteur tourne. Sans cache c'est long, avec

@@ -96,6 +96,8 @@ Use these documents as the main references:
 - `doc/wikidata-v1-v2-gap-analysis.md` — V1→V2 gap, classifier fix, new entity types, ETL performance
 - `doc/collation-standardization.md` — database-wide charset/collation standardization plan
 - `wikidata-crawler.sh`
+- `backup-after-run.sh` : sauvegarde de la base declenchee par un run reussi, voir
+  "Sauvegarde de la base apres un run" plus bas
 
 ## Current architecture summary
 
@@ -561,6 +563,49 @@ The table list comes from `TABLE_SPECS` in `load_staging_jsonl.py`, the same sou
 
 **InnoDB does not return freed pages to the filesystem.** The rows are gone and the space is reused by the next batch, but the `.ibd` files do not shrink. If you need the disk back on the host, run `OPTIMIZE TABLE` on the large staging tables at a quiet moment.
 
+## Sauvegarde de la base apres un run (`backup-after-run.sh`)
+
+The end of a run is the right moment for a full database backup: the target tables carry the current batch, step `114` has removed the previous batches' rows and step `115` has cleared their staging. The database is then in the cleanest, smallest state of the week, and nothing will touch it for another three or four days.
+
+That backup cannot be a step `116`. The backup script lives on the host, in another stack (`~/docker/damp-vaugouin-com/backupvaugouindb.sh`), which is not mounted into the crawler's container. The decision therefore stays on the host, where both are reachable.
+
+**How the host knows a run succeeded.** The container runs with `--rm`, so once it exits nothing is left on the host and `/shared` is the only common ground. A successful run drops `/shared/last_successful_run.json` there:
+
+```json
+{"status": "SUCCESS", "import_batch_id": "wikidata_full_20260807_1043", "start_step": 101, "steps_executed": "101, 102, ...", "total_runtime": "3 days, 4 hours", "finished_at": "2026-08-10 14:22:07"}
+```
+
+`backup-after-run.sh` reads it, compares the batch id with the marker file `.last-backup-batch` in the stack directory, and backs up only when they differ. One run therefore produces exactly one backup, however many times the script is invoked. If the backup fails, the marker is **not** written, so the next hourly tick retries.
+
+**No cron line to add.** `run-if-new-dump.sh` calls it on every hourly tick, before checking the dump. The order matters: if the dump turns out to be new, that same script wipes the shared volume and launches a run that will modify the database for three days, so the backup of the finished state has to go first. A backup failure is reported but does not block the launch.
+
+By hand:
+
+```bash
+./backup-after-run.sh              # sauvegarde si un run reussi l'attend
+./backup-after-run.sh --wait       # attend la fin du conteneur en cours, puis sauvegarde
+./backup-after-run.sh --force      # refait la sauvegarde d'un lot deja fait
+./backup-after-run.sh --dry-run    # dit ce qu'il ferait, sans rien faire
+```
+
+`BACKUP_SCRIPT=/chemin/vers/autre.sh` overrides the script called; `STACK_DIR` and `SHARED_DIR` override the two directories. The backup script is invoked from its own directory (`cd` first), since a stack script usually expects to find its `.env` or `docker-compose.yml` next to it.
+
+### Ce que fait le script appele, et pourquoi on verifie derriere lui
+
+`backupvaugouindb.sh` (source: `tmdb-front`, deploye dans `~/docker/damp-vaugouin-com/`) sources `/home/debian/docker/damp-vaugouin-com/.env`, then runs `mariadb-dump` **inside** the database container via `docker exec`, writing `/backups/<db>-backup-<timestamp>.sql.gz` (a path inside that container).
+
+Until 2026-08-31 its exit code could not be used as a success signal, for two independent reasons: it ended on `if [ $? -eq 0 ] ... else echo "Backup failed!"`, which **printed** the failure but never exited non-zero, so its status was that of the final `echo`, always `0`; and that internal `$?` was `gzip`'s rather than `mariadb-dump`'s, so an interrupted dump gave a truncated `.gz` and a cheerful "Backup successful!".
+
+Both are fixed in `tmdb-front` now. The five `backupvaugouindb*.sh` scripts share one implementation, `backupvaugouindb-common.sh`, which runs the dump pipeline under `set -o pipefail`, exits non-zero on any failure, refuses to run when a table pattern matches nothing (an empty table list makes `mariadb-dump` dump the *whole* database under a filename promising a subset), passes the password through `MYSQL_PWD` instead of the command line, and verifies both the size of the `.gz` and the presence of mariadb-dump's `-- Dump completed on` marker.
+
+`backup-after-run.sh` nevertheless keeps its own three checks, in order: the exit code, the absence of `Backup failed!` / `Error:` in the output, and the **actual size** of the produced file, read back with `docker exec <container> stat -c %s <file>` from the path the script prints. Two reasons to keep them: the copy deployed on the VPS can lag behind the repo, and the caller of a backup should not depend on the callee's discipline for something that only fails once every few months. The floor is 1 MB (`TAILLE_MINIMALE`). If the confirmation line ever changes shape and the path cannot be parsed, the size check is skipped with a warning rather than failing the chain.
+
+### Deux choses corrigees au passage
+
+**Les tables de staging sont exclues de la sauvegarde complete.** `backupvaugouindb.sh` passe desormais un `--ignore-table` par table `STG_*` (26 aujourd'hui, resolues depuis `information_schema` a chaque execution, donc une nouvelle table de staging est couverte sans rien editer). Apres l'etape `115`, le staging contient encore le lot courant, plus de 100 millions de lignes, et le dump tourne avec `--skip-extended-insert`, un `INSERT` par ligne : les inclure doublait a peu pres la taille et la duree de la sauvegarde, pour des donnees entierement reconstructibles depuis le NDJSON encore present sur `/shared`. Consequence a la restauration : `--ignore-table` saute la structure **et** les donnees, donc une base restauree n'a plus de tables `STG_*`. L'etape `108` les recree (`apply_to_live_db.sql`), ou bien lancer `02_staging_and_triggers.sql` a la main.
+
+**Le dump est maintenant un instantane coherent.** `--lock-tables=false` a ete remplace par `--single-transaction`, qui enveloppe tout le dump dans une transaction REPEATABLE READ ouverte sur un instantane coherent. Il ne verrouille rien (lecteurs et ecrivains continuent, InnoDB sert au dump les anciennes versions des lignes depuis l'undo log) et ne coute pas de temps mesurable. Ce qu'il coute : l'historique undo ne peut pas etre purge tant que la transaction est ouverte, donc un long dump sur une periode d'ecriture soutenue fait grossir l'undo tablespace et laisse du travail de purge derriere lui ; et un DDL sur une table en cours de dump (`ALTER`, `TRUNCATE`, `DROP`) attend le verrou de metadonnees du dump, ou casse le dump. Aucun des deux n'est un souci dans cette fenetre, puisque le crawler a fini quand la sauvegarde demarre. Le gain, lui, est reel : ce schema porte de vraies cles etrangeres entre `T_WC_WIKIDATA_STATEMENT` et ses tables de valeurs typees, et un dump lu table par table pendant plusieurs heures peut tres bien contenir un parent sans ses enfants.
+
 ## Media resolution (steps 112 & 113)
 
 Step `112` translates V2 statement rows into the three resolution tables:
@@ -604,6 +649,8 @@ The ETL produces NDJSON files in:
 /shared/pass2
 /shared/item_cache
 ```
+
+Plus one file at the root of the shared volume, `/shared/last_successful_run.json`, written at the end of a successful run and read from the host by `backup-after-run.sh` (see "Sauvegarde de la base apres un run").
 
 Important generated files include:
 

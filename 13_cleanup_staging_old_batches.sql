@@ -57,7 +57,6 @@
 --   are utf8mb4_unicode_ci, and a string literal is coercible, so no #1267.
 -- ============================================================================
 
-SET NAMES utf8mb4;
 SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- >>> set to the CURRENT batch id, the one to KEEP <<<

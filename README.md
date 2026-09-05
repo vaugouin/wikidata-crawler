@@ -74,7 +74,10 @@ Use these documents as the main references:
 - `13_cleanup_staging_old_batches.sql`: hand-runnable twin of step `115`, deletes every `STG_*` row
   older than `@IMPORT_BATCH_ID`, leaving staging with just the batch that finished. The crawler does
   not execute this file (step 115 issues the same deletes in chunks); it is for cleaning a database
-  by hand, or catching up runs that predate step 115.
+  by hand, or catching up runs that predate step 115. Since 2026-09-02 there is nothing to set: the
+  cutoff is `MAX(IMPORT_BATCH_ID)` read from staging, and a batch not yet present in
+  `T_WC_WIKIDATA_STATEMENT` nulls that cutoff, which disarms every delete. The file prints an
+  ARMED/DISARMED verdict before touching anything.
 - `apply_to_live_db.sql` — idempotent additive DDL (SEASON/EPISODE/CHARACTER target tables + the
   **full** `STG_T_WC_WIKIDATA_*` staging set); auto-applied by the crawler at steps 108 and 110 so a
   long-lived DB stays in sync with new tables and any staging table that was dropped by hand is
@@ -363,6 +366,26 @@ Any arguments passed to `wikidata-crawler.sh` are forwarded to `wikidata_crawler
 ./wikidata-crawler.sh --start-step 108      # resume from staging load onward
 ```
 
+One argument is intercepted rather than forwarded, `--check-dump`, so that asking whether
+a new dump exists can never start a run. It runs `check_new_dump.py` in a throwaway
+container: one HEAD request, no byte of dump transferred, nothing written:
+
+```bash
+./wikidata-crawler.sh --check-dump             # newer than the last processed run?
+./wikidata-crawler.sh --check-dump --vs-local  # newer than the file on the shared volume?
+./wikidata-crawler.sh --check-dump --quiet     # exit code only: 0 new, 1 same, 2 cannot tell
+```
+
+The two anchors answer different questions. The default one compares against the dump the
+last run actually processed (`strwikidatacrawlerdumpsize`), which answers "should I
+relaunch"; `--vs-local` compares against the file sitting on the shared volume, which
+answers "is my downloaded file stale". They agree after a successful run.
+
+Worth knowing before launching blind: a plain `./wikidata-crawler.sh` does **not**
+re-download when the dump is already on the volume, since step 101 reuses an existing
+`DUMP_FILE`. What it costs is three to four days of re-ingesting the same data. Deleting
+the volume is `run-if-new-dump.sh`'s job, and it checks first.
+
 See the "Resuming after a failure" section below for when to use `--start-step`.
 
 ## Full rerun checklist
@@ -592,11 +615,11 @@ By hand:
 
 ### Ce que fait le script appele, et pourquoi on verifie derriere lui
 
-`backupvaugouindb.sh` (source: `tmdb-front`, deployed in `~/docker/tools/` since 2026-08-31, previously in `~/docker/damp-vaugouin-com/`) sources the database stack's `.env`, whose path is set inside the script and overridable with `ENV_FILE`, then runs `mariadb-dump` **inside** the database container via `docker exec`, writing `/backups/<db>-backup-<timestamp>.sql.gz` (a path inside that container).
+`backupvaugouindb.sh` (source: the `tools` repo since 2026-08-31, `tmdb-front` before that; deployed in `~/docker/tools/` since 2026-08-31, previously in `~/docker/damp-vaugouin-com/`) sources the database stack's `.env`, whose path is set inside the script and overridable with `ENV_FILE`, then runs `mariadb-dump` **inside** the database container via `docker exec`, writing `/backups/<db>-backup-<timestamp>.sql.gz` (a path inside that container).
 
 Until 2026-08-31 its exit code could not be used as a success signal, for two independent reasons: it ended on `if [ $? -eq 0 ] ... else echo "Backup failed!"`, which **printed** the failure but never exited non-zero, so its status was that of the final `echo`, always `0`; and that internal `$?` was `gzip`'s rather than `mariadb-dump`'s, so an interrupted dump gave a truncated `.gz` and a cheerful "Backup successful!".
 
-Both are fixed in `tmdb-front` now. The five `backupvaugouindb*.sh` scripts share one implementation, `backupvaugouindb-common.sh`, which runs the dump pipeline under `set -o pipefail`, exits non-zero on any failure, refuses to run when a table pattern matches nothing (an empty table list makes `mariadb-dump` dump the *whole* database under a filename promising a subset), passes the password through `MYSQL_PWD` instead of the command line, and verifies both the size of the `.gz` and the presence of mariadb-dump's `-- Dump completed on` marker.
+Both are fixed now, in the `tools` repo the scripts moved to. The five `backupvaugouindb*.sh` scripts share one implementation, `backupvaugouindb-common.sh`, which runs the dump pipeline under `set -o pipefail`, exits non-zero on any failure, refuses to run when a table pattern matches nothing (an empty table list makes `mariadb-dump` dump the *whole* database under a filename promising a subset), passes the password through `MYSQL_PWD` instead of the command line, and verifies both the size of the `.gz` and the presence of mariadb-dump's `-- Dump completed on` marker.
 
 `backup-after-run.sh` nevertheless keeps its own three checks, in order: the exit code, the absence of `Backup failed!` / `Error:` in the output, and the **actual size** of the produced file, read back with `docker exec <container> stat -c %s <file>` from the path the script prints. Two reasons to keep them: the copy deployed on the VPS can lag behind the repo, and the caller of a backup should not depend on the callee's discipline for something that only fails once every few months. The floor is 1 MB (`TAILLE_MINIMALE`). If the confirmation line ever changes shape and the path cannot be parsed, the size check is skipped with a warning rather than failing the chain.
 

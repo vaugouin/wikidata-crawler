@@ -33,13 +33,36 @@
 --   NULL IMPORT_BATCH_ID (NULL < x is unknown). A batch whose id does not sort
 --   chronologically therefore survives, and needs 10_clear_staging_batch.sql.
 --
+-- WHY THE CUTOFF IS DERIVED AND NO LONGER WRITTEN BY HAND
+--   Until 2026-09-02 this file carried a literal batch id, and that literal was
+--   one run stale. Its failure mode is the dangerous kind, the silent one: a
+--   cutoff older than everything in staging makes every DELETE match zero rows,
+--   the script reports success, and the previous batch stays. Measured that day:
+--   staging held wikidata_full_20260823_0317 (37 243 139 statements) alongside
+--   wikidata_full_20260829_0417 (37 437 945), and running the file as written
+--   would have removed neither.
+--
+--   The newest batch present in staging IS by definition the one to keep, so the
+--   cutoff is now read from the data instead of being maintained by hand. This
+--   also makes guard 1 structurally true rather than a check to remember: a value
+--   taken from STG_T_WC_WIKIDATA_STATEMENT cannot be absent from it. If staging
+--   is empty, MAX() returns NULL, every comparison is unknown, and nothing is
+--   deleted.
+--
+--   To pin a different cutoff (replaying an old state, a batch id that does not
+--   sort chronologically), replace the SELECT with a literal. Everything below
+--   keeps working.
+--
 -- SAFETY
---   Set @IMPORT_BATCH_ID to the CURRENT run's batch id, i.e. the one you want to
---   KEEP, not the one you want to delete. Run the two checks below first: if the
---   current batch is not in staging, an id that sorts above every real batch
---   would empty the staging tables completely. Only run this once the current
---   batch is loaded into T_WC_WIKIDATA_STATEMENT: until then, older staging is
---   the one thing a --start-step 110 resume could fall back on.
+--   Guard 2 is now ENFORCED rather than merely documented: if the batch being
+--   kept is not yet present in T_WC_WIKIDATA_STATEMENT, the cutoff is set to
+--   NULL, which turns all 25 DELETEs into no-ops. Deliberately not a SIGNAL: this
+--   file is run with --force (see COLLATION below), and --force carries on past
+--   an error, so an abort would not stop the statements that follow it. A cutoff
+--   that matches nothing stops them by construction.
+--   The rule this guard encodes: older staging is disposable only once the new
+--   data has landed in the target tables. Until then it is the one thing a
+--   --start-step 110 resume could fall back on.
 --
 -- PERFORMANCE
 --   Each statement below deletes a whole batch of that table (tens of millions
@@ -54,29 +77,53 @@
 --
 --   IMPORT_BATCH_ID is indexed on every staging table, so the comparison is kept
 --   bare: putting COLLATE on the column would lose the index. All STG_* tables
---   are utf8mb4_unicode_ci, and a string literal is coercible, so no #1267.
+--   are utf8mb4_unicode_ci, and the cutoff is read from one of those columns, so
+--   no #1267. Run with --force anyway, as everywhere in this repo.
 -- ============================================================================
 
 SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- >>> set to the CURRENT batch id, the one to KEEP <<<
-SET @IMPORT_BATCH_ID = 'wikidata_full_20260823_0317';
+-- ---- 1. What is in staging right now ---------------------------------------
+SELECT '1. Batches present in staging' AS SECTION;
 
--- ---- Pre-flight checks (run these before the DELETEs) ----------------------
--- 1. What is actually in staging, and how much of it:
---      SELECT IMPORT_BATCH_ID, COUNT(*) AS ROWS_STAGED
---      FROM STG_T_WC_WIKIDATA_STATEMENT
---      GROUP BY IMPORT_BATCH_ID ORDER BY IMPORT_BATCH_ID;
--- 2. Guard 1, the batch you are keeping must be present in staging:
---      SELECT EXISTS(SELECT 1 FROM STG_T_WC_WIKIDATA_STATEMENT
---                    WHERE IMPORT_BATCH_ID = @IMPORT_BATCH_ID) AS KEEP_IS_STAGED;
--- 3. Guard 2, and already loaded into the target tables:
---      SELECT EXISTS(SELECT 1 FROM T_WC_WIKIDATA_STATEMENT
---                    WHERE IMPORT_BATCH_ID = @IMPORT_BATCH_ID) AS KEEP_IS_LOADED;
---    Both must return 1. If either returns 0, do not run the DELETEs.
+SELECT IMPORT_BATCH_ID, COUNT(*) AS ROWS_STAGED
+FROM STG_T_WC_WIKIDATA_STATEMENT
+GROUP BY IMPORT_BATCH_ID
+ORDER BY IMPORT_BATCH_ID;
+
+-- ---- 2. The candidate cutoff, derived from the data ------------------------
+-- The newest batch present in staging is by definition the one to keep. Nothing
+-- to edit here, and guard 1 (the kept batch must be staged) is satisfied by
+-- construction. Replace this SELECT with a literal only to pin another cutoff.
+SET @CANDIDATE_BATCH_ID = (SELECT MAX(IMPORT_BATCH_ID) FROM STG_T_WC_WIKIDATA_STATEMENT);
+
+-- ---- 3. Guard 2, enforced. A NULL cutoff disarms every DELETE below ---------
+-- Older staging is disposable only once the new data has landed in the targets.
+SET @KEEP_IS_LOADED = (SELECT EXISTS(
+  SELECT 1 FROM T_WC_WIKIDATA_STATEMENT WHERE IMPORT_BATCH_ID = @CANDIDATE_BATCH_ID));
+
+SET @IMPORT_BATCH_ID = IF(@KEEP_IS_LOADED = 1, @CANDIDATE_BATCH_ID, NULL);
+
+SELECT '3. Decision' AS SECTION;
+
+-- STATEMENTS_TO_DELETE walks the IMPORT_BATCH_ID index over a whole batch, so
+-- this SELECT can take a minute on its own. It is the number the DELETEs below
+-- will remove from the statement table, and the one to compare with section 5.
+SELECT @CANDIDATE_BATCH_ID                                     AS NEWEST_BATCH_IN_STAGING,
+       @KEEP_IS_LOADED                                         AS KEEP_IS_LOADED_IN_TARGET,
+       @IMPORT_BATCH_ID                                        AS CUTOFF_APPLIED,
+       (SELECT COUNT(*) FROM STG_T_WC_WIKIDATA_STATEMENT
+        WHERE IMPORT_BATCH_ID < @IMPORT_BATCH_ID)              AS STATEMENTS_TO_DELETE,
+       CASE WHEN @CANDIDATE_BATCH_ID IS NULL
+            THEN 'DISARMED: staging is empty, nothing to do.'
+            WHEN @IMPORT_BATCH_ID IS NULL
+            THEN 'DISARMED: the newest staged batch is not in T_WC_WIKIDATA_STATEMENT yet. Run the bulk load first (--start-step 110). Nothing will be deleted.'
+            ELSE 'ARMED: every staging row strictly older than CUTOFF_APPLIED will be deleted.'
+       END                                                     AS VERDICT;
 
 SET FOREIGN_KEY_CHECKS = 0;
 
+-- ---- 4. The deletes ------------------------------------------------------
 -- ---- Entity + metadata staging --------------------------------------------
 DELETE FROM STG_T_WC_WIKIDATA_MOVIE                       WHERE IMPORT_BATCH_ID < @IMPORT_BATCH_ID;
 DELETE FROM STG_T_WC_WIKIDATA_SERIE                       WHERE IMPORT_BATCH_ID < @IMPORT_BATCH_ID;
@@ -115,12 +162,16 @@ DELETE FROM STG_T_WC_WIKIDATA_MEDIA_RESOURCE_CHECK        WHERE IMPORT_BATCH_ID 
 
 SET FOREIGN_KEY_CHECKS = 1;
 
--- ---- Verification ----------------------------------------------------------
--- Exactly one batch should remain:
---   SELECT IMPORT_BATCH_ID, COUNT(*) AS ROWS_STAGED
---   FROM STG_T_WC_WIKIDATA_STATEMENT
---   GROUP BY IMPORT_BATCH_ID ORDER BY IMPORT_BATCH_ID;
---
+-- ---- 5. Verification -------------------------------------------------------
+-- Exactly one batch should remain, the cutoff itself. If two are still listed,
+-- read the VERDICT of section 3: a disarmed run deletes nothing and says so.
+SELECT '5. Batches remaining in staging' AS SECTION;
+
+SELECT IMPORT_BATCH_ID, COUNT(*) AS ROWS_STAGED
+FROM STG_T_WC_WIKIDATA_STATEMENT
+GROUP BY IMPORT_BATCH_ID
+ORDER BY IMPORT_BATCH_ID;
+
 -- InnoDB does not return the freed pages to the filesystem. To actually shrink
 -- the .ibd files afterwards (locks the table, so pick a quiet moment):
 --   OPTIMIZE TABLE STG_T_WC_WIKIDATA_STATEMENT;

@@ -568,7 +568,9 @@ WIKIDATA-CRAWLER-023, execution de la route A de la decommission V1.
 
 **Le probleme.** Au 2026-09-19, 36,2 % des libelles francais affiches (250 185 sur 691 320,
 `test-017-repli-v1-taux.sql`) viennent encore du repli sur `T_WC_WIKIDATA_ITEM_V1` : ces
-entites ont une ligne dans V1 et aucune dans `T_WC_WIKIDATA_ITEM`. Supprimer les tables V1
+entites ont une ligne dans V1 et aucune dans `T_WC_WIKIDATA_ITEM`. Chiffrage du meme jour
+(`doc/sql/wikidata-v1-backfill-target-set-20260919.txt`) : **167 928 sont importables**,
+81 456 relevent du plancher decrit plus bas, et le taux devrait tomber vers **11,9 %**. Supprimer les tables V1
 les ferait disparaitre de l'ecran. Or la seule chose qui fabrique une ligne
 `T_WC_WIKIDATA_ITEM` est la passe `item_cache`, qui n'emet que pour les entites presentes
 dans son filtre d'items references, construit par pass2.
@@ -609,8 +611,12 @@ enregistres).
 que `T_WC_WIKIDATA_ITEM`, volontairement (TMDB-MOVIE-PREPROCESS-036 : l'elargir ecrivait des
 titres de films dans `AWARD_NAME_FR`), et `item_cache` refuse d'ecrire une entite du
 perimetre coeur dans `ITEM`. Les Q-ids que V2 detient deja comme film, serie ou personne
-resteront donc servis par le repli V1 quoi qu'on seme. C'est la perte residuelle a acter
-dans WIKIDATA-CRAWLER-022.
+resteront donc servis par le repli V1 quoi qu'on seme. Mesure du 2026-09-19 : 81 456
+entites, 12,5 % des lignes francaises de V1. Leur libelle n'est pas perdu pour autant,
+V2 le detient dans `SERIE` / `EPISODE` / `CHARACTER` / `SEASON` : c'est le lecteur qui ne
+l'y cherche pas, donc cela se repare cote `tmdb-movie-preprocess` et non par un run de
+plus ici. Le seul residu qui soit vraiment une perte est `...missing`, les Q-ids disparus
+de Wikidata.
 
 **Reglages.** `V1_BACKFILL_SEED=0` desactive l'extension ; `V1_BACKFILL_MIN_IDS` (100 000 par
 defaut) est le plancher sous lequel l'etape refuse de partir, plutot que de tourner 23 h sans

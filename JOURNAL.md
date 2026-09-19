@@ -4,6 +4,43 @@ Mémoire opérationnelle du dépôt, antéchronologique (l'entrée la plus réce
 Au démarrage d'une session, lire les premières entrées pour retrouver le contexte, sans
 charger tout le fichier.
 
+## 2026-09-19 : l'ensemble cible de -023 est chiffré, et il vaut un tiers de moins que le ticket
+
+Mesure faite sur la base par `runsqlvaugouindb.sh`, trace conservée dans
+`doc/sql/wikidata-v1-backfill-target-set-20260919.txt`. Sur 651 696 lignes françaises de
+`T_WC_WIKIDATA_ITEM_V1` (non supprimées, libellé non vide) :
+
+| | lignes | part |
+|---|---:|---:|
+| déjà dans `T_WC_WIKIDATA_ITEM` | 402 312 | 61,7 % |
+| **cible importable** | **167 928** | 25,8 % |
+| plancher, ailleurs en V2 | 81 456 | 12,5 % |
+
+Graine semée : 696 660 identifiants. `T_WC_WIKIDATA_ITEM` pèse 710 556 lignes et passerait
+donc à 878 484 au plus, +23,6 %.
+
+**Le « ~250 k » du ticket comptait le plancher comme importable.** La cible réelle est
+167 928. Les deux mesures se réconcilient à 801 lignes près, qui sont les entités présentes
+dans `ITEM` mais dont `LABELS_JSON` n'a ni `fr` ni `en`.
+
+**Prédiction à vérifier après le run** : le taux de repli de `test-017-repli-v1-taux.sql`
+devrait tomber de 36,2 % à environ **11,9 %** (82 257 sur 691 320), plus les Q-ids que le
+dump ne contient plus, comptés par `strwikidatacrawlerv1backfillmissing`.
+
+**Le plancher n'est pas une perte, et c'est une correction à ce que j'écrivais hier.** Ces
+81 456 entités ont bien leur libellé dans V2, dans `SERIE`, `EPISODE`, `CHARACTER` ou
+`SEASON`. C'est `f_getwikidatalabel` qui ne lit que `T_WC_WIKIDATA_ITEM`, volontairement
+(TMDB-MOVIE-PREPROCESS-036). Le sujet se règle donc côté lecteur, par appelant pour ne pas
+réintroduire le bug des titres de films dans `AWARD_NAME_FR`, et non par un run de plus
+ici. Ce qui reste une vraie perte résiduelle pour -022, c'est le seul compteur `missing`.
+
+**Trouvaille collatérale, à instruire pour elle-même.** La ventilation par table du plancher
+somme à 135 660 pour 81 456 entités distinctes : **54 204 appartenances multiples**, des
+entités que V2 détient dans deux tables à la fois. `SERIE` 54 890 et `EPISODE` 53 031 côte à
+côte pointent vers l'explication : les tables d'entités ne sont jamais purgées, donc une
+entité classée série avant l'arrivée des types SEASON / EPISODE / CHARACTER (août 2026) a
+gardé sa ligne dans `SERIE` en plus de la nouvelle. Rien ne le signalait jusqu'ici.
+
 ## 2026-09-19 : WIKIDATA-CRAWLER-023 implémenté, la graine du relogement V1 est dans l'étape 106
 
 **Ce qui est livré.** L'étape 106 reconstruit désormais, avant de lancer la passe, la liste des

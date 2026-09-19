@@ -24,7 +24,9 @@
 -- T_WC_WIKIDATA_ITEM, et f_getwikidatalabel ne lit que cette table
 -- (TMDB-MOVIE-PREPROCESS-036, et l'elargir a l'aveugle ecrirait un titre de film
 -- dans AWARD_NAME_FR). Ces lignes resteront servies par le repli V1 quoi qu'on
--- seme : c'est une perte residuelle a acter, pas un echec de l'import.
+-- seme. Attention a ne pas l'appeler une perte : leur libelle EST dans V2, dans
+-- SERIE / EPISODE / CHARACTER / SEASON. C'est le lecteur qui ne va pas l'y chercher,
+-- donc cela se repare cote tmdb-movie-preprocess, pas par un run de plus ici.
 --
 -- COUT. La section 2 fait sept sondes d'index par ligne francaise de V1, soit
 -- environ 4,8 millions de recherches : comptez une a trois minutes.
@@ -48,8 +50,10 @@ WHERE  COALESCE(DELETED, 0) = 0
 
 
 SELECT '=== 2. la cible : ventilation du reliquat francais ===' AS section;
--- cible_importable est le chiffre qui dimensionne le run (~250 k attendu au
--- 2026-09-19, a confirmer ici). ailleurs_en_v2_plancher est la perte residuelle.
+-- cible_importable est le chiffre qui dimensionne le run. Repere du 2026-09-19,
+-- avant tout relogement : 651 696 lignes, 402 312 deja dans ITEM, 167 928 importables
+-- (25,8 %), 81 456 de plancher (12,5 %). Le "~250 k" du ticket comptait le plancher
+-- comme importable.
 
 SELECT
     COUNT(*)                                                     AS lignes_v1_fr,
@@ -77,8 +81,13 @@ FROM (
 
 SELECT '=== 3. le plancher, par table V2 qui detient deja l entite ===' AS section;
 -- Ou vivent les Q-ids que l'import ne pourra pas servir. Une ligne peut compter
--- dans deux tables si V2 la detient deux fois : c'est alors un defaut de
--- classification, a instruire pour lui-meme.
+-- dans deux tables si V2 la detient deux fois, et c'est massivement le cas :
+-- 2026-09-19, la somme par table fait 135 660 pour 81 456 entites distinctes, donc
+-- 54 204 appartenances multiples. Explication la plus probable, a instruire pour
+-- elle-meme : les tables d'entites ne sont JAMAIS purgees, donc une entite classee
+-- serie avant que les types SEASON / EPISODE / CHARACTER n'existent (aout 2026) a
+-- garde sa ligne dans SERIE en plus de la nouvelle. SERIE 54 890 et EPISODE 53 031
+-- cote a cote vont dans ce sens. Seule la section 2 donne le compte distinct.
 
 SELECT 'MOVIE'     AS table_v2, COUNT(*) AS lignes FROM T_WC_WIKIDATA_ITEM_V1 v1
   WHERE v1.LANG='fr' AND COALESCE(v1.DELETED,0)=0 AND NULLIF(v1.LABEL,'') IS NOT NULL

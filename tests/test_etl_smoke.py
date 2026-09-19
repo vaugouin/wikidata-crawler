@@ -11,7 +11,9 @@ WikidataDumpETL (no database, no network), then asserts:
     including a character reached only via a P279 descendant (fictional human);
   * the persons-need-IMDb rule still gates the core set but keeps candidates;
   * pass2 emits statements for in-scope entities (incl. P2079);
-  * item_cache emits a referenced, non-core value entity to T_WC_WIKIDATA_ITEM.
+  * item_cache emits a referenced, non-core value entity to T_WC_WIKIDATA_ITEM;
+  * the V1 backfill seed (WIKIDATA-CRAWLER-023) caches an entity pass2 never
+    referenced, leaves pass2's own output untouched, and counts its own floor.
 
 Run:  python tests/test_etl_smoke.py     (exit 0 = pass, 1 = fail)
 """
@@ -86,6 +88,9 @@ ENTITIES = [
     item("Q1007", p31=["Q95074"], label="A Character"),
     item("Q1009", p31=["Q515"], label="Irrelevant City"),
     item("Q184781", p31=["Q2412849"], label="traditional animation"),  # referenced value, not core
+    # WIKIDATA-CRAWLER-023: in V1, referenced by no statement, so pass2 never puts it in
+    # referenced_item_ids.txt. Exactly the reliquat the V1 backfill seed exists for.
+    item("Q9001", p31=["Q515"], label="V1 Only Item"),
 ]
 
 
@@ -184,6 +189,52 @@ def run() -> int:
         item_ids = ids_in(ic / "T_WC_WIKIDATA_ITEM.jsonl")
         check("Q184781" in item_ids, "referenced non-core value emitted to ITEM cache")
         check("Q1001" not in item_ids, "core entity NOT duplicated into ITEM cache")
+        check("Q9001" not in item_ids, "an unreferenced V1-only item is NOT cached without a seed")
+
+        # item_cache + V1 backfill seed (WIKIDATA-CRAWLER-023) -----------------
+        # The seed is what makes the V1 remainder exist in V2, so that deleting the V1
+        # tables removes no label from the screen. Two of these checks guard the FLOOR
+        # rather than the feature: a seeded core entity stays out of ITEM (and
+        # f_getwikidatalabel reads ITEM only), and pass2's own output must come out of
+        # the run byte for byte as pass2 wrote it, or the run's provenance is a story.
+        print()
+        print("item_cache with the V1 backfill seed:")
+        pass2_output_before = (p2 / "referenced_item_ids.txt").read_bytes()
+        seed = tmp / "seed" / "v1_backfill_item_ids.txt"
+        seed.parent.mkdir(parents=True, exist_ok=True)
+        #   Q9001 in V1 only, referenced by nothing  -> must be cached
+        #   Q1001 a core movie                       -> must stay refused (floor)
+        #   Q9999 recorded by V1, gone from Wikidata -> must count as missing
+        seed.write_text("Q9001\nQ1001\nQ9999\n", encoding="utf-8")
+        ic2 = tmp / "item_cache_seeded"
+        WikidataDumpETL(
+            out_dir=ic2, pass_name="item_cache", dump_url=None, dump_file=dump,
+            class_roots_json=None,
+            core_entity_ids_path=p1 / "core_entity_ids.txt",
+            referenced_item_ids_path=p2 / "referenced_item_ids.txt",
+            candidate_person_ids_path=None,
+            referenced_person_ids_path=p2 / "referenced_person_ids.txt",
+            extra_item_ids_path=seed,
+        ).run()
+
+        seeded_ids = ids_in(ic2 / "T_WC_WIKIDATA_ITEM.jsonl")
+        check("Q9001" in seeded_ids, "a seeded V1-only item IS cached [THE -023 FIX]")
+        check("Q184781" in seeded_ids, "the seed adds to pass2 references, it does not replace them")
+        check("Q1001" not in seeded_ids, "a seeded CORE entity is still refused (the floor)")
+        check((p2 / "referenced_item_ids.txt").read_bytes() == pass2_output_before,
+              "pass2 output untouched by the seed (run provenance)")
+        check("Q9001" in ids_in(ic2 / "T_WC_WIKIDATA_STATEMENT.jsonl"),
+              "a seeded item carries its class claims too (WIKIDATA-CRAWLER-020)")
+
+        seeded_summary = json.loads((ic2 / "run_summary.json").read_text(encoding="utf-8"))
+        missing = (seeded_summary["extra_item_ids_seeded"]
+                   - seeded_summary["extra_items_emitted"]
+                   - seeded_summary["extra_items_diverted_to_person"]
+                   - seeded_summary["extra_items_skipped_core"])
+        check(seeded_summary["extra_item_ids_seeded"] == 3, "run_summary counts the seeded ids")
+        check(seeded_summary["extra_items_emitted"] == 1, "run_summary counts what the seed cached")
+        check(seeded_summary["extra_items_skipped_core"] == 1, "run_summary counts the core refusals")
+        check(missing == 1, "a Q-id absent from the dump comes out as missing, not as a silent zero")
 
     # qualifier identity (WIKIDATA-CRAWLER-019) -----------------------------
     # Regression guard for a defect that was invisible in the pipeline itself and only

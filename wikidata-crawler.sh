@@ -8,10 +8,12 @@
 #   ./wikidata-crawler.sh --start-step 110      # resume only the bulk load + final validation
 #   ./wikidata-crawler.sh --start-step 108      # resume from staging load onward
 #
-# One argument is NOT forwarded, --check-dump, because it must not start a run:
+# Two arguments are NOT forwarded, because they must not start a run:
 #   ./wikidata-crawler.sh --check-dump          # is a newer dump published? reads only
 #   ./wikidata-crawler.sh --check-dump --vs-local   # compare with the local file
 #   ./wikidata-crawler.sh --check-dump --quiet  # nothing printed, exit code only
+#   ./wikidata-crawler.sh --v1-backfill-report  # WIKIDATA-CRAWLER-023: how much of the
+#                                               # French label service still hangs on V1
 #
 # WHY THIS FLAG EXISTS AT ALL, since the question sounds like the launcher's job.
 # It is not: a plain ./wikidata-crawler.sh does NOT download when the dump is
@@ -40,6 +42,21 @@ if [ "${1:-}" = "--check-dump" ]; then
     exec docker run --rm --network="host" --env-file .env \
         -v /home/debian/docker/shared_data/wikidata-crawler:/shared \
         --entrypoint python wikidata-crawler-python-app check_new_dump.py "$@"
+fi
+
+# WIKIDATA-CRAWLER-023. Same shape, same reason: ask the question without starting
+# anything. This one reads the database instead of Wikimedia and prints the
+# ventilation of the V1 remainder (already in ITEM / importable / floor), which is
+# the figure the decommission plan needs. Read-only, and it writes no seed file: the
+# seed is built by step 106, not here.
+if [ "${1:-}" = "--v1-backfill-report" ]; then
+    shift
+    cd /home/debian/docker/wikidata-crawler || exit 2
+    docker build -q -t wikidata-crawler-python-app . >/dev/null || {
+        echo "ERROR: image build failed." >&2; exit 2; }
+    exec docker run --rm --network="host" --env-file .env \
+        -v /home/debian/docker/shared_data/wikidata-crawler:/shared \
+        --entrypoint python wikidata-crawler-python-app build_v1_backfill_seed.py --report "$@"
 fi
 
 # Check if the wikidata-crawler Docker container is running

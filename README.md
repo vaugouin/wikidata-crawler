@@ -44,6 +44,9 @@ Use these documents as the main references:
   - V1→V2 coverage gap, the classifier fix, new entity types, run-time breakdown
 - `doc/collation-standardization.md`
   - database-wide charset/collation standardization plan (fixes cross-table `#1267` join errors)
+- `doc/sql/wikidata-v1-backfill-target-set.sql`
+  - WIKIDATA-CRAWLER-023 : dimensionne le relogement du reliquat V1 et chiffre le plancher
+    residuel. Jumeau lisible de `./wikidata-crawler.sh --v1-backfill-report`.
 
 ## Main files
 
@@ -52,6 +55,8 @@ Use these documents as the main references:
 - `wikidata_crawler.py`
 - `wikidata_dump_etl.py`
 - `load_staging_jsonl.py`
+- `build_v1_backfill_seed.py` : construit la graine du relogement V1 (WIKIDATA-CRAWLER-023),
+  consommee par l'etape `106`. Voir "Relogement du reliquat V1 dans le cache V2" plus bas.
 - `citizenphil.py`
 
 ### SQL
@@ -186,7 +191,7 @@ Its steps are:
 - `103` validate ETL pass1
 - `104` run ETL pass2
 - `105` validate ETL pass2
-- `106` run ETL item_cache
+- `106` run ETL item_cache (reconstruit d'abord la graine du relogement V1)
 - `107` validate ETL item_cache
 - `108` load staging tables
 - `109` validate staging data
@@ -376,6 +381,14 @@ container: one HEAD request, no byte of dump transferred, nothing written:
 ./wikidata-crawler.sh --check-dump --quiet     # exit code only: 0 new, 1 same, 2 cannot tell
 ```
 
+A second flag is intercepted the same way, and for the same reason, `--v1-backfill-report`:
+it reads the database (not Wikimedia) and prints how much of the French label service still
+hangs on V1. Read-only, writes no seed file, starts nothing:
+
+```bash
+./wikidata-crawler.sh --v1-backfill-report
+```
+
 The two anchors answer different questions. The default one compares against the dump the
 last run actually processed (`strwikidatacrawlerdumpsize`), which answers "should I
 relaunch"; `--vs-local` compares against the file sitting on the shared volume, which
@@ -548,6 +561,61 @@ So the reliable rerun procedure is now:
   - surgical staging cleanup: deletes every `STG_*` row for one `@OLD_BATCH_ID`, leaving every other batch intact. Use it to drop one named batch, typically to reclaim its space *before* a run rather than waiting for step `115` to do it at the end. Set `@OLD_BATCH_ID` to the batch to remove. Lighter than `04_reset_for_full_rerun.sql`, which wipes all staging + targets for a full rebuild.
 - `13_cleanup_staging_old_batches.sql`
   - hand-runnable twin of step `115`: deletes every `STG_*` row whose `IMPORT_BATCH_ID` is strictly older than `@IMPORT_BATCH_ID`, leaving staging with exactly the batch that just loaded. The crawler does **not** execute this file. Step 115 issues the same deletes in committed 50 000-row chunks, deriving its table list from `TABLE_SPECS` in `load_staging_jsonl.py`. Use it to clean a database by hand, or to catch up a run that predates step 115. Set `@IMPORT_BATCH_ID` to the batch to **keep**, and run the two guard queries in its header first.
+
+## Relogement du reliquat V1 dans le cache V2 (etape 106)
+
+WIKIDATA-CRAWLER-023, execution de la route A de la decommission V1.
+
+**Le probleme.** Au 2026-09-19, 36,2 % des libelles francais affiches (250 185 sur 691 320,
+`test-017-repli-v1-taux.sql`) viennent encore du repli sur `T_WC_WIKIDATA_ITEM_V1` : ces
+entites ont une ligne dans V1 et aucune dans `T_WC_WIKIDATA_ITEM`. Supprimer les tables V1
+les ferait disparaitre de l'ecran. Or la seule chose qui fabrique une ligne
+`T_WC_WIKIDATA_ITEM` est la passe `item_cache`, qui n'emet que pour les entites presentes
+dans son filtre d'items references, construit par pass2.
+
+**Le geste.** L'etape `106` commence par relire `T_WC_WIKIDATA_ITEM_V1` et ecrire
+`/shared/seed/v1_backfill_item_ids.txt`, qu'elle passe a la passe comme un second fichier
+d'entree, distinct de celui de pass2. Ces entites se materialisent alors depuis le dump,
+libelles et faits `CACHED_ENTITY_PROPERTIES` compris. Le fichier de pass2 n'est pas modifie,
+pour qu'on puisse toujours dire ce que les statements du run ont reellement reference.
+
+**La graine est reconstruite a chaque run, et elle est ancree sur V1 seul.** Jamais sur la
+difference "dans V1, absent de V2" : cette difference s'auto-efface, puisqu'apres un import
+reussi elle rend zero. La graine se viderait, ces items sortiraient du filtre, et l'etape
+`114` supprimerait leurs faits des le run suivant, sous un run en succes et sans un mot dans
+les journaux. La difference sert a mesurer, l'ancrage V1 sert a semer.
+
+**Ce que la re-injection protege, precisement.** Pas les libelles : les tables d'entites ne
+portent pas d'`IMPORT_BATCH_ID` et ne sont jamais purgees, donc une ligne `ITEM` importee
+reste. Elle protege (1) les faits `P31/P279/P345/P569/P570/P577` de ces items, qui portent
+un lot et que l'etape `114` supprime des qu'ils ne sont plus emis, ce qui recreerait chaque
+semaine le symptome de WIKIDATA-CRAWLER-020 (un libelle sans un seul fait), (2) la fraicheur
+des libelles, et (3) la reproductibilite apres un `04_reset_for_full_rerun.sql`.
+
+**Mesurer, avant et apres.** Sans rien lancer, depuis l'hote :
+
+```bash
+./wikidata-crawler.sh --v1-backfill-report
+```
+
+ou, a la main, `doc/sql/wikidata-v1-backfill-target-set.sql`. Apres le run, l'etape `107`
+ventile la graine en variables serveur : `strwikidatacrawlerv1backfillseeded` doit egaler
+la somme de `...emitted` (mis en cache, c'est le gain), `...diverted` (entites routees vers
+`PERSON`), `...skippedcore` (entites du perimetre coeur, qu'`item_cache` refuse d'ecrire
+dans `ITEM`) et `...missing` (Q-ids disparus de Wikidata depuis que le crawler SPARQL les a
+enregistres).
+
+**Les deux derniers compteurs sont un plancher, pas un defaut.** `f_getwikidatalabel` ne lit
+que `T_WC_WIKIDATA_ITEM`, volontairement (TMDB-MOVIE-PREPROCESS-036 : l'elargir ecrivait des
+titres de films dans `AWARD_NAME_FR`), et `item_cache` refuse d'ecrire une entite du
+perimetre coeur dans `ITEM`. Les Q-ids que V2 detient deja comme film, serie ou personne
+resteront donc servis par le repli V1 quoi qu'on seme. C'est la perte residuelle a acter
+dans WIKIDATA-CRAWLER-022.
+
+**Reglages.** `V1_BACKFILL_SEED=0` desactive l'extension ; `V1_BACKFILL_MIN_IDS` (100 000 par
+defaut) est le plancher sous lequel l'etape refuse de partir, plutot que de tourner 23 h sans
+avoir seme. Le cout de l'extension est negligeable a l'echelle de la passe, qui lit de toute
+facon les 120 millions d'entites du dump.
 
 ## Cleanup of old import batches (step 114)
 

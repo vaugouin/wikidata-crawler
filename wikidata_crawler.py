@@ -18,6 +18,7 @@ from pymysql.constants import CLIENT
 load_dotenv()
 
 import citizenphil as cp
+from build_v1_backfill_seed import build_seed as build_v1_backfill_seed, seed_enabled as v1_backfill_enabled, seed_path as v1_backfill_seed_path
 from load_staging_jsonl import TABLE_SPECS, create_connection as create_staging_connection, load_table
 from wikidata_dump_etl import WikidataDumpETL
 
@@ -367,6 +368,7 @@ class WikidataCrawler:
         cp.f_setservervariable(f"{CRAWLER_PREFIX}pass2statements", str(summary["statements_emitted"]), "Statements emitted during ETL pass2", 0)
 
     def step_run_item_cache(self) -> None:
+        extra_item_ids_path = self._build_v1_backfill_seed()
         self._run_pass(
             pass_name="item_cache",
             out_dir=ITEM_CACHE_DIR,
@@ -377,7 +379,36 @@ class WikidataCrawler:
             referenced_item_ids_path=PASS2_DIR / "referenced_item_ids.txt",
             candidate_person_ids_path=None,
             referenced_person_ids_path=PASS2_DIR / "referenced_person_ids.txt",
+            extra_item_ids_path=extra_item_ids_path,
         )
+
+    def _build_v1_backfill_seed(self) -> Optional[Path]:
+        """WIKIDATA-CRAWLER-023. Rebuild the V1 backfill seed from the database, right
+        before the pass that consumes it.
+
+        Rebuilt every run, and that is the design rather than an accident. The seed
+        cannot be a file kept between runs: run-if-new-dump.sh empties /shared at every
+        launch. The durable store is the V1 table itself, frozen, read in seconds.
+
+        It is also why the seed query is anchored on V1 ALONE and never on the difference
+        "in V1, absent from V2". That difference self-erases: after one successful import
+        it returns zero, the seed empties, these items leave the filter, and step 114
+        deletes their facts the week after, all under a run reporting SUCCESS. The
+        difference measures, the V1 anchor seeds. See build_v1_backfill_seed.py.
+
+        Failures are loud on purpose: a 23 h pass that quietly runs without its extension
+        would look exactly like a successful run and cost a week.
+        """
+        if not v1_backfill_enabled():
+            print("106: V1 backfill seed disabled (V1_BACKFILL_SEED=0), item_cache runs on pass2 references only")
+            cp.f_setservervariable(f"{CRAWLER_PREFIX}v1backfillseeded", "0",
+                                   "Item ids seeded from V1 into the item_cache filter (WIKIDATA-CRAWLER-023)", 0)
+            return None
+        provenance = build_v1_backfill_seed(SHARED_DIR, batch_id=self.import_batch_id)
+        print(f"106: V1 backfill seed: {provenance['ids_seeded']} item ids -> {provenance['seed_file']}")
+        cp.f_setservervariable(f"{CRAWLER_PREFIX}v1backfillseeded", str(provenance["ids_seeded"]),
+                               "Item ids seeded from V1 into the item_cache filter (WIKIDATA-CRAWLER-023)", 0)
+        return v1_backfill_seed_path(SHARED_DIR)
 
     def step_validate_item_cache(self) -> None:
         summary = self._validate_summary(ITEM_CACHE_DIR, "item_cache")
@@ -387,6 +418,42 @@ class WikidataCrawler:
         if not (ITEM_CACHE_DIR / "T_WC_WIKIDATA_ITEM.jsonl").exists() and not (ITEM_CACHE_DIR / "T_WC_WIKIDATA_PERSON.jsonl").exists():
             raise ValidationError("item_cache produced neither item nor person outputs")
         cp.f_setservervariable(f"{CRAWLER_PREFIX}itemcacheentities", str(summary["entities_seen"]), "Entities seen during ETL item_cache", 0)
+        self._report_v1_backfill(summary)
+
+    def _report_v1_backfill(self, summary: Dict[str, int]) -> None:
+        """Ventilate the V1 backfill seed against what the dump actually yielded.
+
+        Four outcomes, and three of them are floors rather than faults:
+          * emitted        -> a T_WC_WIKIDATA_ITEM row, which is what closes the V1 fallback;
+          * diverted       -> the entity is a referenced person, so it went to PERSON;
+          * skipped (core) -> the entity is a core movie/serie/person, which item_cache
+            refuses to write to ITEM, and f_getwikidatalabel reads ITEM only
+            (TMDB-MOVIE-PREPROCESS-036), so those keep falling back to V1 whatever we seed;
+          * missing        -> the dump holds no such entity: deleted or redirected in
+            Wikidata since a SPARQL crawler recorded it, years ago for some.
+
+        The last three are the floor WIKIDATA-CRAWLER-022 has to act as a residual loss.
+        Measured here on the real dump instead of guessed.
+        """
+        seeded = int(summary.get("extra_item_ids_seeded", 0) or 0)
+        if seeded <= 0:
+            return
+        emitted = int(summary.get("extra_items_emitted", 0) or 0)
+        diverted = int(summary.get("extra_items_diverted_to_person", 0) or 0)
+        skipped_core = int(summary.get("extra_items_skipped_core", 0) or 0)
+        missing = seeded - emitted - diverted - skipped_core
+        print(
+            f"107: V1 backfill ventilation on {seeded} seeded ids: "
+            f"{emitted} cached as items, {diverted} diverted to persons, "
+            f"{skipped_core} skipped as core entities, {missing} absent from the dump"
+        )
+        for name, value, desc in (
+            ("v1backfillemitted", emitted, "Seeded V1 item ids that item_cache wrote to T_WC_WIKIDATA_ITEM (WIKIDATA-CRAWLER-023)"),
+            ("v1backfilldiverted", diverted, "Seeded V1 item ids written to T_WC_WIKIDATA_PERSON instead (WIKIDATA-CRAWLER-023)"),
+            ("v1backfillskippedcore", skipped_core, "Seeded V1 item ids refused because the entity is a core entity (WIKIDATA-CRAWLER-023)"),
+            ("v1backfillmissing", missing, "Seeded V1 item ids absent from the dump: deleted or redirected in Wikidata (WIKIDATA-CRAWLER-023)"),
+        ):
+            cp.f_setservervariable(f"{CRAWLER_PREFIX}{name}", str(value), desc, 0)
 
     def step_load_staging(self) -> None:
         # Idempotently bring the live DB up to date (new SEASON/EPISODE/CHARACTER
@@ -748,6 +815,7 @@ class WikidataCrawler:
         referenced_item_ids_path: Optional[Path],
         candidate_person_ids_path: Optional[Path],
         referenced_person_ids_path: Optional[Path],
+        extra_item_ids_path: Optional[Path] = None,
     ) -> None:
         out_dir.mkdir(parents=True, exist_ok=True)
         etl = WikidataDumpETL(
@@ -760,6 +828,7 @@ class WikidataCrawler:
             referenced_item_ids_path=referenced_item_ids_path,
             candidate_person_ids_path=candidate_person_ids_path,
             referenced_person_ids_path=referenced_person_ids_path,
+            extra_item_ids_path=extra_item_ids_path,
         )
         etl.run()
 

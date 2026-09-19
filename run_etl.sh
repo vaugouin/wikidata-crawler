@@ -15,6 +15,11 @@ set -euo pipefail
 PASS1_DIR=/shared/pass1
 PASS2_DIR=/shared/pass2
 ITEM_CACHE_DIR=/shared/item_cache
+# WIKIDATA-CRAWLER-023. Extra items to cache on top of what pass2 referenced, written
+# by build_v1_backfill_seed.py. This legacy driver does NOT build it (the orchestrator
+# does, at step 106); it only consumes it when it happens to be there. A missing file
+# is a no-op: load_id_set() returns an empty set.
+V1_BACKFILL_SEED_FILE=/shared/seed/v1_backfill_item_ids.txt
 
 _DUMP_URL="${DUMP_URL:-}"
 _DUMP_FILE="${DUMP_FILE:-}"
@@ -87,6 +92,7 @@ PASS_NAME=item_cache \
 CORE_ENTITY_IDS=$PASS1_DIR/core_entity_ids.txt \
 REFERENCED_ITEM_IDS=$PASS2_DIR/referenced_item_ids.txt \
 REFERENCED_PERSON_IDS=$PASS2_DIR/referenced_person_ids.txt \
+EXTRA_ITEM_IDS=$V1_BACKFILL_SEED_FILE \
 python /app/wikidata_dump_etl.py
 
 echo "=== ETL complete. Staging files in /shared/pass1, /shared/pass2, /shared/item_cache ==="

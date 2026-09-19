@@ -4,6 +4,50 @@ Mémoire opérationnelle du dépôt, antéchronologique (l'entrée la plus réce
 Au démarrage d'une session, lire les premières entrées pour retrouver le contexte, sans
 charger tout le fichier.
 
+## 2026-09-19 : WIKIDATA-CRAWLER-023 implémenté, la graine du relogement V1 est dans l'étape 106
+
+**Ce qui est livré.** L'étape 106 reconstruit désormais, avant de lancer la passe, la liste des
+items que seul V1 connaît, et la donne à `item_cache` comme second fichier d'entrée. Nouveau
+script `build_v1_backfill_seed.py` (lançable seul, `--report` ventile sans rien écrire),
+nouveau paramètre `extra_item_ids_path` dans `WikidataDumpETL`, ventilation en variables
+serveur à l'étape 107, `doc/sql/wikidata-v1-backfill-target-set.sql` pour la mesure à la main,
+et `./wikidata-crawler.sh --v1-backfill-report` pour la poser depuis l'hôte sans rien lancer.
+Le test de fumée couvre les deux comportements et les deux planchers.
+
+**Les trois points ouverts, tranchés.**
+1. *La requête.* Deux requêtes, pas une. La **mesure** est la différence (dans V1, absent de
+   V2), ventilée par table V2 ; la **graine** est ancrée sur V1 seul. Le volume réel n'a pas pu
+   être chiffré en écrivant le code (pas d'accès à la base depuis le PC, clé SSH à passphrase
+   et session non interactive) : il se lit maintenant en une commande, `--v1-backfill-report`.
+   Bornes connues : 250 185 lignes servies par le repli au 2026-09-19, `T_WC_WIKIDATA_ITEM` à
+   702 502 lignes, donc l'import la grossit d'au plus un tiers.
+2. *La provenance.* Le `referenced_item_ids.txt` de pass2 n'est pas touché, la graine vit dans
+   `/shared/seed/`, et le `run_summary.json` de la passe compte les deux sources séparément.
+3. *La ré-injection.* Reconstruction depuis la base à chaque run, pas de fichier persistant
+   (`run-if-new-dump.sh` vide `/shared` à chaque lancement) et pas de pass2 modifié.
+
+**Deux corrections au ticket, vérifiées dans le code.**
+- *Le piège de la différence auto-effaçante.* Semer « absent de V2 » aurait marché une fois,
+  puis se serait vidé tout seul au run suivant, et l'étape 114 aurait supprimé les faits de ces
+  items, le tout sous un run en succès. D'où l'ancrage sur V1 seul, écrit noir sur blanc dans
+  les trois fichiers concernés.
+- *Ce que la ré-injection protège.* Le ticket disait « sans elle, le repli réapparaît la semaine
+  suivante ». C'est faux pour les libellés : les tables d'entités ne portent pas
+  d'`IMPORT_BATCH_ID` et ne sont jamais purgées (`08_cleanup_old_batches.sql`), une ligne `ITEM`
+  importée reste. Ce que l'absence de ré-injection détruit, ce sont les **faits** de ces items,
+  supprimés dès le run suivant par l'étape 114, plus la fraîcheur et la reproductibilité. La
+  décision ne change pas, sa raison si.
+
+**Le plancher que cette route ne franchira pas, à remonter à -022.** `f_getwikidatalabel` ne lit
+que `T_WC_WIKIDATA_ITEM` (volontairement, TMDB-MOVIE-PREPROCESS-036) et `item_cache` refuse
+d'écrire une entité du périmètre cœur dans `ITEM` : les Q-ids que V2 détient déjà comme film,
+série ou personne resteront servis par V1 quoi qu'on sème. Les compteurs `...skippedcore` et
+`...missing` de l'étape 107 le chiffrent sur le dump réel.
+
+**Route retenue pour l'exécution : (a), le prochain run hebdomadaire.** Rien à lancer à la main,
+le mécanisme est dans le pipeline. Ce qui reste à faire après ce run : relever
+`--v1-backfill-report` et `test-017-repli-v1-taux.sql`, et reporter le plancher dans -022.
+
 ## 2026-09-19 : décision route A pour la décommission V1, ticket WIKIDATA-CRAWLER-023 à implémenter
 
 **Contexte.** La migration Wikidata V1 vers V2 est dans un état transitoire stable : le code

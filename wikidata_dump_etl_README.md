@@ -49,6 +49,7 @@ The script reads **all parameters from environment variables**. There are no com
 | `CANDIDATE_PERSON_IDS` | pass2 | `candidate_person_ids.txt` produced by pass1 (set by `run_etl.sh`) |
 | `REFERENCED_ITEM_IDS` | item_cache | `referenced_item_ids.txt` produced by pass2 (set by `run_etl.sh`) |
 | `REFERENCED_PERSON_IDS` | item_cache | `referenced_person_ids.txt` produced by pass2 (set by `run_etl.sh`) |
+| `EXTRA_ITEM_IDS` | no | Extra item ids to cache on top of what pass2 referenced, one per line. Today the V1 backfill seed (WIKIDATA-CRAWLER-023), written by `build_v1_backfill_seed.py` to `/shared/seed/v1_backfill_item_ids.txt`. A missing file is a no-op. |
 
 ### DUMP_URL vs DUMP_FILE
 
@@ -213,6 +214,7 @@ Requires pass1 outputs: `class_roots.jsonl`, `core_entity_ids.txt`, `candidate_p
 Streams the full dump a third time to:
 - emit `T_WC_WIKIDATA_ITEM` rows for items referenced from movie/series/person statements (but not themselves in scope)
 - emit additional `T_WC_WIKIDATA_PERSON` rows for rule-2 persons (persons referenced in movie/series statements who lack an IMDb ID but were cast/crew)
+- emit `T_WC_WIKIDATA_ITEM` rows for the ids listed in `EXTRA_ITEM_IDS`, if that file exists. This is what reloges the V1 remainder into the V2 cache (WIKIDATA-CRAWLER-023): the filter is the only thing deciding what gets cached, so an entity nothing references can only enter through here. The run summary keeps the two sources apart (`referenced_item_ids_from_pass2` against `extra_item_ids_seeded`, `extra_items_emitted`, `extra_items_diverted_to_person`, `extra_items_skipped_core`), and the file from pass2 is never rewritten. See the crawler `README.md`, "Relogement du reliquat V1 dans le cache V2".
 
 Requires pass1 + pass2 outputs: `core_entity_ids.txt`, `referenced_item_ids.txt`, `referenced_person_ids.txt`.
 

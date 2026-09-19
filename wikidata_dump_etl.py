@@ -970,6 +970,7 @@ class WikidataDumpETL:
         referenced_item_ids_path: Optional[Path],
         candidate_person_ids_path: Optional[Path],
         referenced_person_ids_path: Optional[Path],
+        extra_item_ids_path: Optional[Path] = None,
     ) -> None:
         self.out_dir = out_dir
         self.pass_name = pass_name
@@ -991,6 +992,26 @@ class WikidataDumpETL:
 
         self.in_scope_entity_ids: Set[str] = load_id_set(core_entity_ids_path)
         self.referenced_item_ids_filter: Set[str] = load_id_set(referenced_item_ids_path)
+
+        # WIKIDATA-CRAWLER-023. Extra item ids to cache on top of what pass2 referenced,
+        # today the V1 backfill seed (build_v1_backfill_seed.py). Unioned INTO the filter
+        # so the emission path needs no new branch, but kept countable on its own, and
+        # read from its OWN file: pass2's referenced_item_ids.txt stays byte for byte what
+        # pass2 wrote. Merging the two would make it impossible to say afterwards what this
+        # run's statements actually referenced, and that provenance is the whole point.
+        self.extra_item_ids: Set[str] = load_id_set(extra_item_ids_path)
+        self.pass2_item_ids_count: int = len(self.referenced_item_ids_filter)
+        self.extra_item_ids_new: int = len(self.extra_item_ids - self.referenced_item_ids_filter)
+        self.referenced_item_ids_filter |= self.extra_item_ids
+        # Ventilation of the seed, filled during an item_cache scan: what became an ITEM
+        # row, what the pass sent to PERSON instead, and what it refused because the entity
+        # is a core entity. The last two are the floor of this route rather than a bug:
+        # f_getwikidatalabel reads T_WC_WIKIDATA_ITEM only, so a seeded id that V2 already
+        # holds as a movie/serie/person keeps falling back to V1 whatever we seed. Counted
+        # here so the floor is measured on the real dump instead of assumed.
+        self.extra_items_emitted: int = 0
+        self.extra_items_diverted_to_person: int = 0
+        self.extra_items_skipped_core: int = 0
         # candidate_person_ids_filter: all Q5 instances from pass1, used in pass2 to identify
         # referenced items that are persons (rule 2: persons in movie/series item values)
         self.candidate_person_ids_filter: Set[str] = load_id_set(candidate_person_ids_path)
@@ -1189,6 +1210,13 @@ class WikidataDumpETL:
             "value_rows_emitted": self.stats.value_rows_emitted,
             "elapsed_seconds": round(elapsed, 2),
             "entities_per_second": round(rate, 2),
+            # WIKIDATA-CRAWLER-023, zero on every pass that carries no seed.
+            "referenced_item_ids_from_pass2": self.pass2_item_ids_count,
+            "extra_item_ids_seeded": len(self.extra_item_ids),
+            "extra_item_ids_new": self.extra_item_ids_new,
+            "extra_items_emitted": self.extra_items_emitted,
+            "extra_items_diverted_to_person": self.extra_items_diverted_to_person,
+            "extra_items_skipped_core": self.extra_items_skipped_core,
         }
         (self.out_dir / "run_summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
         print(json.dumps(summary, indent=2))
@@ -1369,6 +1397,8 @@ class WikidataDumpETL:
 
         if self.pass_name == "item_cache":
             if entity_id in self.in_scope_entity_ids:
+                if entity_id in self.extra_item_ids:
+                    self.extra_items_skipped_core += 1
                 return
             base_row = {
                 "ID_WIKIDATA": entity_id,
@@ -1382,9 +1412,13 @@ class WikidataDumpETL:
             if entity_id in self.referenced_person_ids_filter:
                 self.writers.write("T_WC_WIKIDATA_PERSON", base_row)
                 cached = True
+                if entity_id in self.extra_item_ids:
+                    self.extra_items_diverted_to_person += 1
             elif entity_id in self.referenced_item_ids_filter:
                 self.writers.write("T_WC_WIKIDATA_ITEM", base_row)
                 cached = True
+                if entity_id in self.extra_item_ids:
+                    self.extra_items_emitted += 1
 
             # WIKIDATA-CRAWLER-020. A cached entity used to carry its label and not a
             # single fact, so "Academy Award for Best Actress" existed by name and had
@@ -1745,6 +1779,7 @@ def main() -> int:
         referenced_item_ids_path=_env_path("REFERENCED_ITEM_IDS"),
         candidate_person_ids_path=_env_path("CANDIDATE_PERSON_IDS"),
         referenced_person_ids_path=_env_path("REFERENCED_PERSON_IDS"),
+        extra_item_ids_path=_env_path("EXTRA_ITEM_IDS"),
     )
     etl.run()
     return 0

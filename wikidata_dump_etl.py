@@ -598,6 +598,39 @@ def extract_descriptions(doc: Any) -> Dict[str, str]:
     return result
 
 
+def extract_aliases(doc: Any) -> Dict[str, list[str]]:
+    """Collect doc["aliases"] as {lang: [alias, ...]}, all languages.
+
+    Twin of extract_labels / extract_descriptions, with one difference that is the
+    whole point of WIKIDATA-CRAWLER-025: a language carries a LIST of aliases, the
+    dump shape being {lang: [{language, value}, ...]}. A language whose list holds
+    no usable string is dropped rather than kept as an empty list, so that an entity
+    with no aliases yields {} exactly as a label-less entity does.
+    """
+    result: Dict[str, list[str]] = {}
+    try:
+        aliases = doc.get("aliases")
+        if aliases is None:
+            return result
+        for lang, payload in aliases.items():
+            values: list[str] = []
+            try:
+                for entry in payload:
+                    try:
+                        value = entry.get("value")
+                        if isinstance(value, str):
+                            values.append(value)
+                    except Exception:
+                        continue
+            except Exception:
+                continue
+            if values:
+                result[str(lang)] = values
+    except Exception:
+        pass
+    return result
+
+
 def get_claim_list(doc: Any, pid: str) -> list[Any]:
     try:
         claims = doc.get("claims")
@@ -1386,6 +1419,7 @@ class WikidataDumpETL:
                 "DESCRIPTION_EN": get_description(doc, "en"),
                 "LABELS_JSON": extract_labels(doc),
                 "DESCRIPTIONS_JSON": extract_descriptions(doc),
+                "ALIASES_JSON": extract_aliases(doc),
             }
 
             table = CLASS_TO_TABLE.get(entity_class)
@@ -1406,6 +1440,7 @@ class WikidataDumpETL:
                 "DESCRIPTION_EN": get_description(doc, "en"),
                 "LABELS_JSON": extract_labels(doc),
                 "DESCRIPTIONS_JSON": extract_descriptions(doc),
+                "ALIASES_JSON": extract_aliases(doc),
             }
             # Rule 2: persons referenced in movie/series statements go to T_WC_WIKIDATA_PERSON
             cached = False

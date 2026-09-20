@@ -934,11 +934,17 @@ class WikidataCrawler:
         raise ValidationError(f"Live-DB schema file not found. Searched: {searched}")
 
     def _apply_live_db_schema(self) -> None:
-        """Idempotently apply additive DDL (CREATE TABLE IF NOT EXISTS) to the live DB.
+        """Idempotently apply additive DDL (CREATE TABLE / ADD COLUMN IF NOT EXISTS).
 
-        Keeps a long-lived database in sync with newly-added tables that
-        01_create_schema.sql would only create on a fresh database. Safe to call
-        repeatedly and from multiple steps.
+        Keeps a long-lived database in sync with what 01_create_schema.sql would
+        only ever create on a fresh database: newly-added tables, and newly-added
+        columns, which no CREATE TABLE IF NOT EXISTS can reach on a table that
+        already exists. Safe to call repeatedly and from multiple steps.
+
+        It runs before the staging load on purpose. The loader derives its INSERT
+        columns from the NDJSON keys, so a column the ETL has started emitting and
+        the database does not have yet fails step 108 on an unknown column, after
+        a pass that has just streamed the dump for a day.
         """
         sql_path = self._resolve_live_db_schema_path()
         statements = self._split_sql_statements(sql_path.read_text(encoding="utf-8"))

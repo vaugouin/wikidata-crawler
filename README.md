@@ -47,6 +47,10 @@ Use these documents as the main references:
 - `doc/sql/wikidata-v1-backfill-target-set.sql`
   - WIKIDATA-CRAWLER-023 : dimensionne le relogement du reliquat V1 et chiffre le plancher
     residuel. Jumeau lisible de `./wikidata-crawler.sh --v1-backfill-report`.
+- `doc/sql/wikidata-v2-025-acceptance.sql`
+  - WIKIDATA-CRAWLER-025 : recette des aliases. Presence de la colonne, remplissage,
+    volume reel, et comparaison de 100 QID contre `PERSON_V1`. A jouer AVANT le run
+    aussi : c'est la meme execution qui donne le point de depart du volume.
 
 ## Main files
 
@@ -88,6 +92,12 @@ Use these documents as the main references:
   long-lived DB stays in sync with new tables and any staging table that was dropped by hand is
   re-created in place instead of aborting the run. Column definitions mirror
   `02_staging_and_triggers.sql`, which stays canonical — keep the two in sync when adding a column.
+  It also carries the `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` statements, currently the 14 that
+  add `ALIASES_JSON` to the seven target and seven staging entity tables. A new **column** can only
+  reach a live database through those: `CREATE TABLE IF NOT EXISTS` does nothing at all to a table
+  that already exists. Add the column in all three places at once (`01_create_schema.sql`,
+  `02_staging_and_triggers.sql`, and both DDL sets here), or the run fails on an unknown column at
+  step 108, after days of ETL.
 
 ### Tests
 
@@ -622,6 +632,44 @@ de Wikidata.
 defaut) est le plancher sous lequel l'etape refuse de partir, plutot que de tourner 23 h sans
 avoir seme. Le cout de l'extension est negligeable a l'echelle de la passe, qui lit de toute
 facon les 120 millions d'entites du dump.
+
+## Les aliases en V2 : `ALIASES_JSON` (WIKIDATA-CRAWLER-025)
+
+**Ce que c'est.** Les sept tables d'entites portent une colonne `ALIASES_JSON` a cote de
+`LABELS_JSON`, remplie depuis `doc["aliases"]` par les deux seules passes qui fabriquent une
+ligne d'entite, pass2 (etape `104`) et item_cache (etape `106`). Forme :
+`{"fr": ["Bebel", "..."], "en": [...]}`, **toutes les langues**. Une langue sans alias
+utilisable est retiree, donc une entite sans alias porte `{}`, comme une entite sans libelle.
+
+**Pourquoi le dump fait mieux que V1 pour moins cher.** V1 interrogeait `skos:altLabel` en
+SPARQL, une requete par entite, cinq secondes d'attente entre deux, filtre sur `en` et `fr`,
+et un `WHERE ALIASES IS NULL` qui ne repassait jamais : jamais rafraichi. Pour les films et
+les personnes, EN et FR finissaient fondus dans une seule chaine tubee, sans langue. Le dump
+porte la meme donnee au meme endroit que les libelles, pour zero requete reseau et zero
+seconde de plus, le document etant deja lu et parse.
+
+**Quand la colonne se remplit.** Seulement apres une lecture du dump par pass2 et par
+item_cache, soit 20 a 33 h chacune. Il n'y a aucune raison de payer ce prix a part : le
+pipeline complet tourne de toute facon a chaque nouveau dump. Livrer le code et reconstruire
+l'image **avant** que `run-if-new-dump.sh` ne declenche met le cout marginal a zero. Les
+tables d'entites ne portant pas d'`IMPORT_BATCH_ID` et n'etant jamais purgees, la colonne se
+remplit par mise a jour en place, sans que rien ne disparaisse de l'ecran pendant ce temps.
+
+**L'ordre est contraint, et c'est un piege.** `load_staging_jsonl.py` derive ses colonnes des
+cles de la premiere ligne du NDJSON : la cle nouvelle passe toute seule, **a condition que la
+colonne de staging existe**. Sinon l'etape `108` echoue sur une colonne inconnue, apres une
+passe qui vient de tourner des heures. C'est `apply_to_live_db.sql` qui la pose, et le
+crawler l'applique lui-meme au debut des etapes `108` et `110` : rien a faire a la main.
+
+**Langues : toutes, mais le volume reste a mesurer.** Un libelle par langue, mais n alias par
+langue, sur environ 2,5 millions de lignes d'entites. Personne n'a mesure ce que cela pese.
+`doc/sql/wikidata-v2-025-acceptance.sql` le fait, section F3, et le chiffre qui decide n'est
+pas le nombre d'alias mais le rapport `MO_FR_EN / MO_TOTAL`, qui dit exactement ce qu'un
+filtre de langues economiserait. Le poser sur la mesure, pas d'avance.
+
+**Ce que ce depot ne fait pas.** Alimenter les colonnes `ALIASES` de T2S
+(`tmdb-movie-preprocess`) et brancher l'affichage (`tmdb-front`) sont les deux etages en aval,
+et ni l'un ni l'autre ne peut aboutir avant le run de celui-ci.
 
 ## Cleanup of old import batches (step 114)
 

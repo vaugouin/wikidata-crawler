@@ -119,6 +119,31 @@ Role:
 
 ---
 
+## Localized text on the entity tables
+
+The seven entity tables (`MOVIE`, `SERIE`, `PERSON`, `ITEM`, `SEASON`, `EPISODE`,
+`CHARACTER`) all carry the same localized-text block, read straight from the dump
+document next to its claims:
+
+- `LABEL_EN` / `DESCRIPTION_EN` : the English pair, denormalized for cheap lookup
+- `LABELS_JSON` / `DESCRIPTIONS_JSON` : `{lang: "value"}`, every language
+- `ALIASES_JSON` : `{lang: ["value", ...]}`, every language
+
+`ALIASES_JSON` is the one with a different shape: a language carries a **list**,
+since an entity has one label per language but any number of aliases. A language
+whose list would be empty is dropped, so an entity with no aliases holds `{}`,
+exactly as one with no labels does.
+
+Aliases are what V1 called `ALIASES` on `MOVIE_V1` / `PERSON_V1` / `ITEM_V1` /
+`CHARACTER_V1`. V1 got them from a `skos:altLabel` SPARQL query, one per entity,
+limited to `en` and `fr`, and for movies and persons it fused both languages into
+a single pipe-delimited string, losing the language. The dump carries the same
+data in the document already being parsed, all languages, at no network cost.
+Readers should therefore expect V2 to hold **more** than V1 did, and to hold it
+per language.
+
+---
+
 # Legacy V1: T_WC_WIKIDATA_ITEM_PROPERTY
 
 > **Status:** historical. V2 is the production model. This section documents what V1 was, what it could not do, and why V2 replaced it. The V1 table may still exist in the live database alongside V2 until front-end migration is complete, but no new pipeline writes to it.

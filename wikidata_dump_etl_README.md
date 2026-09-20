@@ -308,3 +308,12 @@ If you run the loader inside Docker with the existing volume mapping, `/shared` 
 - A single reused `simdjson.Parser()` is used throughout for performance.
 - `T_WC_WIKIDATA_ITEM` is a referenced-item cache only — it does not mirror all Wikidata items.
 - No FK is assumed from `ITEM_VALUE.ID_ITEM` to `T_WC_WIKIDATA_ITEM`.
+- Every entity row carries the same localized-text block, read from the document next to its
+  claims: `LABEL_EN`, `DESCRIPTION_EN`, `LABELS_JSON`, `DESCRIPTIONS_JSON` and, since
+  2026-09-20 (WIKIDATA-CRAWLER-025), `ALIASES_JSON`. The last one is a dict of **lists**,
+  `{lang: [alias, ...]}`, an entity having one label per language but any number of aliases;
+  a language with nothing usable is dropped, so an alias-less entity emits `{}`. It is built
+  in the two `base_row` dicts (pass2 and item_cache), the only two places an entity row is
+  made, so both cover all seven entity tables. `load_staging_jsonl.py` needs no change, it
+  derives its columns from the NDJSON keys, **but the staging column has to exist first** or
+  step 108 fails on an unknown column. That DDL lives in `apply_to_live_db.sql`.

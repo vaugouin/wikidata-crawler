@@ -12,6 +12,8 @@ WikidataDumpETL (no database, no network), then asserts:
   * the persons-need-IMDb rule still gates the core set but keeps candidates;
   * pass2 emits statements for in-scope entities (incl. P2079);
   * item_cache emits a referenced, non-core value entity to T_WC_WIKIDATA_ITEM;
+  * aliases (WIKIDATA-CRAWLER-025) reach both entity-row builders as {lang: [...]},
+    with {} for an entity the dump gives no "aliases" key;
   * the V1 backfill seed (WIKIDATA-CRAWLER-023) caches an entity pass2 never
     referenced, leaves pass2's own output untouched, and counts its own floor.
 
@@ -53,7 +55,7 @@ def _claim(snak: dict, guid: str) -> dict:
     return {"mainsnak": snak, "type": "statement", "rank": "normal", "id": guid}
 
 
-def item(qid: str, *, p31=None, p279=None, imdb=None, p2079=None, label="x") -> dict:
+def item(qid: str, *, p31=None, p279=None, imdb=None, p2079=None, label="x", aliases=None) -> dict:
     claims: dict = {}
     if p31:
         claims["P31"] = [_claim(_item_snak(q), f"{qid}$P31-{i}") for i, q in enumerate(p31)]
@@ -63,13 +65,21 @@ def item(qid: str, *, p31=None, p279=None, imdb=None, p2079=None, label="x") -> 
         claims["P345"] = [_claim(_string_snak(imdb), f"{qid}$P345-0")]
     if p2079:
         claims["P2079"] = [_claim(_item_snak(q), f"{qid}$P2079-{i}") for i, q in enumerate(p2079)]
-    return {
+    doc = {
         "type": "item",
         "id": qid,
         "labels": {"en": {"language": "en", "value": label}},
         "descriptions": {},
         "claims": claims,
     }
+    # No "aliases" key at all unless asked: that is the shape of most entities, and
+    # the case extract_aliases must answer with {} rather than fail on.
+    if aliases is not None:
+        doc["aliases"] = {
+            lang: [{"language": lang, "value": v} for v in values]
+            for lang, values in aliases.items()
+        }
+    return doc
 
 
 # Order is deliberate: the subclass-typed movie (Q1001) and the descendant-typed
@@ -81,13 +91,19 @@ ENTITIES = [
     item("Q202866", p279=["Q11424"], label="animated film"),          # -> movie descendant
     item("Q15632617", p279=["Q95074"], label="fictional human"),       # -> character descendant
     item("Q1002", p31=["Q11424"], label="Bare Film Movie"),
-    item("Q1003", p31=["Q5"], imdb="nm0000001", label="Person With IMDb"),
+    # WIKIDATA-CRAWLER-025: the one core entity carrying aliases, emitted by pass2.
+    # "zz" is deliberately empty; a language with nothing usable must not survive as [].
+    item("Q1003", p31=["Q5"], imdb="nm0000001", label="Person With IMDb",
+         aliases={"fr": ["Bebel", "Jean-Paul B."], "en": ["JPB"], "zz": []}),
     item("Q1004", p31=["Q5"], label="Person Without IMDb"),
     item("Q1005", p31=["Q3464665"], label="A Season"),
     item("Q1006", p31=["Q21191270"], label="An Episode"),
     item("Q1007", p31=["Q95074"], label="A Character"),
     item("Q1009", p31=["Q515"], label="Irrelevant City"),
-    item("Q184781", p31=["Q2412849"], label="traditional animation"),  # referenced value, not core
+    # referenced value, not core: its aliases exercise the item_cache base_row, the
+    # second and last place in the repo where an entity row is built.
+    item("Q184781", p31=["Q2412849"], label="traditional animation",
+         aliases={"fr": ["animation traditionnelle"]}),
     # WIKIDATA-CRAWLER-023: in V1, referenced by no statement, so pass2 never puts it in
     # referenced_item_ids.txt. Exactly the reliquat the V1 backfill seed exists for.
     item("Q9001", p31=["Q515"], label="V1 Only Item"),
@@ -115,6 +131,13 @@ def read_jsonl(path: Path) -> list:
 
 def ids_in(path: Path) -> set:
     return {row["ID_WIKIDATA"] for row in read_jsonl(path)}
+
+
+def row_for(path: Path, qid: str) -> dict:
+    for row in read_jsonl(path):
+        if row["ID_WIKIDATA"] == qid:
+            return row
+    return {}
 
 
 # --- the test -----------------------------------------------------------------
@@ -175,6 +198,15 @@ def run() -> int:
         referenced = read_ids(p2 / "referenced_item_ids.txt")
         check("Q184781" in referenced, "P2079 value recorded as a referenced item")
 
+        # WIKIDATA-CRAWLER-025: aliases ride in the entity row, next to the labels.
+        person = row_for(p2 / "T_WC_WIKIDATA_PERSON.jsonl", "Q1003")
+        check(person.get("ALIASES_JSON") == {"fr": ["Bebel", "Jean-Paul B."], "en": ["JPB"]},
+              "pass2 emits ALIASES_JSON as {lang: [alias, ...]}, all languages")
+        check("zz" not in (person.get("ALIASES_JSON") or {}),
+              "a language whose alias list is empty is dropped, not kept as []")
+        check(row_for(p2 / "T_WC_WIKIDATA_MOVIE.jsonl", "Q1002").get("ALIASES_JSON") == {},
+              "an entity with no aliases key emits {}, like a label-less entity")
+
         # item_cache --------------------------------------------------------
         WikidataDumpETL(
             out_dir=ic, pass_name="item_cache", dump_url=None, dump_file=dump,
@@ -190,6 +222,9 @@ def run() -> int:
         check("Q184781" in item_ids, "referenced non-core value emitted to ITEM cache")
         check("Q1001" not in item_ids, "core entity NOT duplicated into ITEM cache")
         check("Q9001" not in item_ids, "an unreferenced V1-only item is NOT cached without a seed")
+        check(row_for(ic / "T_WC_WIKIDATA_ITEM.jsonl", "Q184781").get("ALIASES_JSON")
+              == {"fr": ["animation traditionnelle"]},
+              "item_cache carries ALIASES_JSON too (the other base_row)")
 
         # item_cache + V1 backfill seed (WIKIDATA-CRAWLER-023) -----------------
         # The seed is what makes the V1 remainder exist in V2, so that deleting the V1

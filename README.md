@@ -667,6 +667,17 @@ langue, sur environ 2,5 millions de lignes d'entites. Personne n'a mesure ce que
 pas le nombre d'alias mais le rapport `MO_FR_EN / MO_TOTAL`, qui dit exactement ce qu'un
 filtre de langues economiserait. Le poser sur la mesure, pas d'avance.
 
+**Point de depart, mesure du 2026-09-20 avant le run**
+(`doc/sql/wikidata-v2-025-acceptance-20260920.txt`). Les sept tables cibles pesent **4 653 Mo**
+au total, tres inegalement : `ITEM` 2 367, `PERSON` 1 404, `MOVIE` 458, `SERIE` 231,
+`EPISODE` 99, `CHARACTER` 71, `SEASON` 23. C'est a ce total qu'il faudra comparer apres le
+run, et c'est la seule mesure qui ait un sens avant, tout ce qui concerne la colonne valant
+zero par construction. Relever au passage ce que la migration des alias ne pourra pas couvrir
+pour les personnes : sur **172 179** lignes de `PERSON_V1` a `ALIASES` non vide, **151 262**
+(87,9 %) existent dans `T_WC_WIKIDATA_PERSON` et **20 917** (12,1 %) n'y sont pas du tout.
+Ces 12 % relevent de la couverture des entites, donc de WIKIDATA-CRAWLER-023, pas des alias :
+aucun run de celui-ci ne les ramenera.
+
 **Ce que ce depot ne fait pas.** Alimenter les colonnes `ALIASES` de T2S
 (`tmdb-movie-preprocess`) et brancher l'affichage (`tmdb-front`) sont les deux etages en aval,
 et ni l'un ni l'autre ne peut aboutir avant le run de celui-ci.

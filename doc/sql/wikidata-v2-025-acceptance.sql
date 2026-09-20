@@ -58,11 +58,16 @@ SET SESSION max_statement_time = 0;
 
 SELECT '=== F0 . contexte du run ===' AS SECTION;
 
+-- Il n'existe pas de variable "importbatchid" : le lot est ecrit sous le nom de
+-- l'etape qui l'a utilise (bulkload, cleanup, ...). livedbschemaapplied dit si
+-- apply_to_live_db.sql est passe, ce qui est le prealable de F1.
 SELECT VAR_NAME, VAR_VALUE
 FROM T_WC_SERVER_VARIABLE
-WHERE VAR_NAME IN ('strwikidatacrawlerimportbatchid',
-                   'strwikidatacrawlerstatus',
-                   'strwikidatacrawlerdumpsize')
+WHERE VAR_NAME IN ('strwikidatacrawlerstatus',
+                   'strwikidatacrawlerdumpsize',
+                   'strwikidatacrawlerbulkloadbatchid',
+                   'strwikidatacrawlercleanupbatchid',
+                   'strwikidatacrawlerlivedbschemaapplied')
 ORDER BY VAR_NAME;
 
 
@@ -84,7 +89,7 @@ SELECT '=== F1 . presence de la colonne (14 attendues) ===' AS SECTION;
 
 SELECT
     COUNT(*)                                     AS TABLES_AVEC_ALIASES_JSON,
-    SUM(TABLE_NAME LIKE 'STG\_%')                AS DONT_STAGING,
+    COALESCE(SUM(TABLE_NAME LIKE 'STG\_%'), 0)   AS DONT_STAGING,
     CASE WHEN COUNT(*) = 14 THEN 'OK'
          ELSE 'MANQUE : relancer l etape 108 (apply_to_live_db.sql)' END AS VERDICT
 FROM information_schema.COLUMNS
@@ -270,8 +275,9 @@ ORDER BY TABLE_NAME;
 -- SEUL branchement non recursif, et sur trois branchements il ne garde que le
 -- premier, en silence (voir AGENTS.md).
 --
--- L'echantillon est tire dans l'ordre des ID_ROW, donc REPRODUCTIBLE : deux
--- executions comparent les memes entites. Il est joint a PERSON pour ne pas
+-- L'echantillon est tire dans l'ordre des ID_WIKIDATA, qui est la cle primaire de
+-- PERSON_V1 (cette table n'a pas d'ID_ROW, contrairement a ITEM_V1), donc l'ordre
+-- est indexe et REPRODUCTIBLE : deux executions comparent les memes entites. Il est joint a PERSON pour ne pas
 -- melanger deux questions ; les personnes de V1 absentes de V2 sont un defaut de
 -- couverture (WIKIDATA-CRAWLER-023), pas un defaut d'aliases, et la requete de
 -- contexte juste en dessous les compte a part.
@@ -296,7 +302,7 @@ WITH RECURSIVE echantillon AS (
     FROM T_WC_WIKIDATA_PERSON_V1 v1
     JOIN T_WC_WIKIDATA_PERSON v2 ON v2.ID_WIKIDATA = v1.ID_WIKIDATA
     WHERE v1.ALIASES IS NOT NULL AND v1.ALIASES NOT IN ('', '|')
-    ORDER BY v1.ID_ROW
+    ORDER BY v1.ID_WIKIDATA
     LIMIT 100
 ),
 jetons AS (
@@ -338,7 +344,7 @@ WITH RECURSIVE echantillon AS (
     FROM T_WC_WIKIDATA_PERSON_V1 v1
     JOIN T_WC_WIKIDATA_PERSON v2 ON v2.ID_WIKIDATA = v1.ID_WIKIDATA
     WHERE v1.ALIASES IS NOT NULL AND v1.ALIASES NOT IN ('', '|')
-    ORDER BY v1.ID_ROW
+    ORDER BY v1.ID_WIKIDATA
     LIMIT 100
 ),
 jetons AS (

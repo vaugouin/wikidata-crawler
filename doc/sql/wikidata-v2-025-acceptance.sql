@@ -20,10 +20,18 @@
 -- une passe qui vient de tourner un jour. F2 a F4 apres l'etape 110, la colonne
 -- ne se remplissant qu'au chargement en cible.
 --
--- A JOUER AUSSI AVANT LE RUN, pour F3. Le ticket demande la taille des sept
--- tables AVANT et APRES : la meme execution, sur une base ou la colonne est
--- encore vide, donne le point de depart. Les sections sont ecrites pour ne rien
--- casser dans ce cas, elles rendent des zeros.
+-- LE POINT DE DEPART SE PREND AVANT LE RUN, ET SEULE F3b LE DONNE SANS RIEN
+-- EXIGER. Le ticket demande la taille des sept tables AVANT et APRES. Avant, la
+-- seule mesure qui ait un sens est celle des tables elles-memes (F3b, qui lit le
+-- catalogue), puisque tout ce qui concerne la colonne vaut zero par construction.
+-- Passe ce moment, il n'y a plus de "avant" a mesurer.
+--
+-- ATTENTION, F2, F3 et F4 NOMMENT ALIASES_JSON DIRECTEMENT : tant que la colonne
+-- n'existe pas, elles echouent sur ERROR 1054 Unknown column, elles ne rendent pas
+-- zero. C'est sans gravite avec --force, le fichier continue, mais il faut le
+-- savoir. La colonne arrive au debut de l'etape 108, posee par apply_to_live_db.sql
+-- que l'orchestrateur applique lui-meme. Pour la poser plus tot et jouer le fichier
+-- entier des maintenant, passer apply_to_live_db.sql a la main : il est idempotent.
 --
 -- CE QUE MESURE F3, ET POURQUOI C'EST LA SEULE QUESTION OUVERTE. Un libelle par
 -- langue, mais n alias par langue : personne n'a mesure ce que cela pese sur
@@ -67,8 +75,10 @@ ORDER BY VAR_NAME;
 --
 -- 14 lignes attendues : 7 cibles + 7 staging. Moins que 14 veut dire que
 -- apply_to_live_db.sql n'a pas tourne, ou qu'une table a ete creee a la main
--- depuis une version anterieure du schema. Ne pas poser la colonne a la main :
--- la reponse est de relancer l'etape 108, qui applique le fichier.
+-- depuis une version anterieure du schema. Ne jamais rattraper avec un ALTER
+-- ecrit pour la table manquante : rejouer apply_to_live_db.sql en entier, ou
+-- l'etape 108 qui l'applique. Un seul fichier decrit ce que la base doit porter,
+-- et une colonne posee a cote de lui est une divergence que personne ne relira.
 
 SELECT '=== F1 . presence de la colonne (14 attendues) ===' AS SECTION;
 

@@ -7180,6 +7180,7 @@ CREATE TABLE `T_WC_T2S_EVALUATION` (
   `ASSERTIONS_SQL_QUERY` mediumtext DEFAULT NULL,
   `ASSERTION_REFRESH_SQL` mediumtext DEFAULT NULL COMMENT 'SQL canonique (SELECT une colonne ID ... ORDER BY ... LIMIT N) rejoue chaque jour pour reconstruire ASSERTIONS_QUERY_RESULT ; NULL = eval statique',
   `ASSERTION_REFRESH_LAST` datetime DEFAULT NULL COMMENT 'Date du dernier passage du job de refresh (fraicheur de l assertion)',
+  `RESOLUTION_MODE` varchar(10) DEFAULT NULL COMMENT 'Mode qui doit resoudre la question : standard (sans escalade), complex (escalade indispensable), any (aucune attente). NULL = any.',
   PRIMARY KEY (`ID_T2S_EVALUATION`),
   KEY `IS_SAMPLE` (`IS_SAMPLE`),
   KEY `ID_T2S_EVALUATION_CATEGORY` (`ID_T2S_EVALUATION_CATEGORY`),
@@ -7193,7 +7194,8 @@ CREATE TABLE `T_WC_T2S_EVALUATION` (
   KEY `TIM_UPDATED` (`TIM_UPDATED`),
   KEY `IS_EVAL` (`IS_EVAL`),
   KEY `IDX_T2S_EVALUATION_ASSERTION_REFRESH_LAST` (`ASSERTION_REFRESH_LAST`),
-  KEY `IS_SHOWCASE` (`IS_SHOWCASE`)
+  KEY `IS_SHOWCASE` (`IS_SHOWCASE`),
+  KEY `RESOLUTION_MODE` (`RESOLUTION_MODE`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -7254,6 +7256,12 @@ CREATE TABLE `T_WC_T2S_EVALUATION_EXECUTION` (
   `ENTITY_RAW_FALLBACK_COUNT` int(5) DEFAULT NULL,
   `NO_ENTITY_EXTRACTED` int(5) DEFAULT NULL,
   `COMPLEX_QUESTION_PROCESSING_TIME` double DEFAULT NULL,
+  `COMPLEX_MODEL_USED` int(5) DEFAULT NULL COMMENT 'L escalade vers le modele fort a-t-elle servi (1/0). Couvre les chemins que COMPLEX_QUESTION_PROCESSING_TIME rate, dont la reponse scalaire directe.',
+  `ANSWER_SINGLE_VALUE_PROCESSING_TIME` double DEFAULT NULL COMMENT 'Temps de la reponse scalaire directe, quand le SQL a rendu une cellule unique valant 0. 0 quand ce chemin n a pas tire.',
+  `RESOLUTION_MODE` varchar(10) DEFAULT NULL COMMENT 'Mode declare par la banque AU MOMENT DE CE PASSAGE. Copie exprès : requalifier une evaluation plus tard ne doit pas reecrire le sens des campagnes deja jouees.',
+  `RESOLUTION_MODE_RESPECTED` int(5) DEFAULT NULL COMMENT 'Le mode declare a-t-il ete respecte (1/0). NULL quand le mode vaut any ou n est pas declare. Volontairement separe de ASSERTIONS_TOTAL_SCORE, qui doit rester comparable entre campagnes.',
+  `FIRST_PASS_FAILURE_CODE` varchar(120) DEFAULT NULL,
+  `QUERY_MODE` varchar(32) DEFAULT NULL,
   `ENTITY_MATCH_WORST_DISTANCE` double DEFAULT NULL,
   `ENTITY_MATCH_WORST_FUZZ_RATIO` double DEFAULT NULL,
   `ASSERTIONS_ENTITY_EXTRACTION_SCORE` double DEFAULT NULL,
@@ -7302,7 +7310,12 @@ CREATE TABLE `T_WC_T2S_EVALUATION_EXECUTION` (
   KEY `ENTITY_RAW_FALLBACK_COUNT` (`ENTITY_RAW_FALLBACK_COUNT`),
   KEY `NO_ENTITY_EXTRACTED` (`NO_ENTITY_EXTRACTED`),
   KEY `ENTITY_MATCH_WORST_DISTANCE` (`ENTITY_MATCH_WORST_DISTANCE`),
-  KEY `ENTITY_MATCH_WORST_FUZZ_RATIO` (`ENTITY_MATCH_WORST_FUZZ_RATIO`)
+  KEY `ENTITY_MATCH_WORST_FUZZ_RATIO` (`ENTITY_MATCH_WORST_FUZZ_RATIO`),
+  KEY `COMPLEX_MODEL_USED` (`COMPLEX_MODEL_USED`),
+  KEY `RESOLUTION_MODE` (`RESOLUTION_MODE`),
+  KEY `RESOLUTION_MODE_RESPECTED` (`RESOLUTION_MODE_RESPECTED`),
+  KEY `FIRST_PASS_FAILURE_CODE` (`FIRST_PASS_FAILURE_CODE`),
+  KEY `QUERY_MODE` (`QUERY_MODE`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -9552,6 +9565,25 @@ CREATE TABLE `T_WC_T2S_TOPIC` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_T2S_VISION_CACHE` (
+  `ID_ROW` bigint(20) NOT NULL AUTO_INCREMENT,
+  `IMAGE_MD5` char(32) NOT NULL,
+  `API_VERSION` varchar(11) NOT NULL,
+  `IMAGE_REF` varchar(255) DEFAULT NULL,
+  `IDENTIFICATION` mediumtext DEFAULT NULL,
+  `VISION_MODEL` varchar(100) DEFAULT NULL,
+  `AUTHORITATIVE_EMPTY` tinyint(1) NOT NULL DEFAULT 0,
+  `VISION_IDENTIFICATION_PROCESSING_TIME` decimal(10,4) DEFAULT NULL,
+  `DELETED` tinyint(1) DEFAULT 0,
+  `DAT_CREAT` date DEFAULT NULL,
+  `TIM_UPDATED` datetime DEFAULT NULL,
+  PRIMARY KEY (`ID_ROW`),
+  UNIQUE KEY `UK_T2S_VISION_CACHE` (`IMAGE_MD5`,`API_VERSION`),
+  KEY `IDX_T2S_VISION_CACHE_REF` (`IMAGE_REF`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `T_WC_TABLE` (
   `ID_TABLE` int(5) NOT NULL AUTO_INCREMENT,
   `NOM_SQL` varchar(100) DEFAULT NULL,
@@ -11720,6 +11752,60 @@ CREATE TABLE `T_WC_TMDB_PLEX_MEDIA_PART` (
   KEY `PART_SIZE` (`PART_SIZE`),
   KEY `PART_DURATION` (`PART_DURATION`),
   KEY `EXTRA_DATA` (`EXTRA_DATA`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_TMDB_PLEX_MEDIA_STREAM` (
+  `ID_PLEX_MEDIA_STREAM` int(11) NOT NULL COMMENT 'media_streams.id',
+  `ID_PLEX_MEDIA` int(11) DEFAULT NULL COMMENT 'media_streams.media_item_id -> T_WC_TMDB_PLEX_MEDIA',
+  `ID_PLEX_MEDIA_PART` int(11) DEFAULT NULL COMMENT 'media_streams.media_part_id -> T_WC_TMDB_PLEX_MEDIA_PART',
+  `STREAM_TYPE` int(5) DEFAULT NULL COMMENT '1 video, 2 audio, 3 sous-titre',
+  `STREAM_TYPE_TEXT` varchar(20) DEFAULT NULL COMMENT 'video, audio, subtitle',
+  `STREAM_INDEX` int(5) DEFAULT NULL COMMENT 'rang de la piste dans le conteneur, NULL pour un sous-titre externe',
+  `CODEC` varchar(50) DEFAULT NULL,
+  `LANGUAGE` varchar(50) DEFAULT NULL COMMENT 'valeur brute de Plex',
+  `LANGUAGE_ISO` varchar(10) DEFAULT NULL COMMENT 'ISO 639-1 deduit de LANGUAGE, NULL si inconnue',
+  `CHANNELS` int(5) DEFAULT NULL,
+  `CHANNEL_LAYOUT` varchar(50) DEFAULT NULL COMMENT 'extra_data ma:audioChannelLayout, ex. 5.1(side)',
+  `BITRATE` int(11) DEFAULT NULL,
+  `SAMPLING_RATE` int(11) DEFAULT NULL COMMENT 'extra_data ma:samplingRate',
+  `BIT_DEPTH` int(5) DEFAULT NULL COMMENT 'extra_data ma:bitDepth',
+  `PROFILE` varchar(100) DEFAULT NULL COMMENT 'extra_data ma:profile',
+  `TRACK_TITLE` varchar(255) DEFAULT NULL COMMENT 'extra_data ma:title, ex. DTS HD-MA, French',
+  `IS_DEFAULT` tinyint(1) DEFAULT NULL,
+  `IS_FORCED` tinyint(1) DEFAULT NULL,
+  `IS_EXTERNAL` tinyint(1) DEFAULT NULL COMMENT '1 pour un sous-titre hors du conteneur (url non vide)',
+  `IS_HEARING_IMPAIRED` tinyint(1) DEFAULT NULL COMMENT 'extra_data ma:hearingImpaired',
+  `IS_DUB` tinyint(1) DEFAULT NULL COMMENT 'extra_data ma:dub',
+  `IS_ORIGINAL` tinyint(1) DEFAULT NULL COMMENT 'extra_data ma:original',
+  `EXTERNAL_FORMAT` varchar(20) DEFAULT NULL COMMENT 'extra_data ma:format, en minuscules : srt, idx, ass, ssa',
+  `EXTERNAL_PATH` varchar(600) DEFAULT NULL COMMENT 'chemin NAS du fichier externe, url decodee sans file://',
+  `EXTRA_DATA` text DEFAULT NULL COMMENT 'JSON brut de Plex, pour les cles non lues aujourd hui',
+  `DELETED` int(5) DEFAULT NULL,
+  `DISPLAY_ORDER` int(5) DEFAULT NULL,
+  `ID_CREATOR` int(5) DEFAULT NULL,
+  `DAT_CREAT` date DEFAULT NULL,
+  `ID_OWNER` int(5) DEFAULT NULL,
+  `TIM_UPDATED` datetime DEFAULT NULL,
+  `ID_USER_UPDATED` int(5) DEFAULT NULL,
+  PRIMARY KEY (`ID_PLEX_MEDIA_STREAM`),
+  KEY `ID_PLEX_MEDIA` (`ID_PLEX_MEDIA`),
+  KEY `ID_PLEX_MEDIA_PART` (`ID_PLEX_MEDIA_PART`),
+  KEY `STREAM_TYPE` (`STREAM_TYPE`),
+  KEY `CODEC` (`CODEC`),
+  KEY `LANGUAGE` (`LANGUAGE`),
+  KEY `LANGUAGE_ISO` (`LANGUAGE_ISO`),
+  KEY `IS_EXTERNAL` (`IS_EXTERNAL`),
+  KEY `IS_FORCED` (`IS_FORCED`),
+  KEY `MEDIA_TYPE_LANGUAGE` (`ID_PLEX_MEDIA`,`STREAM_TYPE`,`LANGUAGE_ISO`),
+  KEY `DELETED` (`DELETED`),
+  KEY `DISPLAY_ORDER` (`DISPLAY_ORDER`),
+  KEY `ID_OWNER` (`ID_OWNER`),
+  KEY `ID_CREATOR` (`ID_CREATOR`),
+  KEY `ID_USER_UPDATED` (`ID_USER_UPDATED`),
+  KEY `TIM_UPDATED` (`TIM_UPDATED`),
+  KEY `DAT_CREAT` (`DAT_CREAT`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;

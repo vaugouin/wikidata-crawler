@@ -39,16 +39,24 @@ import sys
 import time
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Generator, Iterable, Optional, Set, Tuple
 
 import httpx
+import pytz
 import simdjson
 
 # Prefix for all server variable names written to MariaDB SERVER_VARIABLE table.
 # Mirrors the pattern used by citizenphil.f_setservervariable in sparql-crawler.py.
 _SV_PREFIX = "strwikidatacrawler"
+
+
+def _paris_now() -> str:
+    """Server-variable timestamp in the same zone as the orchestrator's markers."""
+    # pytz rather than zoneinfo: the slim image carries no system tzdata.
+    tz = pytz.timezone(os.environ.get("USER_TIMEZONE", "Europe/Paris"))
+    return datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S")
 
 MOVIE_ROOTS = {"Q11424", "Q506240"}  # film, television film
 SERIES_ROOTS = {"Q5398426", "Q1259759", "Q526877", "Q15416"}  # television series, miniseries, web series, television program
@@ -1264,18 +1272,21 @@ class WikidataDumpETL:
         db = self._server_vars
         if not db.enabled:
             return
-        # Preserve previous run's end time and runtime before overwriting
-        db.set(f"{_SV_PREFIX}enddatetimeprevious", db.get(f"{_SV_PREFIX}enddatetime"),
-               "End datetime of the previous Wikidata dump ETL run")
-        db.set(f"{_SV_PREFIX}totalruntimeprevious", db.get(f"{_SV_PREFIX}totalruntime"),
-               "Total runtime of the previous Wikidata dump ETL run")
-        now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
-        db.set(f"{_SV_PREFIX}startdatetime", now,
-               "Date and time of the last start of the Wikidata dump ETL")
-        db.set(f"{_SV_PREFIX}enddatetime", "",
-               "Date and time of the last end of the Wikidata dump ETL")
-        db.set(f"{_SV_PREFIX}totalruntime", "",
-               "Total runtime of the last Wikidata dump ETL run")
+        # PASS-level times, under their own pass* names. Until 2026-09-27 this wrote
+        # startdatetime / enddatetime / totalruntime, the orchestrator's RUN-level
+        # names (same prefix), in UTC: each dump pass overwrote the run's start with
+        # its own, and data-monitoring showed step 106's start and runtime as the
+        # whole run's. Paris time, like every other marker the crawler writes.
+        db.set(f"{_SV_PREFIX}passenddatetimeprevious", db.get(f"{_SV_PREFIX}passenddatetime"),
+               "End datetime of the previous Wikidata dump ETL pass")
+        db.set(f"{_SV_PREFIX}passruntimeprevious", db.get(f"{_SV_PREFIX}passruntime"),
+               "Runtime of the previous Wikidata dump ETL pass")
+        db.set(f"{_SV_PREFIX}passstartdatetime", _paris_now(),
+               "Date and time of the last start of a Wikidata dump ETL pass")
+        db.set(f"{_SV_PREFIX}passenddatetime", "",
+               "Date and time of the last end of a Wikidata dump ETL pass")
+        db.set(f"{_SV_PREFIX}passruntime", "",
+               "Runtime of the last Wikidata dump ETL pass")
         db.set(f"{_SV_PREFIX}currentpass", self.pass_name,
                "Current pass of the Wikidata dump ETL (pass1 / pass2 / item_cache)")
         db.set(f"{_SV_PREFIX}entitiesprocessed", "0",
@@ -1335,13 +1346,12 @@ class WikidataDumpETL:
             return
         rate = self.stats.entities_seen / elapsed if elapsed > 0 else 0.0
         self._sv_progress(elapsed, rate)
-        now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
-        db.set(f"{_SV_PREFIX}enddatetime", now,
-               "Date and time of the last end of the Wikidata dump ETL")
-        db.set(f"{_SV_PREFIX}totalruntime", self._fmt_elapsed(elapsed),
-               "Total runtime of the last Wikidata dump ETL run")
-        db.set(f"{_SV_PREFIX}totalruntimeseconds", str(int(elapsed)),
-               "Total runtime in seconds of the last Wikidata dump ETL run")
+        db.set(f"{_SV_PREFIX}passenddatetime", _paris_now(),
+               "Date and time of the last end of a Wikidata dump ETL pass")
+        db.set(f"{_SV_PREFIX}passruntime", self._fmt_elapsed(elapsed),
+               "Runtime of the last Wikidata dump ETL pass")
+        db.set(f"{_SV_PREFIX}passruntimeseconds", str(int(elapsed)),
+               "Runtime in seconds of the last Wikidata dump ETL pass")
         db.set(f"{_SV_PREFIX}currentpass", "",
                "Current pass of the Wikidata dump ETL (cleared when complete)")
 

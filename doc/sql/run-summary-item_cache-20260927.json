@@ -1,0 +1,23 @@
+{
+  "pass_name": "item_cache",
+  "entities_seen": 121780373,
+  "items_seen": 1785964,
+  "properties_seen": 13929,
+  "parse_errors": 0,
+  "movies_detected": 0,
+  "series_detected": 0,
+  "persons_detected": 0,
+  "seasons_detected": 0,
+  "episodes_detected": 0,
+  "characters_detected": 0,
+  "statements_emitted": 1707461,
+  "value_rows_emitted": 1707461,
+  "elapsed_seconds": 56501.95,
+  "entities_per_second": 2155.33,
+  "referenced_item_ids_from_pass2": 1611821,
+  "extra_item_ids_seeded": 696660,
+  "extra_item_ids_new": 175113,
+  "extra_items_emitted": 584894,
+  "extra_items_diverted_to_person": 323,
+  "extra_items_skipped_core": 110643
+}

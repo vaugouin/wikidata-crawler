@@ -4,6 +4,11 @@ Mémoire opérationnelle du dépôt, antéchronologique (l'entrée la plus réce
 Au démarrage d'une session, lire les premières entrées pour retrouver le contexte, sans
 charger tout le fichier.
 
+## 2026-09-27 : premier run avec -023 et -025, en succès ; les épisodes ne sont plus détectés
+
+- **Fait** : relevé du run du dump du 2026-09-24 (15 étapes en `SUCCESS`, 3 j 0 h 24, du 09-24 08:17 au 09-27 08:41), traces dans `doc/sql/wikidata-run-report-20260927.txt`, `wikidata-v1-backfill-target-set-20260927.txt`, `wikidata-v2-025-acceptance-20260927.txt` et les trois `run-summary-*-20260927.json`. -023 tient : reliquat importable passé de 167 928 à 258, `ITEM` à 883 083 lignes, graine ventilée en 584 894 émis + 323 détournés + 110 643 cœur + 800 disparus. -025 : colonne sur les 14 tables, 97,1 % des alias V1 retrouvés sur 100 personnes. Posé le filtre `ALIAS_LANGUAGES` (défaut `fr,en`) dans `extract_aliases`, décidé sur F3 : fr + en pèsent 7 % du volume des alias (35 Mo sur environ 510). Corrigé les variables de temps de l'ETL (`pass*`, heure de Paris) et la page data-monitoring (dates, durée du run). Écrit `doc/sql/wikidata-episode-classification-check.sql`.
+- **Appris** : `episodes_detected` vaut 0 en pass1 et en pass2, et `T_WC_WIKIDATA_EPISODE` n'a pas bougé depuis le 2026-08-16 (187 463 lignes, 0 alias). Hypothèse que ce fichier SQL doit trancher : `Q21191270` descend de `Q15416` (racine de série depuis le 2026-07-12), et `classify_qids` teste la série avant l'épisode. Le test de fumée ne peut pas le voir, son graphe ne contient pas `Q15416`. Autre leçon : `wikidata_dump_etl.py` écrasait le `startdatetime` et le `totalruntime` du run avec ceux de sa passe, en UTC ; la page affichait donc le début de l'étape 106 comme début du run.
+
 ## 2026-09-19 : l'ensemble cible de -023 est chiffré, et il vaut un tiers de moins que le ticket
 
 Mesure faite sur la base par `runsqlvaugouindb.sh`, trace conservée dans

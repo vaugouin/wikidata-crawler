@@ -34,6 +34,7 @@ REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 os.environ.pop("DB_HOST", None)
 
+import wikidata_dump_etl as etl  # noqa: E402
 from wikidata_dump_etl import WikidataDumpETL, derive_qualifier_identity  # noqa: E402
 
 
@@ -93,8 +94,9 @@ ENTITIES = [
     item("Q1002", p31=["Q11424"], label="Bare Film Movie"),
     # WIKIDATA-CRAWLER-025: the one core entity carrying aliases, emitted by pass2.
     # "zz" is deliberately empty; a language with nothing usable must not survive as [].
+    # "de" is outside the default ALIAS_LANGUAGES (fr, en) and must be filtered out.
     item("Q1003", p31=["Q5"], imdb="nm0000001", label="Person With IMDb",
-         aliases={"fr": ["Bebel", "Jean-Paul B."], "en": ["JPB"], "zz": []}),
+         aliases={"fr": ["Bebel", "Jean-Paul B."], "en": ["JPB"], "zz": [], "de": ["Belmondo"]}),
     item("Q1004", p31=["Q5"], label="Person Without IMDb"),
     item("Q1005", p31=["Q3464665"], label="A Season"),
     item("Q1006", p31=["Q21191270"], label="An Episode"),
@@ -201,11 +203,18 @@ def run() -> int:
         # WIKIDATA-CRAWLER-025: aliases ride in the entity row, next to the labels.
         person = row_for(p2 / "T_WC_WIKIDATA_PERSON.jsonl", "Q1003")
         check(person.get("ALIASES_JSON") == {"fr": ["Bebel", "Jean-Paul B."], "en": ["JPB"]},
-              "pass2 emits ALIASES_JSON as {lang: [alias, ...]}, all languages")
+              "pass2 emits ALIASES_JSON as {lang: [alias, ...]}, fr and en only by default")
         check("zz" not in (person.get("ALIASES_JSON") or {}),
               "a language whose alias list is empty is dropped, not kept as []")
         check(row_for(p2 / "T_WC_WIKIDATA_MOVIE.jsonl", "Q1002").get("ALIASES_JSON") == {},
               "an entity with no aliases key emits {}, like a label-less entity")
+        saved = etl.ALIAS_LANGUAGES
+        try:
+            etl.ALIAS_LANGUAGES = etl._alias_languages("*")
+            check(set(etl.extract_aliases({"aliases": {"de": [{"value": "Belmondo"}]}})) == {"de"},
+                  "ALIAS_LANGUAGES=* keeps every language")
+        finally:
+            etl.ALIAS_LANGUAGES = saved
 
         # item_cache --------------------------------------------------------
         WikidataDumpETL(

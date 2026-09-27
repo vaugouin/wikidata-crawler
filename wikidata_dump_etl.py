@@ -606,21 +606,44 @@ def extract_descriptions(doc: Any) -> Dict[str, str]:
     return result
 
 
+def _alias_languages(raw: Optional[str]) -> Optional[Set[str]]:
+    """ALIAS_LANGUAGES as a set of language codes, or None for "all languages" ("*")."""
+    raw = (raw or "").strip()
+    if raw == "*":
+        return None
+    langs = {code.strip() for code in raw.split(",") if code.strip()}
+    return langs or None
+
+
+# WIKIDATA-CRAWLER-025, measured on the first run carrying aliases (2026-09-27,
+# doc/sql/wikidata-v2-025-acceptance-20260927.txt, F3): all languages weighed about
+# 510 MB over the seven entity tables, fr + en about 35 MB, i.e. 7 %. On ITEM alone,
+# 411 MB for 18 MB of fr + en, 35 languages per entity on average. Every consumer
+# reads fr or en, so the rest was pure weight. "*" restores all languages.
+ALIAS_LANGUAGES: Optional[Set[str]] = _alias_languages(os.environ.get("ALIAS_LANGUAGES", "fr,en"))
+
+
 def extract_aliases(doc: Any) -> Dict[str, list[str]]:
-    """Collect doc["aliases"] as {lang: [alias, ...]}, all languages.
+    """Collect doc["aliases"] as {lang: [alias, ...]}, for the ALIAS_LANGUAGES only.
 
     Twin of extract_labels / extract_descriptions, with one difference that is the
     whole point of WIKIDATA-CRAWLER-025: a language carries a LIST of aliases, the
     dump shape being {lang: [{language, value}, ...]}. A language whose list holds
     no usable string is dropped rather than kept as an empty list, so that an entity
     with no aliases yields {} exactly as a label-less entity does.
+
+    The language filter is applied here, at emission, so the other languages never
+    reach the NDJSON, staging or the target blob.
     """
+    languages = ALIAS_LANGUAGES
     result: Dict[str, list[str]] = {}
     try:
         aliases = doc.get("aliases")
         if aliases is None:
             return result
         for lang, payload in aliases.items():
+            if languages is not None and str(lang) not in languages:
+                continue
             values: list[str] = []
             try:
                 for entry in payload:

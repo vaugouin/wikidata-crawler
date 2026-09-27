@@ -638,7 +638,8 @@ facon les 120 millions d'entites du dump.
 **Ce que c'est.** Les sept tables d'entites portent une colonne `ALIASES_JSON` a cote de
 `LABELS_JSON`, remplie depuis `doc["aliases"]` par les deux seules passes qui fabriquent une
 ligne d'entite, pass2 (etape `104`) et item_cache (etape `106`). Forme :
-`{"fr": ["Bebel", "..."], "en": [...]}`, **toutes les langues**. Une langue sans alias
+`{"fr": ["Bebel", "..."], "en": [...]}`, **francais et anglais seulement** depuis le 2026-09-27
+(voir « Langues » plus bas). Une langue sans alias
 utilisable est retiree, donc une entite sans alias porte `{}`, comme une entite sans libelle.
 
 **Pourquoi le dump fait mieux que V1 pour moins cher.** V1 interrogeait `skos:altLabel` en
@@ -661,11 +662,15 @@ colonne de staging existe**. Sinon l'etape `108` echoue sur une colonne inconnue
 passe qui vient de tourner des heures. C'est `apply_to_live_db.sql` qui la pose, et le
 crawler l'applique lui-meme au debut des etapes `108` et `110` : rien a faire a la main.
 
-**Langues : toutes, mais le volume reste a mesurer.** Un libelle par langue, mais n alias par
-langue, sur environ 2,5 millions de lignes d'entites. Personne n'a mesure ce que cela pese.
-`doc/sql/wikidata-v2-025-acceptance.sql` le fait, section F3, et le chiffre qui decide n'est
-pas le nombre d'alias mais le rapport `MO_FR_EN / MO_TOTAL`, qui dit exactement ce qu'un
-filtre de langues economiserait. Le poser sur la mesure, pas d'avance.
+**Langues : `fr` et `en` seulement, depuis la mesure du premier run.** Le run du dump du
+2026-09-24 a mesure le volume (`doc/sql/wikidata-v2-025-acceptance-20260927.txt`, section F3) :
+toutes langues, environ 510 Mo sur les sept tables, dont 35 Mo seulement pour `fr` + `en`, soit
+7 %. Sur `ITEM`, 411 Mo pour 18 Mo, avec 35 langues par entite en moyenne. Aucun consommateur ne
+lit une autre langue, le filtre est donc pose a l'emission, dans `extract_aliases`. Reglage :
+variable d'environnement `ALIAS_LANGUAGES`, `fr,en` par defaut, `*` pour tout garder. Le run
+suivant reecrit la colonne en place a l'etape `110`, mais InnoDB ne rend pas au disque les pages
+liberees : passer ensuite `OPTIMIZE TABLE T_WC_WIKIDATA_ITEM, T_WC_WIKIDATA_PERSON;` pour
+recuperer la place (hors run, la table est reconstruite).
 
 **Point de depart, mesure du 2026-09-20 avant le run**
 (`doc/sql/wikidata-v2-025-acceptance-20260920.txt`). Les sept tables cibles pesent **4 653 Mo**

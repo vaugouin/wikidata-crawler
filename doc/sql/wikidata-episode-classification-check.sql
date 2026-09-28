@@ -39,7 +39,7 @@ SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
 SELECT '=== E1 . ancetres P279 de Q21191270 qui sont des racines de serie ===' AS section;
 
 WITH RECURSIVE anc (ID_NODE, DEPTH) AS (
-    SELECT 'Q21191270', 0
+    SELECT CAST('Q21191270' AS CHAR(50)), 0   -- sans CAST, le type est VARCHAR(9) : erreur 1406 (2026-09-28)
     UNION ALL
     SELECT sc.ID_PARENT, anc.DEPTH + 1
     FROM   anc

@@ -1539,14 +1539,18 @@ class WikidataDumpETL:
             return "person"
         if any(qid in self._movie_pool for qid in qids):
             return "movie"
-        if any((qid not in EXCLUDED_SERIES_ROOTS) and (qid in self._series_pool) for qid in qids):
-            return "series"
-        # Checked after series: a season/episode is part-of (not a kind-of) a series,
-        # so these pools do not overlap the series pool in Wikidata's P279 graph.
+        # Season and episode are checked BEFORE series, and the order is load-bearing.
+        # The old comment here said the pools could not overlap, a season or episode
+        # being part-of a series rather than a kind-of one. That stopped being true on
+        # 2026-07-12, when Q15416 "television program" became a series root: episode
+        # classes descend from it, so the series test caught every episode first and
+        # the 2026-09-24 run detected zero of them. The narrower class wins.
         if any(qid in self._season_pool for qid in qids):
             return "season"
         if any(qid in self._episode_pool for qid in qids):
             return "episode"
+        if any((qid not in EXCLUDED_SERIES_ROOTS) and (qid in self._series_pool) for qid in qids):
+            return "series"
         if any(qid in self._character_pool for qid in qids):
             return "character"
         return None

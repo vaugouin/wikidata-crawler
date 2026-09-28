@@ -98,6 +98,13 @@ ENTITIES = [
     item("Q1003", p31=["Q5"], imdb="nm0000001", label="Person With IMDb",
          aliases={"fr": ["Bebel", "Jean-Paul B."], "en": ["JPB"], "zz": [], "de": ["Belmondo"]}),
     item("Q1004", p31=["Q5"], label="Person Without IMDb"),
+    # The shape the live graph is suspected to have (2026-09-27): episode and season
+    # classes sit under Q15416 "television program", a series root since 2026-07-12.
+    # Without these three lines the fixture could never show episodes filed as series.
+    item("Q21191270", p279=["Q15416"], label="television series episode"),
+    item("Q3464665", p279=["Q15416"], label="television series season"),
+    item("Q5398426", p279=["Q15416"], label="television series"),
+    item("Q1010", p31=["Q5398426"], label="A Series"),
     item("Q1005", p31=["Q3464665"], label="A Season"),
     item("Q1006", p31=["Q21191270"], label="An Episode"),
     item("Q1007", p31=["Q95074"], label="A Character"),
@@ -192,6 +199,10 @@ def run() -> int:
         check({"Q1001", "Q1002"} <= ids_in(p2 / "T_WC_WIKIDATA_MOVIE.jsonl"), "both movies emitted to MOVIE")
         check("Q1005" in ids_in(p2 / "T_WC_WIKIDATA_SEASON.jsonl"), "season emitted to SEASON")
         check("Q1006" in ids_in(p2 / "T_WC_WIKIDATA_EPISODE.jsonl"), "episode emitted to EPISODE")
+        series_ids = ids_in(p2 / "T_WC_WIKIDATA_SERIE.jsonl")
+        check("Q1010" in series_ids, "a series proper still goes to SERIE")
+        check("Q1006" not in series_ids and "Q1005" not in series_ids,
+              "an episode or season under Q15416 is NOT filed as a series")
         check({"Q1007", "Q1008"} <= ids_in(p2 / "T_WC_WIKIDATA_CHARACTER.jsonl"), "characters emitted to CHARACTER")
         stmts = read_jsonl(p2 / "T_WC_WIKIDATA_STATEMENT.jsonl")
         check(any(s["ID_WIKIDATA"] == "Q1001" and s["ID_PROPERTY"] == "P2079" for s in stmts),

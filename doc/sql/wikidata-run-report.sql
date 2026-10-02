@@ -67,17 +67,20 @@ SELECT '=== A3a . volumetrie EXACTE des tables d entite ===' AS section;
 -- film sur cinq. Rien n avait disparu. Les tables d entite sont petites : on les
 -- compte pour de vrai, cela coute quelques secondes et cela ne ment pas.
 --
--- Reperes : comptages EXACTS du 2026-08-16, batch wikidata_full_20260807_1043.
+-- Reperes : comptages EXACTS du 2026-10-02, batch wikidata_full_20260929_0917,
+-- apres le second passage de wikidata-serie-episode-cleanup.sql. Ceux du 2026-08-16
+-- ne valaient plus : SERIE comptait encore ~179 000 episodes (357 683), et ITEM
+-- n avait pas le backfill V1 (702 502, il est a 884 017 depuis WIKIDATA-CRAWLER-023).
 -- Ecart attendu d un run a l autre : quelques dixiemes de pour cent a la hausse,
 -- le dump grossissant. Une BAISSE franche est le signal a instruire.
 
-SELECT            'T_WC_WIKIDATA_MOVIE'     AS table_entite, COUNT(*) AS lignes, '438 956'         AS repere_20260816 FROM T_WC_WIKIDATA_MOVIE
-UNION ALL SELECT  'T_WC_WIKIDATA_SERIE',                     COUNT(*),           '357 683'                            FROM T_WC_WIKIDATA_SERIE
-UNION ALL SELECT  'T_WC_WIKIDATA_PERSON',                    COUNT(*),           '783 141'                            FROM T_WC_WIKIDATA_PERSON
-UNION ALL SELECT  'T_WC_WIKIDATA_ITEM',                      COUNT(*),           '702 502'                            FROM T_WC_WIKIDATA_ITEM
-UNION ALL SELECT  'T_WC_WIKIDATA_EPISODE',                   COUNT(*),           '187 463'                            FROM T_WC_WIKIDATA_EPISODE
-UNION ALL SELECT  'T_WC_WIKIDATA_SEASON',                    COUNT(*),           '(jamais compte)'                    FROM T_WC_WIKIDATA_SEASON
-UNION ALL SELECT  'T_WC_WIKIDATA_CHARACTER',                 COUNT(*),           '(jamais compte)'                    FROM T_WC_WIKIDATA_CHARACTER;
+SELECT            'T_WC_WIKIDATA_MOVIE'     AS table_entite, COUNT(*) AS lignes, '442 843'         AS repere_20261002 FROM T_WC_WIKIDATA_MOVIE
+UNION ALL SELECT  'T_WC_WIKIDATA_SERIE',                     COUNT(*),           '178 583'                            FROM T_WC_WIKIDATA_SERIE
+UNION ALL SELECT  'T_WC_WIKIDATA_PERSON',                    COUNT(*),           '790 089'                            FROM T_WC_WIKIDATA_PERSON
+UNION ALL SELECT  'T_WC_WIKIDATA_ITEM',                      COUNT(*),           '884 017'                            FROM T_WC_WIKIDATA_ITEM
+UNION ALL SELECT  'T_WC_WIKIDATA_EPISODE',                   COUNT(*),           '189 132'                            FROM T_WC_WIKIDATA_EPISODE
+UNION ALL SELECT  'T_WC_WIKIDATA_SEASON',                    COUNT(*),           '28 445'                             FROM T_WC_WIKIDATA_SEASON
+UNION ALL SELECT  'T_WC_WIKIDATA_CHARACTER',                 COUNT(*),           '125 065'                            FROM T_WC_WIKIDATA_CHARACTER;
 
 
 SELECT '=== A3b . taille disque et grosses tables (INDICATIF, ne rien conclure) ===' AS section;

@@ -99,12 +99,21 @@ P_IMDB_ID = "P345"
 P_DATE_OF_BIRTH = "P569"
 P_DATE_OF_DEATH = "P570"
 P_PUBLICATION_DATE = "P577"
+P_LOCATED_IN_ADMIN = "P131"
+P_COUNTRY = "P17"
+P_AUTHOR = "P50"
+P_FORM_OF_CREATIVE_WORK = "P7937"
 P_FORMATTER_URL = "P1630"
 # Properties emitted for an entity that exists in the DB only as a cached label.
 # Closed set on purpose, so the added volume stays provable. P31/P279 unlock class
 # grouping (WIKIDATA-CRAWLER-020); the other three restore V1 columns that had no V2
-# equivalent for cached entities (WIKIDATA-CRAWLER-015). Adding a property here costs
-# a 23 h replay of step 106, so weigh it before extending.
+# equivalent for cached entities (WIKIDATA-CRAWLER-015). P131/P17 give a cached place
+# its administrative parent and country, without which no location hierarchy exists
+# (WIKIDATA-CRAWLER-021, for TMDB-MOVIE-PREPROCESS-048). P50/P7937 give a cached
+# source work its author and its form (novel, short story...), read by the
+# "based on" tables of TMDB-MOVIE-PREPROCESS-055 (added 2026-10-09, same ticket,
+# one replay for the four). Adding a property here costs a 23 h replay of step 106,
+# so weigh it before extending.
 CACHED_ENTITY_PROPERTIES = (
     P_INSTANCE_OF,       # P31,  class membership, and MOVIE_V1/ITEM_V1.INSTANCE_OF
     P_SUBCLASS_OF,       # P279, class hierarchy
@@ -112,6 +121,10 @@ CACHED_ENTITY_PROPERTIES = (
     P_DATE_OF_BIRTH,     # P569, PERSON_V1.BIRTHDAY
     P_DATE_OF_DEATH,     # P570, PERSON_V1.DEATHDAY
     P_PUBLICATION_DATE,  # P577, MOVIE_V1.DAT_RELEASE
+    P_LOCATED_IN_ADMIN,  # P131, administrative parent of a place (-021, -048)
+    P_COUNTRY,           # P17,  country of a place (-021, -048)
+    P_AUTHOR,            # P50,  author of a source work (-021, -055)
+    P_FORM_OF_CREATIVE_WORK,  # P7937, novel / short story / novella... of a source work (-021, -055)
 )
 P_FORMATTER_URI_FOR_RDF = "P3303"
 

@@ -323,6 +323,14 @@ def run() -> int:
     check(repair_id == id_one and repair_hash == hash_one,
           "the offline repair script derives byte-identical ids to the ETL")
 
+    # WIKIDATA-CRAWLER-021: the four properties a cached place and a cached source work
+    # need. Pinned here because removing one is silent until a downstream table falls
+    # empty a week later (location hierarchy for -048, "based on" form and author for -055).
+    print("cached entity properties:")
+    for pid in ("P31", "P279", "P131", "P17", "P50", "P7937"):
+        check(pid in etl.CACHED_ENTITY_PROPERTIES,
+              f"{pid} is emitted for cached entities")
+
     print()
     if failures:
         print(f"RESULT: FAIL ({len(failures)} check(s) failed)")

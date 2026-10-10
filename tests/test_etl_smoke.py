@@ -331,6 +331,17 @@ def run() -> int:
         check(pid in etl.CACHED_ENTITY_PROPERTIES,
               f"{pid} is emitted for cached entities")
 
+    # WIKIDATA-CRAWLER-026: LABEL_EN falls back to the multilingual 'mul' label.
+    print("english label with mul fallback:")
+    check(etl.get_label_en({"labels": {"mul": {"language": "mul", "value": "Jane Eyre"},
+                                       "fr": {"language": "fr", "value": "Jane Eyre"}}}) == "Jane Eyre",
+          "an entity with only 'mul' (and other languages) gets its LABEL_EN from 'mul'")
+    check(etl.get_label_en({"labels": {"en": {"language": "en", "value": "Dracula"},
+                                       "mul": {"language": "mul", "value": "Drakula"}}}) == "Dracula",
+          "'en' wins over 'mul' when both exist")
+    check(etl.get_label_en({"labels": {"fr": {"language": "fr", "value": "Ida"}}}) is None,
+          "no 'en' and no 'mul' leaves LABEL_EN empty (no guess from another language)")
+
     print()
     if failures:
         print(f"RESULT: FAIL ({len(failures)} check(s) failed)")

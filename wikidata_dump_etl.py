@@ -569,6 +569,20 @@ def get_label(doc: Any, lang: str = "en") -> Optional[str]:
         return None
 
 
+def get_label_en(doc: Any) -> Optional[str]:
+    """The English name of an entity, for LABEL_EN: 'en', else Wikidata's 'mul'.
+
+    'mul' is the multilingual default label, used for names identical across languages;
+    once it is set, editors often remove the now-redundant 'en'. Measured on 2026-10-10
+    (doc/sql/check-026-mul-labels-20261010.txt): of the entities with labels but no 'en',
+    'mul' covers 21,712 persons (70 %), 14,680 items, 4,421 movies, 2,326 characters and
+    1,976 series, Jane Eyre and The Last of Us game among them. Without this fallback their
+    LABEL_EN is empty and every reader of it shows no name (WIKIDATA-CRAWLER-026).
+    LABELS_JSON keeps Wikidata's labels as given, 'mul' included.
+    """
+    return get_label(doc, "en") or get_label(doc, "mul")
+
+
 def get_description(doc: Any, lang: str = "en") -> Optional[str]:
     try:
         descriptions = doc.get("descriptions")
@@ -1461,7 +1475,7 @@ class WikidataDumpETL:
 
             base_row = {
                 "ID_WIKIDATA": entity_id,
-                "LABEL_EN": get_label(doc, "en"),
+                "LABEL_EN": get_label_en(doc),
                 "DESCRIPTION_EN": get_description(doc, "en"),
                 "LABELS_JSON": extract_labels(doc),
                 "DESCRIPTIONS_JSON": extract_descriptions(doc),
@@ -1482,7 +1496,7 @@ class WikidataDumpETL:
                 return
             base_row = {
                 "ID_WIKIDATA": entity_id,
-                "LABEL_EN": get_label(doc, "en"),
+                "LABEL_EN": get_label_en(doc),
                 "DESCRIPTION_EN": get_description(doc, "en"),
                 "LABELS_JSON": extract_labels(doc),
                 "DESCRIPTIONS_JSON": extract_descriptions(doc),

@@ -643,7 +643,7 @@ def _alias_languages(raw: Optional[str]) -> Optional[Set[str]]:
 
 
 # WIKIDATA-CRAWLER-025, measured on the first run carrying aliases (2026-09-27,
-# doc/sql/wikidata-v2-025-acceptance-20260927.txt, F3): all languages weighed about
+# doc/sql/archive/wikidata-v2-025-acceptance-20260927.txt, F3): all languages weighed about
 # 510 MB over the seven entity tables, fr + en about 35 MB, i.e. 7 %. On ITEM alone,
 # 411 MB for 18 MB of fr + en, 35 languages per entity on average. Every consumer
 # reads fr or en, so the rest was pure weight. "*" restores all languages.

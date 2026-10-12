@@ -20,7 +20,7 @@
 -- n'est donc pas defini par ce depot mais par les aretes P279 que Wikidata publie
 -- ce jour-la. Charger les aretes rend cette definition auditable, et d'un run a
 -- l'autre rend sa derive mesurable. C'est ce qui manquait aux blocs D1 et D3 de
--- doc/sql/wikidata-movie-drop-diagnostic.sql, qui ne trouvaient que 9 classes la ou
+-- doc/sql/archive/wikidata-movie-drop-diagnostic.sql, qui ne trouvaient que 9 classes la ou
 -- le pool reel en compte des milliers.
 --
 -- PREREQUIS, dans cet ordre :

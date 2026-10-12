@@ -579,7 +579,7 @@ WIKIDATA-CRAWLER-023, execution de la route A de la decommission V1.
 **Le probleme.** Au 2026-09-19, 36,2 % des libelles francais affiches (250 185 sur 691 320,
 `test-017-repli-v1-taux.sql`) viennent encore du repli sur `T_WC_WIKIDATA_ITEM_V1` : ces
 entites ont une ligne dans V1 et aucune dans `T_WC_WIKIDATA_ITEM`. Chiffrage du meme jour
-(`doc/sql/wikidata-v1-backfill-target-set-20260919.txt`) : **167 928 sont importables**,
+(`doc/sql/archive/wikidata-v1-backfill-target-set-20260919.txt`) : **167 928 sont importables**,
 81 456 relevent du plancher decrit plus bas, et le taux devrait tomber vers **11,9 %**. Supprimer les tables V1
 les ferait disparaitre de l'ecran. Or la seule chose qui fabrique une ligne
 `T_WC_WIKIDATA_ITEM` est la passe `item_cache`, qui n'emet que pour les entites presentes
@@ -663,7 +663,7 @@ passe qui vient de tourner des heures. C'est `apply_to_live_db.sql` qui la pose,
 crawler l'applique lui-meme au debut des etapes `108` et `110` : rien a faire a la main.
 
 **Langues : `fr` et `en` seulement, depuis la mesure du premier run.** Le run du dump du
-2026-09-24 a mesure le volume (`doc/sql/wikidata-v2-025-acceptance-20260927.txt`, section F3) :
+2026-09-24 a mesure le volume (`doc/sql/archive/wikidata-v2-025-acceptance-20260927.txt`, section F3) :
 toutes langues, environ 510 Mo sur les sept tables, dont 35 Mo seulement pour `fr` + `en`, soit
 7 %. Sur `ITEM`, 411 Mo pour 18 Mo, avec 35 langues par entite en moyenne. Aucun consommateur ne
 lit une autre langue, le filtre est donc pose a l'emission, dans `extract_aliases`. Reglage :
@@ -673,7 +673,7 @@ liberees : passer ensuite `OPTIMIZE TABLE T_WC_WIKIDATA_ITEM, T_WC_WIKIDATA_PERS
 recuperer la place (hors run, la table est reconstruite).
 
 **Point de depart, mesure du 2026-09-20 avant le run**
-(`doc/sql/wikidata-v2-025-acceptance-20260920.txt`). Les sept tables cibles pesent **4 653 Mo**
+(`doc/sql/archive/wikidata-v2-025-acceptance-20260920.txt`). Les sept tables cibles pesent **4 653 Mo**
 au total, tres inegalement : `ITEM` 2 367, `PERSON` 1 404, `MOVIE` 458, `SERIE` 231,
 `EPISODE` 99, `CHARACTER` 71, `SEASON` 23. C'est a ce total qu'il faudra comparer apres le
 run, et c'est la seule mesure qui ait un sens avant, tout ce qui concerne la colonne valant

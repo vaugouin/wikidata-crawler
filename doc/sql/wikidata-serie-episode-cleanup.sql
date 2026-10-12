@@ -5,7 +5,7 @@
 -- ORIGINE. Q21191270 (television series episode) descend de Q15416 (television
 -- program), racine de serie depuis le 2026-07-12, et classify_qids testait la serie
 -- avant l'episode. Mesure du 2026-09-28
--- (doc/sql/wikidata-episode-classification-check-20260928.txt) : sur 181 664
+-- (doc/sql/archive/wikidata-episode-classification-check-20260928.txt) : sur 181 664
 -- entites P31 = episode, 181 031 sont dans SERIE, dont 179 509 AUSSI dans EPISODE
 -- (lignes d'aout, jamais purgees). SERIE (359 630 lignes) est donc a moitie faite
 -- d'episodes. Temoin : 132 saisons sont dans SERIE en plus de SEASON.

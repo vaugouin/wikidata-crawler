@@ -244,7 +244,7 @@ Time with no Wikidata V2 data in the database: **zero**.
 ### Trade-offs of the incremental path
 
 - **Disk.** Because IDs are stable, re-loading a statement updates its row instead of adding one, so the tables do not double in size. Only genuinely new statements grow them, plus the old-batch orphans that linger until step `114`. Keep headroom anyway — an InnoDB `DELETE` does not return space to the filesystem.
-- **Entity tables are never pruned.** `T_WC_WIKIDATA_MOVIE` / `SERIE` / `PERSON` / `ITEM` / `SEASON` / `EPISODE` / `CHARACTER` and `T_WC_WIKIDATA_PROPERTY_METADATA` have no `IMPORT_BATCH_ID`, so step `114` leaves them alone by design. An entity that falls out of scope keeps its row (with zero statements after the cleanup). Cosmetic, but it never self-heals — only a full reset removes it.
+- **Entity tables are pruned by staging membership, not by batch.** `T_WC_WIKIDATA_MOVIE` / `SERIE` / `PERSON` / `ITEM` / `SEASON` / `EPISODE` / `CHARACTER` have no `IMPORT_BATCH_ID`. Since 2026-10-17 (WIKIDATA-CRAWLER-024) step `114` deletes, after the batch prune, every entity row whose `ID_WIKIDATA` the current batch does not stage in the paired `STG_*` table: an entity out of scope, or one that moved to another table. Guarded per table (staging present, at most 10 % of the table), `ENTITY_PRUNE=0` to disable. `T_WC_WIKIDATA_PROPERTY_METADATA` is still never pruned.
 - **`VALUE_TYPE` flips (trigger error 1644)** are the classic hazard of loading on top of existing data — they happen precisely *because* the old batch is still there. Already handled: the purge of stale typed-value siblings is built into `03_bulk_load_from_staging_FULL.sql` (section 3B). Just rebuild the Docker image so the container runs the current SQL.
 - **Staging holds two batches for the length of a run.** Step `108` deletes rows for the *current* `IMPORT_BATCH_ID` before loading (which is what makes a `--start-step 108` resume safe) and leaves older batches alone; step `115` removes them at the very end, once the bulk load has succeeded. So staging peaks at two full batches, well over 100 M rows, and comes back down to one when the run finishes. A run that fails before `115` leaves the predecessor behind: clear it with a standalone `--start-step 115` or with `13_cleanup_staging_old_batches.sql`. Staging is not read by the front-end, so the timing is unconstrained.
 
@@ -255,7 +255,7 @@ Run `04_reset_for_full_rerun.sql` only when one of these applies:
 - the ID-derivation logic changed (`derive_statement_identity`, `derive_qualifier_identity`, or `stable_bigint_from_text` in `wikidata_dump_etl.py`) — old rows would no longer be matched by the upsert and would survive as permanent duplicates;
 - the target schema changed in a way that makes existing rows meaningless;
 - the current data is known to be corrupt and you want a guaranteed-clean rebuild;
-- you specifically want the entity tables pruned of out-of-scope rows.
+- the entity prune of step `114` refuses because more than 10 % of a table would go (a reclassification that large deserves a look first).
 
 In those cases accept that the V2 tables stay empty for the whole run, ETL included. A clean rebuild *without* downtime is not supported out of the box — it would mean loading into a copy of the schema and swapping with `RENAME TABLE`.
 
@@ -564,7 +564,7 @@ So the reliable rerun procedure is now:
 - `07_resolve_media_resources.sql`
   - executed by step `112`; populates `T_WC_WIKIDATA_MEDIA_RESOURCE` and `T_WC_WIKIDATA_MEDIA_RESOURCE_URL` from V2 statement/value tables using `INSERT ... ON DUPLICATE KEY UPDATE` (idempotent)
 - `08_cleanup_old_batches.sql`
-  - executed by step `114`; deletes every target row whose `IMPORT_BATCH_ID` is strictly older than the current batch — the stale "orphans" the upsert-only bulk load never overwrites (entities that fell out of scope, claims deleted/edited between dumps). Idempotent; FK checks off. Entity and property-metadata tables have no `IMPORT_BATCH_ID` and are left untouched. The step is guarded: it refuses to run unless the current batch already has statements loaded.
+  - executed by step `114`; deletes every target row whose `IMPORT_BATCH_ID` is strictly older than the current batch — the stale "orphans" the upsert-only bulk load never overwrites (entities that fell out of scope, claims deleted/edited between dumps). Idempotent; FK checks off. Entity and property-metadata tables have no `IMPORT_BATCH_ID` and are left untouched by the file; step `114` then prunes the entity tables itself, by staging membership (see the trade-offs above). The step is guarded: it refuses to run unless the current batch already has statements loaded.
 - `09_fix_value_type_conflicts.sql`
   - manual repair for bulk-load trigger error 1644 (`<TABLE>: statement/qualifier already exists in another child table`). When a statement's (or qualifier's) `VALUE_TYPE` changes between two dumps, the upsert-only bulk load updates the parent type but leaves the earlier batch's value row in the now-wrong sibling table, which the "one statement → one value table" triggers reject. This script deletes, for the current `@IMPORT_BATCH_ID`, every target typed-value row whose statement/qualifier is classified as a different `VALUE_TYPE` in this batch's staging. Idempotent. The same purge is built into `03_bulk_load_from_staging_FULL.sql`, so a fresh run self-heals; run this standalone only to unblock an in-flight load without rebuilding the image (set `@IMPORT_BATCH_ID`, then resume with `--start-step 110`).
 - `10_clear_staging_batch.sql`
@@ -597,9 +597,10 @@ reussi elle rend zero. La graine se viderait, ces items sortiraient du filtre, e
 `114` supprimerait leurs faits des le run suivant, sous un run en succes et sans un mot dans
 les journaux. La difference sert a mesurer, l'ancrage V1 sert a semer.
 
-**Ce que la re-injection protege, precisement.** Pas les libelles : les tables d'entites ne
-portent pas d'`IMPORT_BATCH_ID` et ne sont jamais purgees, donc une ligne `ITEM` importee
-reste. Elle protege (1) les faits `P31/P279/P345/P569/P570/P577` de ces items, qui portent
+**Ce que la re-injection protege, precisement.** Les libelles aussi, depuis le 2026-10-17 :
+l'etape `114` supprime desormais une ligne `ITEM` que le lot courant ne met pas en staging
+(WIKIDATA-CRAWLER-024), si bien que sans re-injection ces libelles quitteraient l'ecran au run
+suivant. Elle protege en outre (1) les faits `P31/P279/P345/P569/P570/P577` de ces items, qui portent
 un lot et que l'etape `114` supprime des qu'ils ne sont plus emis, ce qui recreerait chaque
 semaine le symptome de WIKIDATA-CRAWLER-020 (un libelle sans un seul fait), (2) la fraicheur
 des libelles, et (3) la reproductibilite apres un `04_reset_for_full_rerun.sql`.

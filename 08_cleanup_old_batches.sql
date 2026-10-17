@@ -22,7 +22,12 @@
 --   - Entity tables (MOVIE/SERIE/PERSON/ITEM/SEASON/EPISODE/CHARACTER) and
 --     PROPERTY_METADATA have no IMPORT_BATCH_ID column. They are upserted in
 --     place (one row per ID_WIKIDATA / ID_PROPERTY) and never accumulate one
---     row per batch, so there is nothing batch-scoped to prune.
+--     row per batch, so there is nothing batch-scoped to prune here.
+--     Since 2026-10-17 (WIKIDATA-CRAWLER-024) step 114 prunes the seven entity
+--     tables right after this file, in Python (_prune_stale_entity_rows): a row
+--     goes when the current batch does not stage its ID_WIKIDATA in the paired
+--     STG_* table. Guarded per table; read-only twin:
+--     doc/sql/check-024-entity-prune-dry-run.sql.
 --
 -- Idempotent: re-running deletes whatever old-batch rows remain (none on a
 -- second pass). Safe to run standalone in MariaDB after editing @IMPORT_BATCH_ID,

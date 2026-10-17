@@ -26,11 +26,12 @@ leurs faits sont supprimes par l'etape 114 (qui purge tout statement d'un lot pl
 ancien). Le tout sous un run en succes, sans rien dans les journaux. La difference
 sert a chiffrer, l'ancrage V1 sert a semer.
 
-CE QUE LA RE-INJECTION PROTEGE VRAIMENT, car le ticket le disait autrement. Les
-tables d'entites ne portent pas d'IMPORT_BATCH_ID et ne sont jamais purgees
-(08_cleanup_old_batches.sql) : une ligne T_WC_WIKIDATA_ITEM importee une fois reste.
-Le libelle ne retomberait donc pas sur V1 la semaine suivante. Ce que l'absence de
-re-injection detruit, c'est (1) les faits P31/P279/P345/P569/P570/P577 de ces items,
+CE QUE LA RE-INJECTION PROTEGE VRAIMENT, car le ticket le disait autrement. Depuis
+le 2026-10-17 (WIKIDATA-CRAWLER-024), l'etape 114 supprime toute ligne d'entite que
+le lot courant ne met pas en staging : sans re-injection, la ligne T_WC_WIKIDATA_ITEM
+elle-meme disparaitrait au run suivant, libelle compris, et l'ecran retomberait sur V1.
+C'est aussi pourquoi l'etape 114 laisse ITEM hors de la purge quand V1_BACKFILL_SEED=0.
+L'absence de re-injection detruit en outre (1) les faits P31/P279/P345/P569/P570/P577 de ces items,
 qui portent un lot et que l'etape 114 supprime des le run suivant, ce qui recree
 chaque semaine le symptome de WIKIDATA-CRAWLER-020 (un libelle sans un seul fait),
 (2) la fraicheur des libelles, geles a la date d'import, et (3) la reproductibilite,

@@ -36,6 +36,22 @@ DEFAULT_CLEANUP_SQL_NAME = "08_cleanup_old_batches.sql"
 # step whose entire purpose is to give disk space back. Deleting in committed
 # chunks keeps the transaction small and lets the step be killed and resumed.
 STAGING_CLEANUP_CHUNK_SIZE = 50_000
+# The seven entity tables step 114 prunes of rows the current dump no longer emits
+# (WIKIDATA-CRAWLER-024), each paired with the staging table step 110 upserts it from.
+ENTITY_PRUNE_TABLES = (
+    ("T_WC_WIKIDATA_MOVIE", "STG_T_WC_WIKIDATA_MOVIE"),
+    ("T_WC_WIKIDATA_SERIE", "STG_T_WC_WIKIDATA_SERIE"),
+    ("T_WC_WIKIDATA_PERSON", "STG_T_WC_WIKIDATA_PERSON"),
+    ("T_WC_WIKIDATA_ITEM", "STG_T_WC_WIKIDATA_ITEM"),
+    ("T_WC_WIKIDATA_SEASON", "STG_T_WC_WIKIDATA_SEASON"),
+    ("T_WC_WIKIDATA_EPISODE", "STG_T_WC_WIKIDATA_EPISODE"),
+    ("T_WC_WIKIDATA_CHARACTER", "STG_T_WC_WIKIDATA_CHARACTER"),
+)
+# Refuse the entity prune when it would remove more than this share of a table.
+# Measured 2026-10-17 on the first backlog (check-024): ITEM 4.5 %, SERIE 6.7 %, the
+# others under 0.2 %. A run without the V1 backfill seed would orphan about 12.5 % of
+# ITEM, a half-loaded staging table far more: both must fail loudly, not delete.
+ENTITY_PRUNE_MAX_SHARE = 0.10
 DEFAULT_LIVE_DB_SCHEMA_NAME = "apply_to_live_db.sql"
 CRAWLER_PREFIX = "strwikidatacrawler"
 # Written to the shared volume at the end of a successful run, and read from the
@@ -59,6 +75,26 @@ class ProcessStep:
 
 class ValidationError(RuntimeError):
     pass
+
+
+def entity_prune_enabled() -> bool:
+    """ENTITY_PRUNE=0 runs step 114 on the batch-scoped tables only, as before -024."""
+    return os.environ.get("ENTITY_PRUNE", "1").strip().lower() not in ("0", "false", "no", "off")
+
+
+def entity_prune_refusal(table: str, total: int, staged: int, orphans: int) -> Optional[str]:
+    """Why the entity prune must not touch `table`, or None when it may.
+
+    `staged` is the current batch's row count in the paired staging table, `orphans`
+    the target rows with no staging row in that batch. Pure, so the smoke test can
+    pin the guard without a database.
+    """
+    if staged <= 0:
+        return f"{table}: the current batch has no staging rows, pruning would empty the table"
+    if total > 0 and orphans / total > ENTITY_PRUNE_MAX_SHARE:
+        return (f"{table}: {orphans} of {total} rows ({orphans / total:.1%}) are absent from the current "
+                f"batch, above the {ENTITY_PRUNE_MAX_SHARE:.0%} ceiling")
+    return None
 
 
 class WikidataCrawler:
@@ -727,6 +763,83 @@ class WikidataCrawler:
         print(f"114: deleted {total_deleted} rows from import batches older than {self.import_batch_id}")
         cp.f_setservervariable(f"{CRAWLER_PREFIX}cleanupbatchid", self.import_batch_id, "Current import batch id used as the cutoff by the old-batch cleanup step", 0)
         cp.f_setservervariable(f"{CRAWLER_PREFIX}cleanuprowsdeleted", str(total_deleted), "Total rows deleted from target tables by the old-batch cleanup step (step 114)", 0)
+        self._prune_stale_entity_rows()
+
+    def _prune_stale_entity_rows(self) -> None:
+        # WIKIDATA-CRAWLER-024. The entity tables have no IMPORT_BATCH_ID, so the batch
+        # prune above never reaches them, and a row the dump stopped emitting stayed
+        # forever: an episode once filed under SERIE, a season cached as an ITEM before
+        # it was classified. Measured 2026-10-17: 54 613 such rows, 50 340 entities in
+        # two tables (doc/sql/check-024-entities-in-several-tables-20261017.txt).
+        #
+        # The test is membership in the current batch's staging, not TIM_UPDATED: a
+        # row is kept when its entity is staged in this batch, whether or not step 110
+        # got to it, so a partial bulk load cannot turn into a deletion, and no clock
+        # (Paris crawler variables against UTC NOW()) enters the decision. It relies on
+        # step 115 running after this step: until then the current batch is in staging.
+        #
+        # Every table is measured before anything is deleted, and one refusal stops the
+        # whole prune (entity_prune_refusal). doc/sql/check-024-entity-prune-dry-run.sql
+        # is the read-only twin, for measuring what the next run will remove.
+        if not entity_prune_enabled():
+            print("114: entity prune disabled (ENTITY_PRUNE=0)")
+            return
+        tables = list(ENTITY_PRUNE_TABLES)
+        if not v1_backfill_enabled():
+            # Without the seed, item_cache no longer emits the V1 backfill (-023), and
+            # the prune would remove those items, labels included, from the screen.
+            tables = [pair for pair in tables if pair[0] != "T_WC_WIKIDATA_ITEM"]
+            print("114: V1 backfill seed disabled, T_WC_WIKIDATA_ITEM left out of the entity prune")
+        orphan_filter = (
+            "NOT EXISTS (SELECT 1 FROM {stg} s WHERE s.ID_WIKIDATA = {row}.ID_WIKIDATA "
+            "AND s.IMPORT_BATCH_ID = %s)"
+        )
+        plan = []
+        refusals = []
+        for table, stg in tables:
+            total = self._fetch_scalar(f"SELECT COUNT(*) FROM {table}")
+            staged = self._fetch_scalar(
+                f"SELECT COUNT(*) FROM {stg} WHERE IMPORT_BATCH_ID = %s", (self.import_batch_id,)
+            )
+            orphans = self._fetch_scalar(
+                f"SELECT COUNT(*) FROM {table} t WHERE " + orphan_filter.format(stg=stg, row="t"),
+                (self.import_batch_id,),
+            )
+            print(f"114: {table}: {orphans} of {total} rows absent from batch {self.import_batch_id} ({staged} staged)")
+            refusal = entity_prune_refusal(table, total, staged, orphans)
+            if refusal:
+                refusals.append(refusal)
+            plan.append((table, stg, orphans))
+        if refusals:
+            raise ValidationError("Refusing to prune the entity tables: " + "; ".join(refusals))
+
+        total_deleted = 0
+        counts = []
+        connection = create_staging_connection()
+        try:
+            for table, stg, orphans in plan:
+                table_deleted = 0
+                if orphans:
+                    while True:
+                        with connection.cursor() as cursor:
+                            cursor.execute(
+                                # Single-table DELETE takes no alias in MariaDB, and
+                                # LIMIT needs the single-table form: qualify by name.
+                                f"DELETE FROM {table} WHERE " + orphan_filter.format(stg=stg, row=table) + " LIMIT %s",
+                                (self.import_batch_id, STAGING_CLEANUP_CHUNK_SIZE),
+                            )
+                            deleted = cursor.rowcount or 0
+                        connection.commit()
+                        table_deleted += deleted
+                        if deleted < STAGING_CLEANUP_CHUNK_SIZE:
+                            break
+                total_deleted += table_deleted
+                counts.append(f"{table.replace('T_WC_WIKIDATA_', '')}={table_deleted}")
+        finally:
+            connection.close()
+        print(f"114: entity prune deleted {total_deleted} rows ({', '.join(counts)})")
+        cp.f_setservervariable(f"{CRAWLER_PREFIX}entityprunerowsdeleted", str(total_deleted), "Entity rows deleted by step 114 because the current batch no longer stages them (WIKIDATA-CRAWLER-024)", 0)
+        cp.f_setservervariable(f"{CRAWLER_PREFIX}entityprunedetail", ", ".join(counts), "Entity rows deleted by step 114, per table (WIKIDATA-CRAWLER-024)", 0)
 
     def step_cleanup_staging_batches(self) -> None:
         # Prune STAGING the way step 114 prunes the targets: delete every STG_* row

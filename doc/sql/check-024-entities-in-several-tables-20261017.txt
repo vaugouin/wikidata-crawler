@@ -1,0 +1,204 @@
+-- check-024-entities-in-several-tables.sql
+-- run on vaugouindb (container damp-vaugouin-com-mariadb-1) at 2026-10-17 12:38:15
+--
++-----------------------------+
+| STALE_IF_TIM_UPDATED_BEFORE |
++-----------------------------+
+| 2026-10-14 16:57:51         |
++-----------------------------+
++--------------------------------------------------------------+
+| SECTION                                                      |
++--------------------------------------------------------------+
+| A. Rows per table, and entities found in more than one table |
++--------------------------------------------------------------+
++--------------+------------+--------------+------------+
+| ENTITY_TABLE | ROWS_TOTAL | ROWS_DELETED | ROWS_STALE |
++--------------+------------+--------------+------------+
+| ITEM         |     887560 |            0 |      40224 |
+| PERSON       |     792051 |            0 |       1120 |
+| MOVIE        |     443451 |            0 |        872 |
+| EPISODE      |     189500 |            0 |        104 |
+| SERIE        |     179463 |            0 |      11942 |
+| CHARACTER    |     125484 |            0 |        284 |
+| SEASON       |      28520 |            0 |         67 |
++--------------+------------+--------------+------------+
++----------------------------+-------------------+-------------------+------------------------------------------------------------+
+| ENTITIES_IN_SEVERAL_TABLES | EXTRA_MEMBERSHIPS | DISTINCT_ENTITIES | REFERENCE                                                  |
++----------------------------+-------------------+-------------------+------------------------------------------------------------+
+|                      50340 |             50583 |           2595446 | 54 204 extra memberships on the V1 floor alone, 2026-09-19 |
++----------------------------+-------------------+-------------------+------------------------------------------------------------+
++------------------------------------------+
+| SECTION                                  |
++------------------------------------------+
+| B. The combinations, most frequent first |
++------------------------------------------+
++--------------------------+----------+
+| TABLES                   | ENTITIES |
++--------------------------+----------+
+| ITEM+SEASON              |    19782 |
+| CHARACTER+ITEM           |     8828 |
+| EPISODE+SERIE            |     7963 |
+| ITEM+SERIE               |     6078 |
+| ITEM+MOVIE               |     2171 |
+| EPISODE+ITEM             |     1926 |
+| MOVIE+SERIE              |     1482 |
+| SEASON+SERIE             |     1397 |
+| ITEM+PERSON              |      360 |
+| ITEM+MOVIE+SERIE         |       95 |
+| EPISODE+ITEM+SERIE       |       62 |
+| EPISODE+MOVIE            |       58 |
+| ITEM+SEASON+SERIE        |       57 |
+| CHARACTER+PERSON         |       40 |
+| EPISODE+ITEM+MOVIE       |       10 |
+| CHARACTER+ITEM+PERSON    |        9 |
+| CHARACTER+SERIE          |        8 |
+| EPISODE+MOVIE+SERIE      |        6 |
+| CHARACTER+MOVIE          |        3 |
+| ITEM+MOVIE+SEASON        |        2 |
+| MOVIE+SEASON             |        2 |
+| EPISODE+ITEM+MOVIE+SERIE |        1 |
++--------------------------+----------+
++----------------------------------------------------------------------------+
+| SECTION                                                                    |
++----------------------------------------------------------------------------+
+| B2. Five examples per combination (labels from the table that comes first) |
++----------------------------------------------------------------------------+
++--------------------------+-------------+-----------------------------------------------------------+
+| TABLES                   | ID_WIKIDATA | LABEL_EN                                                  |
++--------------------------+-------------+-----------------------------------------------------------+
+| CHARACTER+ITEM           | Q1000118    | Peter Pettigrew                                           |
+| CHARACTER+ITEM           | Q100256375  | Ola Halvorsen                                             |
+| CHARACTER+ITEM           | Q100275795  | A. Square                                                 |
+| CHARACTER+ITEM           | Q100323909  | Baxter Stockman                                           |
+| CHARACTER+ITEM           | Q100393530  | Donatello                                                 |
+| CHARACTER+ITEM+PERSON    | Q111047814  | Puteri Manis                                              |
+| CHARACTER+ITEM+PERSON    | Q111047815  | Puteri Kasturi                                            |
+| CHARACTER+ITEM+PERSON    | Q111047816  | Puteri Purut                                              |
+| CHARACTER+ITEM+PERSON    | Q111047817  | Puteri Bali                                               |
+| CHARACTER+ITEM+PERSON    | Q111047818  | Puteri Nipis                                              |
+| CHARACTER+MOVIE          | Q3027341    | Wamble Waddle                                             |
+| CHARACTER+MOVIE          | Q5366713    | Elmer the Great Dane                                      |
+| CHARACTER+MOVIE          | Q85804313   | Surly Squirrel                                            |
+| CHARACTER+PERSON         | Q105081394  | Princess Bean                                             |
+| CHARACTER+PERSON         | Q105825481  | Lumpy Space Princess                                      |
+| CHARACTER+PERSON         | Q106380234  | Tamayorihiko no Mikoto                                    |
+| CHARACTER+PERSON         | Q10731395   | Hosuseri                                                  |
+| CHARACTER+PERSON         | Q10864079   | Hitokotonushi                                             |
+| CHARACTER+SERIE          | Q10392087   | Vitinho                                                   |
+| CHARACTER+SERIE          | Q1049233    | Kamen Rider Kuuga                                         |
+| CHARACTER+SERIE          | Q11310283   | General Jark                                              |
+| CHARACTER+SERIE          | Q11411417   | NULL                                                      |
+| CHARACTER+SERIE          | Q11897445   | Ti-Ti Nalle                                               |
+| EPISODE+ITEM             | Q100804390  | Devs, episode 1                                           |
+| EPISODE+ITEM             | Q100804391  | Devs, episode 2                                           |
+| EPISODE+ITEM             | Q100804392  | Devs, episode 3                                           |
+| EPISODE+ITEM             | Q100804393  | Devs, episode 4                                           |
+| EPISODE+ITEM             | Q100804394  | Devs, episode 5                                           |
+| EPISODE+ITEM+MOVIE       | Q114489449  | Ben 10/Generator Rex: Heroes United, part 2               |
+| EPISODE+ITEM+MOVIE       | Q114506610  | Ben 10/Generator Rex: Heroes United, part 1               |
+| EPISODE+ITEM+MOVIE       | Q134722773  | Jack Levine: Feast of Pure Reason                         |
+| EPISODE+ITEM+MOVIE       | Q136526150  | Buddy Hackett: Live and Uncensored                        |
+| EPISODE+ITEM+MOVIE       | Q136526238  | Robert Klein on Broadway                                  |
+| EPISODE+ITEM+MOVIE+SERIE | Q596994     | It's the Great Pumpkin, Charlie Brown                     |
+| EPISODE+ITEM+SERIE       | Q110897655  | Slave of the Cobra Master                                 |
+| EPISODE+ITEM+SERIE       | Q110897883  | The Worms of Death                                        |
+| EPISODE+ITEM+SERIE       | Q110897889  | Duel in the Devil's Cauldron                              |
+| EPISODE+ITEM+SERIE       | Q110897895  | A Stake in the Serpent's Heart                            |
+| EPISODE+ITEM+SERIE       | Q114523414  | Go Away Ghost Ship                                        |
+| EPISODE+MOVIE            | Q106199566  | A West Wing Special to Benefit When We All Vote           |
+| EPISODE+MOVIE            | Q107271552  | Dead Line                                                 |
+| EPISODE+MOVIE            | Q110263369  | Spirit Riding Free: Spirit of Christmas                   |
+| EPISODE+MOVIE            | Q111190921  | Japan Women's Gourmet Burger Club - 2021 Summer Special   |
+| EPISODE+MOVIE            | Q114505020  | The Most Horrible X-Mas Ever                              |
+| EPISODE+MOVIE+SERIE      | Q10374867   | Super DuckTales                                           |
+| EPISODE+MOVIE+SERIE      | Q132750929  | Stitch vs. Penny                                          |
+| EPISODE+MOVIE+SERIE      | Q133696063  | Vacaciones en Acapulco                                    |
+| EPISODE+MOVIE+SERIE      | Q21563588   | The Christmas Special                                     |
+| EPISODE+MOVIE+SERIE      | Q5489837    | Pilot                                                     |
+| EPISODE+SERIE            | Q100156110  | The 7 Beer Itch                                           |
+| EPISODE+SERIE            | Q100256396  | Eye of Sarnath Tetralogy                                  |
+| EPISODE+SERIE            | Q100327253  | Forget Me Not                                             |
+| EPISODE+SERIE            | Q100327254  | Die Trying                                                |
+| EPISODE+SERIE            | Q100327258  | Scavengers                                                |
+| ITEM+MOVIE               | Q1000764    | The Buddenbrooks                                          |
+| ITEM+MOVIE               | Q100156151  | Made in Abyss: Dawn of the Deep Soul                      |
+| ITEM+MOVIE               | Q100377196  | The Waltz of Grey Years                                   |
+| ITEM+MOVIE               | Q100751138  | NULL                                                      |
+| ITEM+MOVIE               | Q101130613  | Cars Toon: Spinning                                       |
+| ITEM+MOVIE+SEASON        | Q113835208  | Doctor Who 60th anniversary                               |
+| ITEM+MOVIE+SEASON        | Q5287435    | Doctor Who specials (2008–2010)                           |
+| ITEM+MOVIE+SERIE         | Q101251364  | Dick Tracy Special                                        |
+| ITEM+MOVIE+SERIE         | Q10293704   | Hanna-Barbera's 50th: A Yabba Dabba Doo Celebration       |
+| ITEM+MOVIE+SERIE         | Q104637411  | Taskmaster: Champion of Champions                         |
+| ITEM+MOVIE+SERIE         | Q104637577  | Taskmaster's New Year Treat 2021                          |
+| ITEM+MOVIE+SERIE         | Q108087326  | Lupin the 3rd Episode 0: First Contact                    |
+| ITEM+PERSON              | Q100251305  | Sri Lankans                                               |
+| ITEM+PERSON              | Q101404071  | Shams al-Din Altinapa                                     |
+| ITEM+PERSON              | Q1025598    | Nehemiah                                                  |
+| ITEM+PERSON              | Q1030008    | Tamar                                                     |
+| ITEM+PERSON              | Q10367542   | Sandoval                                                  |
+| ITEM+SEASON              | Q1000170    | American Idol, season 8                                   |
+| ITEM+SEASON              | Q10004526   | All in the Family, season 11                              |
+| ITEM+SEASON              | Q10006388   | All in the Family, season 1                               |
+| ITEM+SEASON              | Q10007629   | All in the Family, season 2                               |
+| ITEM+SEASON              | Q10008470   | All in the Family, season 3                               |
+| ITEM+SEASON+SERIE        | Q103226166  | Black Clover, season 4                                    |
+| ITEM+SEASON+SERIE        | Q10581329   | Melodifestivalen 2014                                     |
+| ITEM+SEASON+SERIE        | Q106023381  | Melodifestivalen 2022                                     |
+| ITEM+SEASON+SERIE        | Q10747106   | Melodifestivalen 1982                                     |
+| ITEM+SEASON+SERIE        | Q10747678   | Melodifestivalen 1980                                     |
+| ITEM+SERIE               | Q100050258  | SSSS.Dynazenon                                            |
+| ITEM+SERIE               | Q1000984    | Festivalbar                                               |
+| ITEM+SERIE               | Q1002254    | Wacky Races                                               |
+| ITEM+SERIE               | Q100249421  | Mask Singer: Adivina quién canta                          |
+| ITEM+SERIE               | Q100257543  | Ten in the Evening                                        |
+| MOVIE+SEASON             | Q125245651  | NULL                                                      |
+| MOVIE+SEASON             | Q132965265  | NULL                                                      |
+| MOVIE+SERIE              | Q100256270  | on-chan Yume Power Daibōken!                              |
+| MOVIE+SERIE              | Q100268160  | The Mole – Undercover in North Korea                      |
+| MOVIE+SERIE              | Q100323279  | Savage X Fenty Show                                       |
+| MOVIE+SERIE              | Q101076376  | Kraft Salutes Disneyland's 25th Anniversary               |
+| MOVIE+SERIE              | Q101130429  | High School Musical: The Musical: The Series: The Special |
+| SEASON+SERIE             | Q100268936  | Sound! Euphonium, season 1                                |
+| SEASON+SERIE             | Q100268955  | Sound! Euphonium, season 2                                |
+| SEASON+SERIE             | Q100270879  | Case Closed, season 29                                    |
+| SEASON+SERIE             | Q100332172  | Attack on Titan: The Final Season                         |
+| SEASON+SERIE             | Q100975207  | Panty & Stocking with Garterbelt, season 1                |
++--------------------------+-------------+-----------------------------------------------------------+
++-------------------------------------------------------+
+| SECTION                                               |
++-------------------------------------------------------+
+| B3. Rows involved in a multiple membership, per table |
++-------------------------------------------------------+
++--------------+---------------+---------+-------+
+| ENTITY_TABLE | ROWS_IN_MULTI | DELETED | STALE |
++--------------+---------------+---------+-------+
+| ITEM         |         39381 |       0 | 38831 |
+| SEASON       |         21240 |       0 |    17 |
+| SERIE        |         17149 |       0 | 11418 |
+| EPISODE      |         10026 |       0 |    78 |
+| CHARACTER    |          8888 |       0 |    42 |
+| MOVIE        |          3830 |       0 |   143 |
+| PERSON       |           409 |       0 |    86 |
++--------------+---------------+---------+-------+
++-----------------------------------------------------------------------------------------+
+| SECTION                                                                                 |
++-----------------------------------------------------------------------------------------+
+| B4. Combinations once the stale rows are set aside (what the current dump writes twice) |
++-----------------------------------------------------------------------------------------+
++-----------------------------------------------------------------------------------+
+| SECTION                                                                           |
++-----------------------------------------------------------------------------------+
+| C. The entities typed episode found in neither EPISODE nor SERIE: where are they? |
++-----------------------------------------------------------------------------------+
++----------+----------+
+| FOUND_IN | ENTITIES |
++----------+----------+
+| MOVIE    |      632 |
+| ITEM     |       33 |
++----------+----------+
++---------------------------+
+| SECTION                   |
++---------------------------+
+| ========== FIN ========== |
++---------------------------+

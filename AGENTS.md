@@ -230,10 +230,14 @@ Corollary for the review scripts: `doc/sql/wikidata-run-report.sql` §A3 was spl
 
 Related but distinct: the V1 tables keep being written after both SPARQL crawlers are stopped. That is `wikipedia-crawler`, which fills the image columns only (`WIKIPEDIA_POSTER_PATH` on `MOVIE_V1`/`SERIE_V1`, `WIKIPEDIA_PROFILE_PATH` on `PERSON_V1`/`CHARACTER_V1`, `WIKIPEDIA_IMAGE_PATH` on `ITEM_V1`). A recent write time on a V1 table is not evidence that a SPARQL crawler is still running.
 
+## Clock (2026-10-19, DEPLOYMENT-015)
+
+Naive `DATETIME` / `DATE` columns hold naive Europe/Paris time: `datetime.now(cp.paris_tz)` (pytz, no `tzdata` needed), never a bare `datetime.now()` (UTC in the container) nor `NOW()` / `CURDATE()`. A human-read date is Europe/Paris with its offset, never a fixed `+02:00`; the explicit, labelled UTC stamps of the shell scripts (batch names) can stay. `tmdb_functions.py` is a byte-identical copy of tmdb-crawler's (clock fix WIKIDATA-CRAWLER-027, from TMDB-CRAWLER-034): change it there first, then here, and compare the hashes.
+
 ---
 
 **Last Updated**: 2026-10-19
-**Current Version**: 1.1.0
+**Current Version**: 1.1.1
 
 ## Backlog (Nestor second-brain)
 

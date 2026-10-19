@@ -5207,13 +5207,16 @@ def f_tmdbserieselectiveseasonsepisodestosql(lngserieid):
         print(f"f_tmdbserieselectiveseasonsepisodestosql: series {lngserieid} not in DB")
         return
 
-    today = datetime.now().date()
+    # TIM_LAST_CHANGES_CHECK is naive Paris time, so compare it with naive Paris
+    # time, not with the container clock (UTC) (TMDB-CRAWLER-034).
+    timnow = datetime.now(paris_tz).replace(tzinfo=None)
+    today = timnow.date()
 
     # --- T1: ask TMDb what changed ---
     strstartdate = None
     timlastcheck = serierow['TIM_LAST_CHANGES_CHECK']
     if timlastcheck is not None:
-        gapdays = (datetime.now() - timlastcheck).days
+        gapdays = (timnow - timlastcheck).days
         if 0 <= gapdays <= INT_TMDB_CHANGES_MAX_DAYS:
             strstartdate = timlastcheck.strftime('%Y-%m-%d')
 

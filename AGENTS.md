@@ -164,19 +164,23 @@ Three things to know before touching it. **Nothing is needed in `load_staging_js
 
 Cost and window: entity rows are emitted only by pass2 (step 104) and item_cache (step 106), so the column fills only after two full reads of the 102 GB dump. There is no reason to pay that separately, the whole pipeline runs at every new dump anyway. Shipping the code and rebuilding the image **before** `run-if-new-dump.sh` fires makes the marginal cost zero; shipping after it means waiting a week or replaying 104 to 111 for nothing. Same window as WIKIDATA-CRAWLER-023. An entity row is upserted in place, so the column fills by in-place update and nothing leaves the screen meanwhile (the step-114 entity prune only removes rows the batch does not stage at all).
 
+**Coordinates (`globe-coordinate`) are a seventh value type since 2026-10-19 (WIKIDATA-CRAWLER-028, 1.1.0).** The local type is `coordinate`: `extract_coordinate_payload` keeps `LATITUDE`, `LONGITUDE`, `ALTITUDE` (deprecated by Wikidata, null in practice), `COORDINATE_PRECISION` and the globe as a Q-id (`GLOBE_ID_WIKIDATA`, Q2 for Earth). Values land in `T_WC_WIKIDATA_COORDINATE_VALUE` and qualifiers in `T_WC_WIKIDATA_QUALIFIER_COORDINATE_VALUE` (a P625 qualifier on a P915 statement is the exact spot of a shoot). `P625` joined `CACHED_ENTITY_PROPERTIES`, so item_cache emits the coordinates of the cached places (about 306 000 items carry a P17 or a P131), which is the point: places are cached items, not works. Every value-table list follows (`01`, `02`, `03`, `11`, `04`, `05`, `08`, `09`, `10`, `13`, `TABLE_SPECS`, steps 109 and 111); `06` is a one-off repair and was left as it was.
+
+Three traps for the next value type. **The three `VALUE_TYPE` columns are ENUMs** (`STATEMENT`, `STATEMENT_QUALIFIER`, `PROPERTY_METADATA.LOCAL_VALUE_TYPE`): `apply_to_live_db.sql` appends the new value with `MODIFY`, which is instant on MariaDB 11.2 only when the value goes at the END of the list. **The live DB has none of the `BEFORE INSERT` value triggers of `02`** (checked 2026-10-19): the one-statement-one-table rule rests on the section-3B purges of `03`, so never hand-run the trigger block on the live DB without measuring the load cost first. **The cached-entity emitter has its own per-type branches** (`emit_class_claims_for_cached_item`), separate from pass2's: a type added to `SUPPORTED_LOCAL_VALUE_TYPES` alone is never emitted for cached items.
+
 ## Database tables
 
 Staging tables (`STG_T_WC_WIKIDATA_*`, created by `02_staging_and_triggers.sql`, loaded in step 108):
-`STG_T_WC_WIKIDATA_PROPERTY_METADATA`, `_MOVIE`, `_SERIE`, `_PERSON`, `_ITEM`, `_STATEMENT`, `_ITEM_VALUE`, `_STRING_VALUE`, `_EXTERNAL_ID_VALUE`, `_MEDIA_VALUE`, `_TIME_VALUE`, `_QUANTITY_VALUE`, `_STATEMENT_QUALIFIER`, `_QUALIFIER_ITEM_VALUE`, `_QUALIFIER_STRING_VALUE`, `_QUALIFIER_EXTERNAL_ID_VALUE`, `_QUALIFIER_MEDIA_VALUE`, `_QUALIFIER_TIME_VALUE`, `_QUALIFIER_QUANTITY_VALUE`. Staging metadata columns include `IMPORT_BATCH_ID`, `SOURCE_FILE`, `ROW_STATUS`.
+`STG_T_WC_WIKIDATA_PROPERTY_METADATA`, `_MOVIE`, `_SERIE`, `_PERSON`, `_ITEM`, `_STATEMENT`, `_ITEM_VALUE`, `_STRING_VALUE`, `_EXTERNAL_ID_VALUE`, `_MEDIA_VALUE`, `_TIME_VALUE`, `_QUANTITY_VALUE`, `_COORDINATE_VALUE`, `_STATEMENT_QUALIFIER`, `_QUALIFIER_ITEM_VALUE`, `_QUALIFIER_STRING_VALUE`, `_QUALIFIER_EXTERNAL_ID_VALUE`, `_QUALIFIER_MEDIA_VALUE`, `_QUALIFIER_TIME_VALUE`, `_QUALIFIER_QUANTITY_VALUE`, `_QUALIFIER_COORDINATE_VALUE`. Staging metadata columns include `IMPORT_BATCH_ID`, `SOURCE_FILE`, `ROW_STATUS`.
 
 Target tables (`T_WC_WIKIDATA_*`, created by `01_create_schema.sql`, loaded in step 110):
 
 - Entity tables: `T_WC_WIKIDATA_MOVIE`, `T_WC_WIKIDATA_SERIE`, `T_WC_WIKIDATA_PERSON`, `T_WC_WIKIDATA_ITEM` (referenced-item cache only — not a mirror of all Wikidata items), plus `_SEASON`, `_EPISODE`, `_CHARACTER`. All seven carry the same localized-text block: `LABEL_EN`, `DESCRIPTION_EN`, `LABELS_JSON`, `DESCRIPTIONS_JSON`, `ALIASES_JSON`.
 - Property metadata: `T_WC_WIKIDATA_PROPERTY_METADATA`.
 - Statement parent: `T_WC_WIKIDATA_STATEMENT` (`ID_STATEMENT`, `ID_WIKIDATA`, `ID_PROPERTY`, `STATEMENT_GUID`, `VALUE_TYPE`, `WIKIDATA_DATATYPE`, `RANK`).
-- Main typed-value tables (exactly one per statement): `T_WC_WIKIDATA_ITEM_VALUE`, `T_WC_WIKIDATA_STRING_VALUE`, `T_WC_WIKIDATA_EXTERNAL_ID_VALUE`, `T_WC_WIKIDATA_MEDIA_VALUE`, `T_WC_WIKIDATA_TIME_VALUE`, `T_WC_WIKIDATA_QUANTITY_VALUE`.
+- Main typed-value tables (exactly one per statement): `T_WC_WIKIDATA_ITEM_VALUE`, `T_WC_WIKIDATA_STRING_VALUE`, `T_WC_WIKIDATA_EXTERNAL_ID_VALUE`, `T_WC_WIKIDATA_MEDIA_VALUE`, `T_WC_WIKIDATA_TIME_VALUE`, `T_WC_WIKIDATA_QUANTITY_VALUE`, `T_WC_WIKIDATA_COORDINATE_VALUE` (since -028).
 - Qualifier parent: `T_WC_WIKIDATA_STATEMENT_QUALIFIER`.
-- Qualifier typed-value tables: `T_WC_WIKIDATA_QUALIFIER_ITEM_VALUE`, `_QUALIFIER_STRING_VALUE`, `_QUALIFIER_EXTERNAL_ID_VALUE`, `_QUALIFIER_MEDIA_VALUE`, `_QUALIFIER_TIME_VALUE`, `_QUALIFIER_QUANTITY_VALUE`.
+- Qualifier typed-value tables: `T_WC_WIKIDATA_QUALIFIER_ITEM_VALUE`, `_QUALIFIER_STRING_VALUE`, `_QUALIFIER_EXTERNAL_ID_VALUE`, `_QUALIFIER_MEDIA_VALUE`, `_QUALIFIER_TIME_VALUE`, `_QUALIFIER_QUANTITY_VALUE`, `_QUALIFIER_COORDINATE_VALUE`.
 - Media-resource tables (populated by step 112): `T_WC_WIKIDATA_MEDIA_RESOURCE`, `T_WC_WIKIDATA_MEDIA_RESOURCE_URL`, `T_WC_WIKIDATA_MEDIA_RESOURCE_CHECK` (the CHECK table is reserved for an out-of-band HTTP-check job and is left empty by the pipeline).
 
 The legacy V1 `T_WC_WIKIDATA_ITEM_PROPERTY` (item-valued only) is no longer authoritative; the front-end reads V2 and only falls back to V1 for entity types not yet populated in V2. See `README.md` "Front-end consumption" and `WIKIDATA.md` for the conceptual model and award/qualifier patterns.
@@ -228,8 +232,8 @@ Related but distinct: the V1 tables keep being written after both SPARQL crawler
 
 ---
 
-**Last Updated**: 2026-08-16
-**Current Version**: 1.0.1
+**Last Updated**: 2026-10-19
+**Current Version**: 1.1.0
 
 ## Backlog (Nestor second-brain)
 

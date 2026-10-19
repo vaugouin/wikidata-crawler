@@ -158,6 +158,7 @@ T_WC_WIKIDATA_EXTERNAL_ID_VALUE
 T_WC_WIKIDATA_MEDIA_VALUE
 T_WC_WIKIDATA_TIME_VALUE
 T_WC_WIKIDATA_QUANTITY_VALUE
+T_WC_WIKIDATA_COORDINATE_VALUE
 ```
 
 Each statement must have exactly one main typed value row in exactly one of these tables.
@@ -174,6 +175,7 @@ T_WC_WIKIDATA_QUALIFIER_EXTERNAL_ID_VALUE
 T_WC_WIKIDATA_QUALIFIER_MEDIA_VALUE
 T_WC_WIKIDATA_QUALIFIER_TIME_VALUE
 T_WC_WIKIDATA_QUALIFIER_QUANTITY_VALUE
+T_WC_WIKIDATA_QUALIFIER_COORDINATE_VALUE
 ```
 
 Each qualifier belongs to a statement and must have exactly one qualifier typed value row.
@@ -828,6 +830,7 @@ Important generated files include:
 - `T_WC_WIKIDATA_MEDIA_VALUE.jsonl`
 - `T_WC_WIKIDATA_TIME_VALUE.jsonl`
 - `T_WC_WIKIDATA_QUANTITY_VALUE.jsonl`
+- `T_WC_WIKIDATA_COORDINATE_VALUE.jsonl` (also under `item_cache`: P625 on cached places)
 - `T_WC_WIKIDATA_STATEMENT_QUALIFIER.jsonl`
 - `T_WC_WIKIDATA_QUALIFIER_ITEM_VALUE.jsonl`
 - `T_WC_WIKIDATA_QUALIFIER_STRING_VALUE.jsonl`
@@ -835,6 +838,7 @@ Important generated files include:
 - `T_WC_WIKIDATA_QUALIFIER_MEDIA_VALUE.jsonl`
 - `T_WC_WIKIDATA_QUALIFIER_TIME_VALUE.jsonl`
 - `T_WC_WIKIDATA_QUALIFIER_QUANTITY_VALUE.jsonl`
+- `T_WC_WIKIDATA_QUALIFIER_COORDINATE_VALUE.jsonl`
 
 ## Minimal reminder for future you
 

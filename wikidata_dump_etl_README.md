@@ -21,6 +21,7 @@ It implements:
   - `T_WC_WIKIDATA_MEDIA_VALUE`
   - `T_WC_WIKIDATA_TIME_VALUE`
   - `T_WC_WIKIDATA_QUANTITY_VALUE`
+  - `T_WC_WIKIDATA_COORDINATE_VALUE` (WIKIDATA-CRAWLER-028)
 
 The script does **not** resolve Commons / Internet Archive / YouTube URLs. It only emits raw claims that feed your media-resolution workflow.
 
@@ -174,6 +175,7 @@ Each output file is **NDJSON** (one JSON object per line), named after its targe
 - `T_WC_WIKIDATA_MEDIA_VALUE.jsonl`
 - `T_WC_WIKIDATA_TIME_VALUE.jsonl`
 - `T_WC_WIKIDATA_QUANTITY_VALUE.jsonl`
+- `T_WC_WIKIDATA_COORDINATE_VALUE.jsonl`
 
 Helper/intermediate files:
 

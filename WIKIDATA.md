@@ -177,6 +177,7 @@ It does not properly support:
 - Media/file values
 - Time values
 - Quantity values
+- Coordinate values (globe-coordinate, P625)
 
 It also mixes:
 
@@ -225,6 +226,7 @@ T_WC_WIKIDATA_EXTERNAL_ID_VALUE
 T_WC_WIKIDATA_MEDIA_VALUE
 T_WC_WIKIDATA_TIME_VALUE
 T_WC_WIKIDATA_QUANTITY_VALUE
+T_WC_WIKIDATA_COORDINATE_VALUE
 ```
 
 Each statement must have exactly one row in one of these tables.
@@ -243,6 +245,7 @@ T_WC_WIKIDATA_QUALIFIER_EXTERNAL_ID_VALUE
 T_WC_WIKIDATA_QUALIFIER_MEDIA_VALUE
 T_WC_WIKIDATA_QUALIFIER_TIME_VALUE
 T_WC_WIKIDATA_QUALIFIER_QUANTITY_VALUE
+T_WC_WIKIDATA_QUALIFIER_COORDINATE_VALUE
 ```
 
 Each qualifier belongs to exactly one statement and must have exactly one row in one qualifier typed value table.
@@ -284,6 +287,7 @@ external_id
 media
 time
 quantity
+coordinate
 ```
 
 ## Rule 3 — Raw claims vs resolved resources
@@ -530,6 +534,25 @@ Payload:
 
 ---
 
+## T_WC_WIKIDATA_COORDINATE_VALUE
+
+Stores geographic coordinates (Wikidata datatype `globe-coordinate`), since WIKIDATA-CRAWLER-028.
+
+Examples:
+
+- P625 coordinate location of a place (emitted for cached places too)
+- a P625 qualifier on a P915 filming location (in `T_WC_WIKIDATA_QUALIFIER_COORDINATE_VALUE`)
+
+Payload:
+
+- ID_STATEMENT
+- LATITUDE, LONGITUDE (degrees)
+- ALTITUDE (deprecated by Wikidata, null in practice)
+- COORDINATE_PRECISION (degrees)
+- GLOBE_ID_WIKIDATA (Q2 Earth; any other globe must not be drawn on an Earth map)
+
+---
+
 # Property Metadata Cache
 
 Table:
@@ -558,6 +581,7 @@ Example mapping:
 | commonsMedia | media |
 | time | time |
 | quantity | quantity |
+| globe-coordinate | coordinate |
 
 This table allows automatic routing of claims to the correct value table.
 

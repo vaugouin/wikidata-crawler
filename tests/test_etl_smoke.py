@@ -56,7 +56,19 @@ def _claim(snak: dict, guid: str) -> dict:
     return {"mainsnak": snak, "type": "statement", "rank": "normal", "id": guid}
 
 
-def item(qid: str, *, p31=None, p279=None, imdb=None, p2079=None, label="x", aliases=None) -> dict:
+def _globe_snak(lat: float, lon: float, globe: str = "Q2") -> dict:
+    # WIKIDATA-CRAWLER-028: the JSON-dump shape of a globe-coordinate value.
+    return {
+        "snaktype": "value",
+        "datatype": "globe-coordinate",
+        "datavalue": {"type": "globecoordinate", "value": {
+            "latitude": lat, "longitude": lon, "altitude": None, "precision": 0.0001,
+            "globe": f"http://www.wikidata.org/entity/{globe}"}},
+    }
+
+
+def item(qid: str, *, p31=None, p279=None, imdb=None, p2079=None, label="x", aliases=None,
+         p625=None, p915_at=None) -> dict:
     claims: dict = {}
     if p31:
         claims["P31"] = [_claim(_item_snak(q), f"{qid}$P31-{i}") for i, q in enumerate(p31)]
@@ -66,6 +78,14 @@ def item(qid: str, *, p31=None, p279=None, imdb=None, p2079=None, label="x", ali
         claims["P345"] = [_claim(_string_snak(imdb), f"{qid}$P345-0")]
     if p2079:
         claims["P2079"] = [_claim(_item_snak(q), f"{qid}$P2079-{i}") for i, q in enumerate(p2079)]
+    if p625:
+        claims["P625"] = [_claim(_globe_snak(*p625), f"{qid}$P625-0")]
+    if p915_at:
+        # (place, (lat, lon)): a filming location with the exact spot as a P625 qualifier.
+        place, spot = p915_at
+        claim = _claim(_item_snak(place), f"{qid}$P915-0")
+        claim["qualifiers"] = {"P625": [dict(_globe_snak(*spot), property="P625", hash="spot")]}
+        claims["P915"] = [claim]
     doc = {
         "type": "item",
         "id": qid,
@@ -91,7 +111,7 @@ ENTITIES = [
     item("Q1008", p31=["Q15632617"], label="Fictional Human Character"),
     item("Q202866", p279=["Q11424"], label="animated film"),          # -> movie descendant
     item("Q15632617", p279=["Q95074"], label="fictional human"),       # -> character descendant
-    item("Q1002", p31=["Q11424"], label="Bare Film Movie"),
+    item("Q1002", p31=["Q11424"], label="Bare Film Movie", p915_at=("Q1009", (48.8584, 2.2945))),
     # WIKIDATA-CRAWLER-025: the one core entity carrying aliases, emitted by pass2.
     # "zz" is deliberately empty; a language with nothing usable must not survive as [].
     # "de" is outside the default ALIAS_LANGUAGES (fr, en) and must be filtered out.
@@ -108,7 +128,7 @@ ENTITIES = [
     item("Q1005", p31=["Q3464665"], label="A Season"),
     item("Q1006", p31=["Q21191270"], label="An Episode"),
     item("Q1007", p31=["Q95074"], label="A Character"),
-    item("Q1009", p31=["Q515"], label="Irrelevant City"),
+    item("Q1009", p31=["Q515"], label="Irrelevant City", p625=(48.8567, 2.3508)),
     # referenced value, not core: its aliases exercise the item_cache base_row, the
     # second and last place in the repo where an entity row is built.
     item("Q184781", p31=["Q2412849"], label="traditional animation",
@@ -211,6 +231,16 @@ def run() -> int:
         referenced = read_ids(p2 / "referenced_item_ids.txt")
         check("Q184781" in referenced, "P2079 value recorded as a referenced item")
 
+        # WIKIDATA-CRAWLER-028: a P625 qualifier on a P915 statement (the exact spot).
+        quals = read_jsonl(p2 / "T_WC_WIKIDATA_STATEMENT_QUALIFIER.jsonl")
+        spot = [q for q in quals if q["ID_QUALIFIER_PROPERTY"] == "P625"]
+        check(len(spot) == 1 and spot[0]["VALUE_TYPE"] == "coordinate",
+              "pass2 emits a P625 qualifier with VALUE_TYPE coordinate")
+        qcoords = read_jsonl(p2 / "T_WC_WIKIDATA_QUALIFIER_COORDINATE_VALUE.jsonl")
+        check(len(qcoords) == 1 and qcoords[0]["LATITUDE"] == 48.8584
+              and qcoords[0]["ID_STATEMENT_QUALIFIER"] == (spot[0]["ID_STATEMENT_QUALIFIER"] if spot else None),
+              "the qualifier coordinate row is keyed on its qualifier")
+
         # WIKIDATA-CRAWLER-025: aliases ride in the entity row, next to the labels.
         person = row_for(p2 / "T_WC_WIKIDATA_PERSON.jsonl", "Q1003")
         check(person.get("ALIASES_JSON") == {"fr": ["Bebel", "Jean-Paul B."], "en": ["JPB"]},
@@ -245,6 +275,17 @@ def run() -> int:
         check(row_for(ic / "T_WC_WIKIDATA_ITEM.jsonl", "Q184781").get("ALIASES_JSON")
               == {"fr": ["animation traditionnelle"]},
               "item_cache carries ALIASES_JSON too (the other base_row)")
+
+        # WIKIDATA-CRAWLER-028: a cached place carries its P625 coordinates.
+        ic_stmts = read_jsonl(ic / "T_WC_WIKIDATA_STATEMENT.jsonl")
+        p625 = [s for s in ic_stmts if s["ID_WIKIDATA"] == "Q1009" and s["ID_PROPERTY"] == "P625"]
+        check(len(p625) == 1 and p625[0]["VALUE_TYPE"] == "coordinate",
+              "item_cache emits P625 on a cached place with VALUE_TYPE coordinate")
+        coords = {r["ID_STATEMENT"]: r for r in read_jsonl(ic / "T_WC_WIKIDATA_COORDINATE_VALUE.jsonl")}
+        row = coords.get(p625[0]["ID_STATEMENT"]) if p625 else None
+        check(bool(row) and row["LATITUDE"] == 48.8567 and row["LONGITUDE"] == 2.3508
+              and row["GLOBE_ID_WIKIDATA"] == "Q2" and row["COORDINATE_PRECISION"] == 0.0001,
+              "the coordinate row carries latitude, longitude, precision and the globe as a Q-id")
 
         # item_cache + V1 backfill seed (WIKIDATA-CRAWLER-023) -----------------
         # The seed is what makes the V1 remainder exist in V2, so that deleting the V1
@@ -327,9 +368,22 @@ def run() -> int:
     # need. Pinned here because removing one is silent until a downstream table falls
     # empty a week later (location hierarchy for -048, "based on" form and author for -055).
     print("cached entity properties:")
-    for pid in ("P31", "P279", "P131", "P17", "P50", "P7937"):
+    for pid in ("P31", "P279", "P131", "P17", "P50", "P7937", "P625"):
         check(pid in etl.CACHED_ENTITY_PROPERTIES,
               f"{pid} is emitted for cached entities")
+
+    # WIKIDATA-CRAWLER-028: the coordinate extractor on its edge cases.
+    print("coordinate extractor:")
+    moon = etl.extract_coordinate_payload({"latitude": 0.67, "longitude": 23.47,
+                                           "globe": "http://www.wikidata.org/entity/Q405"})
+    check(moon.get("GLOBE_ID_WIKIDATA") == "Q405" and moon.get("COORDINATE_PRECISION") is None,
+          "a Moon coordinate keeps its globe, and a missing precision stays null")
+    check(etl.extract_coordinate_payload({"longitude": 2.35}) == {},
+          "a value without latitude is skipped, not loaded half empty")
+    check(etl.extract_coordinate_payload(None) == {}, "a novalue / somevalue snak yields nothing")
+    check(etl.WIKIDATA_DATATYPE_TO_LOCAL.get("globe-coordinate") == "coordinate"
+          and "coordinate" in etl.SUPPORTED_LOCAL_VALUE_TYPES,
+          "globe-coordinate maps to the supported local type coordinate")
 
     # WIKIDATA-CRAWLER-026: LABEL_EN falls back to the multilingual 'mul' label.
     print("english label with mul fallback:")

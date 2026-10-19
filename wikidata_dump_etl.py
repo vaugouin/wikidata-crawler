@@ -103,6 +103,7 @@ P_LOCATED_IN_ADMIN = "P131"
 P_COUNTRY = "P17"
 P_AUTHOR = "P50"
 P_FORM_OF_CREATIVE_WORK = "P7937"
+P_COORDINATE_LOCATION = "P625"
 P_FORMATTER_URL = "P1630"
 # Properties emitted for an entity that exists in the DB only as a cached label.
 # Closed set on purpose, so the added volume stays provable. P31/P279 unlock class
@@ -112,8 +113,10 @@ P_FORMATTER_URL = "P1630"
 # (WIKIDATA-CRAWLER-021, for TMDB-MOVIE-PREPROCESS-048). P50/P7937 give a cached
 # source work its author and its form (novel, short story...), read by the
 # "based on" tables of TMDB-MOVIE-PREPROCESS-055 (added 2026-10-09, same ticket,
-# one replay for the four). Adding a property here costs a 23 h replay of step 106,
-# so weigh it before extending.
+# one replay for the four). P625 gives a cached place its coordinates, the only
+# property here of the coordinate type (WIKIDATA-CRAWLER-028, added 2026-10-19 ahead of
+# a dump so it rides the normal weekly run). Adding a property here costs a 23 h replay
+# of step 106, so weigh it before extending.
 CACHED_ENTITY_PROPERTIES = (
     P_INSTANCE_OF,       # P31,  class membership, and MOVIE_V1/ITEM_V1.INSTANCE_OF
     P_SUBCLASS_OF,       # P279, class hierarchy
@@ -125,6 +128,7 @@ CACHED_ENTITY_PROPERTIES = (
     P_COUNTRY,           # P17,  country of a place (-021, -048)
     P_AUTHOR,            # P50,  author of a source work (-021, -055)
     P_FORM_OF_CREATIVE_WORK,  # P7937, novel / short story / novella... of a source work (-021, -055)
+    P_COORDINATE_LOCATION,  # P625, latitude / longitude of a place (-028)
 )
 P_FORMATTER_URI_FOR_RDF = "P3303"
 
@@ -135,6 +139,7 @@ SUPPORTED_LOCAL_VALUE_TYPES = {
     "media",
     "time",
     "quantity",
+    "coordinate",
 }
 
 WIKIDATA_DATATYPE_TO_LOCAL = {
@@ -144,6 +149,9 @@ WIKIDATA_DATATYPE_TO_LOCAL = {
     "commonsMedia": "media",
     "time": "time",
     "quantity": "quantity",
+    # WIKIDATA-CRAWLER-028: P625 and the other globe-coordinate properties, main values and
+    # qualifiers (a P625 qualifier on a P915 statement is the exact spot of a shoot).
+    "globe-coordinate": "coordinate",
 }
 
 
@@ -901,6 +909,36 @@ def extract_quantity_payload(value: Any) -> Dict[str, Any]:
     }
 
 
+def extract_coordinate_payload(value: Any) -> Dict[str, Any]:
+    """Wikidata globecoordinate value: latitude and longitude in degrees, an altitude that
+    Wikidata has deprecated (always null in practice, kept because the model carries it), a
+    precision in degrees (null on some old statements) and a globe URL. The globe is kept
+    as a Q-id: Q2 is Earth, anything else (the Moon Q405, Mars Q111) is a fictional or
+    extraterrestrial place that a map must not draw on Earth."""
+    if not isinstance(value, dict):
+        return {}
+
+    latitude = value.get("latitude")
+    longitude = value.get("longitude")
+    if not isinstance(latitude, (int, float)) or not isinstance(longitude, (int, float)):
+        return {}
+
+    globe = value.get("globe")
+    globe_qid = None
+    if isinstance(globe, str) and globe:
+        globe_qid = globe.rsplit("/", 1)[-1] if "/" in globe else globe
+
+    altitude = value.get("altitude")
+    precision = value.get("precision")
+    return {
+        "LATITUDE": latitude,
+        "LONGITUDE": longitude,
+        "ALTITUDE": altitude if isinstance(altitude, (int, float)) else None,
+        "COORDINATE_PRECISION": precision if isinstance(precision, (int, float)) else None,
+        "GLOBE_ID_WIKIDATA": globe_qid,
+    }
+
+
 def extract_formatter_url(doc: Any) -> Optional[str]:
     for claim in get_claim_list(doc, P_FORMATTER_URL):
         _, value = extract_mainsnak_datatype_and_value(claim)
@@ -993,6 +1031,7 @@ class StatementEmitter:
             "media": "T_WC_WIKIDATA_MEDIA_VALUE",
             "time": "T_WC_WIKIDATA_TIME_VALUE",
             "quantity": "T_WC_WIKIDATA_QUANTITY_VALUE",
+            "coordinate": "T_WC_WIKIDATA_COORDINATE_VALUE",
         }
         table = table_map.get(local_value_type)
         if table:
@@ -1040,6 +1079,7 @@ class StatementEmitter:
             "media": "T_WC_WIKIDATA_QUALIFIER_MEDIA_VALUE",
             "time": "T_WC_WIKIDATA_QUALIFIER_TIME_VALUE",
             "quantity": "T_WC_WIKIDATA_QUALIFIER_QUANTITY_VALUE",
+            "coordinate": "T_WC_WIKIDATA_QUALIFIER_COORDINATE_VALUE",
         }
         table = table_map.get(local_value_type)
         if table:
@@ -1415,6 +1455,7 @@ class WikidataDumpETL:
             "media": "T_WC_WIKIDATA_MEDIA_VALUE",
             "time": "T_WC_WIKIDATA_TIME_VALUE",
             "quantity": "T_WC_WIKIDATA_QUANTITY_VALUE",
+            "coordinate": "T_WC_WIKIDATA_COORDINATE_VALUE",
         }.get(local_value_type)
 
         self.writers.write("T_WC_WIKIDATA_PROPERTY_METADATA", {
@@ -1642,9 +1683,10 @@ class WikidataDumpETL:
 
         The payload shapes below are therefore a deliberate, isolated subset of the
         full emitter's. If the value model changes, both places need editing: that cost
-        is accepted to keep pass2's critical path untouched. Three value types are
-        handled because the tuple spans three (item, external_id, time); any other
-        datatype on these properties is malformed and skipped rather than guessed at.
+        is accepted to keep pass2's critical path untouched. Four value types are
+        handled because the tuple spans four (item, external_id, time, and coordinate for
+        P625 since -028); any other datatype on these properties is malformed and skipped
+        rather than guessed at.
         """
         for property_id in CACHED_ENTITY_PROPERTIES:
             for claim in get_claim_list(doc, property_id):
@@ -1670,6 +1712,9 @@ class WikidataDumpETL:
 
                 elif local_value_type == "time":
                     payload = extract_time_payload(value) or None
+
+                elif local_value_type == "coordinate":
+                    payload = extract_coordinate_payload(value) or None
 
                 if payload is None:
                     continue
@@ -1745,6 +1790,11 @@ class WikidataDumpETL:
 
                 elif local_value_type == "quantity":
                     payload = extract_quantity_payload(value)
+                    if not payload:
+                        continue
+
+                elif local_value_type == "coordinate":
+                    payload = extract_coordinate_payload(value)
                     if not payload:
                         continue
 
@@ -1828,6 +1878,11 @@ class WikidataDumpETL:
 
                         elif qualifier_local_value_type == "quantity":
                             qualifier_payload = extract_quantity_payload(qualifier_value)
+                            if not qualifier_payload:
+                                continue
+
+                        elif qualifier_local_value_type == "coordinate":
+                            qualifier_payload = extract_coordinate_payload(qualifier_value)
                             if not qualifier_payload:
                                 continue
 

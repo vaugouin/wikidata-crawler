@@ -1,0 +1,40 @@
+-- check-028-coordinates-preflight.sql
+-- run on vaugouindb (container damp-vaugouin-com-mariadb-1) at 2026-10-19 09:53:52
+--
++-----------------+
+| MARIADB_VERSION |
++-----------------+
+| 11.2.3-MariaDB  |
++-----------------+
++-----------------------------------+------------------+---------------------------------------------------------------+
+| TABLE_NAME                        | COLUMN_NAME      | COLUMN_TYPE                                                   |
++-----------------------------------+------------------+---------------------------------------------------------------+
+| T_WC_WIKIDATA_PROPERTY_METADATA   | LOCAL_VALUE_TYPE | enum('item','string','external_id','media','time','quantity') |
+| T_WC_WIKIDATA_STATEMENT           | VALUE_TYPE       | enum('item','string','external_id','media','time','quantity') |
+| T_WC_WIKIDATA_STATEMENT_QUALIFIER | VALUE_TYPE       | enum('item','string','external_id','media','time','quantity') |
++-----------------------------------+------------------+---------------------------------------------------------------+
++-------------+-----------------------------------+-------------------+------------------+----------------------+--------------+
+| ID_PROPERTY | PROPERTY_LABEL                    | WIKIDATA_DATATYPE | LOCAL_VALUE_TYPE | EXPECTED_CHILD_TABLE | IS_SUPPORTED |
++-------------+-----------------------------------+-------------------+------------------+----------------------+--------------+
+| P1259       | coordinates of the point of view  | globe-coordinate  | NULL             | NULL                 |            0 |
+| P1332       | coordinates of northernmost point | globe-coordinate  | NULL             | NULL                 |            0 |
+| P1333       | coordinates of southernmost point | globe-coordinate  | NULL             | NULL                 |            0 |
+| P1334       | coordinates of easternmost point  | globe-coordinate  | NULL             | NULL                 |            0 |
+| P1335       | coordinates of westernmost point  | globe-coordinate  | NULL             | NULL                 |            0 |
+| P2786       | aerodrome reference point         | globe-coordinate  | NULL             | NULL                 |            0 |
+| P5140       | coordinates of geographic center  | globe-coordinate  | NULL             | NULL                 |            0 |
+| P625        | coordinate location               | globe-coordinate  | NULL             | NULL                 |            0 |
+| P626        | Sandbox-GeoCoordinateValue        | globe-coordinate  | NULL             | NULL                 |            0 |
+| P9149       | coordinates of depicted place     | globe-coordinate  | NULL             | NULL                 |            0 |
++-------------+-----------------------------------+-------------------+------------------+----------------------+--------------+
++-----------------+
+| P625_STATEMENTS |
++-----------------+
+|               0 |
++-----------------+
++--------------------------------+
+| CACHED_PLACES_WITH_P17_OR_P131 |
++--------------------------------+
+|                         305942 |
++--------------------------------+
+

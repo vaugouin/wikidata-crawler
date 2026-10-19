@@ -164,6 +164,20 @@ TABLE_SPECS: List[TableSpec] = [
         table_name="STG_T_WC_WIKIDATA_QUANTITY_VALUE",
         additional_columns={"IMPORT_BATCH_ID": None, "ROW_STATUS": "NEW"},
     ),
+    # WIKIDATA-CRAWLER-028: globe-coordinate values, P625 on in-scope works...
+    TableSpec(
+        stg_file_name="T_WC_WIKIDATA_COORDINATE_VALUE.jsonl",
+        stg_file_location="pass2",
+        table_name="STG_T_WC_WIKIDATA_COORDINATE_VALUE",
+        additional_columns={"IMPORT_BATCH_ID": None, "ROW_STATUS": "NEW"},
+    ),
+    # ...and P625 on cached entities, the places (the bulk of the rows).
+    TableSpec(
+        stg_file_name="T_WC_WIKIDATA_COORDINATE_VALUE.jsonl",
+        stg_file_location="item_cache",
+        table_name="STG_T_WC_WIKIDATA_COORDINATE_VALUE",
+        additional_columns={"IMPORT_BATCH_ID": None, "ROW_STATUS": "NEW"},
+    ),
     TableSpec(
         stg_file_name="T_WC_WIKIDATA_STATEMENT_QUALIFIER.jsonl",
         stg_file_location="pass2",
@@ -204,6 +218,12 @@ TABLE_SPECS: List[TableSpec] = [
         stg_file_name="T_WC_WIKIDATA_QUALIFIER_QUANTITY_VALUE.jsonl",
         stg_file_location="pass2",
         table_name="STG_T_WC_WIKIDATA_QUALIFIER_QUANTITY_VALUE",
+        additional_columns={"IMPORT_BATCH_ID": None, "ROW_STATUS": "NEW"},
+    ),
+    TableSpec(
+        stg_file_name="T_WC_WIKIDATA_QUALIFIER_COORDINATE_VALUE.jsonl",
+        stg_file_location="pass2",
+        table_name="STG_T_WC_WIKIDATA_QUALIFIER_COORDINATE_VALUE",
         additional_columns={"IMPORT_BATCH_ID": None, "ROW_STATUS": "NEW"},
     ),
 ]

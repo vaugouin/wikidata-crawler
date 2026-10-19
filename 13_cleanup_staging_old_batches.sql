@@ -56,7 +56,7 @@
 -- SAFETY
 --   Guard 2 is now ENFORCED rather than merely documented: if the batch being
 --   kept is not yet present in T_WC_WIKIDATA_STATEMENT, the cutoff is set to
---   NULL, which turns all 25 DELETEs into no-ops. Deliberately not a SIGNAL: this
+--   NULL, which turns all 27 DELETEs into no-ops. Deliberately not a SIGNAL: this
 --   file is run with --force (see COLLATION below), and --force carries on past
 --   an error, so an abort would not stop the statements that follow it. A cutoff
 --   that matches nothing stops them by construction.
@@ -143,6 +143,7 @@ DELETE FROM STG_T_WC_WIKIDATA_EXTERNAL_ID_VALUE           WHERE IMPORT_BATCH_ID 
 DELETE FROM STG_T_WC_WIKIDATA_MEDIA_VALUE                 WHERE IMPORT_BATCH_ID < @IMPORT_BATCH_ID;
 DELETE FROM STG_T_WC_WIKIDATA_TIME_VALUE                  WHERE IMPORT_BATCH_ID < @IMPORT_BATCH_ID;
 DELETE FROM STG_T_WC_WIKIDATA_QUANTITY_VALUE              WHERE IMPORT_BATCH_ID < @IMPORT_BATCH_ID;
+DELETE FROM STG_T_WC_WIKIDATA_COORDINATE_VALUE            WHERE IMPORT_BATCH_ID < @IMPORT_BATCH_ID;
 
 -- ---- Qualifier + qualifier typed-value staging ----------------------------
 DELETE FROM STG_T_WC_WIKIDATA_STATEMENT_QUALIFIER         WHERE IMPORT_BATCH_ID < @IMPORT_BATCH_ID;
@@ -152,6 +153,7 @@ DELETE FROM STG_T_WC_WIKIDATA_QUALIFIER_EXTERNAL_ID_VALUE WHERE IMPORT_BATCH_ID 
 DELETE FROM STG_T_WC_WIKIDATA_QUALIFIER_MEDIA_VALUE       WHERE IMPORT_BATCH_ID < @IMPORT_BATCH_ID;
 DELETE FROM STG_T_WC_WIKIDATA_QUALIFIER_TIME_VALUE        WHERE IMPORT_BATCH_ID < @IMPORT_BATCH_ID;
 DELETE FROM STG_T_WC_WIKIDATA_QUALIFIER_QUANTITY_VALUE    WHERE IMPORT_BATCH_ID < @IMPORT_BATCH_ID;
+DELETE FROM STG_T_WC_WIKIDATA_QUALIFIER_COORDINATE_VALUE  WHERE IMPORT_BATCH_ID < @IMPORT_BATCH_ID;
 
 -- ---- Media-resource staging -----------------------------------------------
 -- Never written by the pipeline (step 112 fills the target tables directly), so

@@ -1,0 +1,3 @@
+-- apply_to_live_db.sql
+-- run on vaugouindb (container damp-vaugouin-com-mariadb-1) at 2026-10-19 10:00:00
+--

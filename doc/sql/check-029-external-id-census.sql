@@ -8,12 +8,13 @@ SELECT NOW() AS NOW_;
 
 -- 1. External identifiers per entity type, the 60 most frequent of each family.
 -- Movies and persons: the open-ended scan of the series query ran past the 600 s cap
--- on 692 763 movies and 343 859 persons (run of 2026-10-20), so these two families count
--- a chosen list of identifiers, read through the ID_PROPERTY index.
+-- on 692 763 movies and 343 859 persons, and so did a join of the chosen properties to
+-- the T2S tables (runs of 2026-10-20). These two queries count the statements of a chosen
+-- list of identifiers over the whole V2 load, through the ID_PROPERTY index alone: the
+-- film identifiers sit almost only on movies and series, the person ones on persons.
 SELECT 'movie' AS FAMILY, s.ID_PROPERTY, pm.PROPERTY_LABEL,
        COUNT(*) AS STATEMENTS
 FROM T_WC_WIKIDATA_STATEMENT s
-INNER JOIN T_WC_T2S_MOVIE m ON m.ID_WIKIDATA = s.ID_WIKIDATA AND (m.DELETED IS NULL OR m.DELETED = 0)
 LEFT JOIN T_WC_WIKIDATA_PROPERTY_METADATA pm ON pm.ID_PROPERTY = s.ID_PROPERTY
 WHERE s.ID_PROPERTY IN ('P345', 'P4947', 'P11460', 'P9584', 'P1258', 'P1712', 'P6127', 'P1265', 'P2603',
                         'P480', 'P4529', 'P1237', 'P3808', 'P7299', 'P2529', 'P4282', 'P905', 'P1874',
@@ -35,7 +36,6 @@ LIMIT 60;
 SELECT 'person' AS FAMILY, s.ID_PROPERTY, pm.PROPERTY_LABEL,
        COUNT(*) AS STATEMENTS
 FROM T_WC_WIKIDATA_STATEMENT s
-INNER JOIN T_WC_T2S_PERSON p ON p.ID_WIKIDATA = s.ID_WIKIDATA AND (p.DELETED IS NULL OR p.DELETED = 0)
 LEFT JOIN T_WC_WIKIDATA_PROPERTY_METADATA pm ON pm.ID_PROPERTY = s.ID_PROPERTY
 WHERE s.ID_PROPERTY IN ('P345', 'P4985', 'P214', 'P213', 'P268', 'P244', 'P227', 'P434', 'P1953',
                         'P1266', 'P2605', 'P2387', 'P2002', 'P2003', 'P646', 'P2671', 'P6327', 'P1258',

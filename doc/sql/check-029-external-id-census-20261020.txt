@@ -1,0 +1,223 @@
+-- check-029-external-id-census.sql
+-- run on vaugouindb (container damp-vaugouin-com-mariadb-1) at 2026-10-20 22:39:50 +0200
+--
++---------------------+
+| NOW_                |
++---------------------+
+| 2026-10-20 22:39:50 |
++---------------------+
++--------+-------------+-----------------------------------------+------------+
+| FAMILY | ID_PROPERTY | PROPERTY_LABEL                          | STATEMENTS |
++--------+-------------+-----------------------------------------+------------+
+| movie  | P345        | IMDb ID                                 |    1190067 |
+| movie  | P646        | Freebase ID                             |     481230 |
+| movie  | P2671       | Google Knowledge Graph ID               |     422145 |
+| movie  | P2529       | ČSFD film ID                            |     325211 |
+| movie  | P8013       | Trakt.tv ID                             |     317376 |
+| movie  | P4947       | TMDB movie ID                           |     288449 |
+| movie  | P6127       | Letterboxd film ID                      |     273679 |
+| movie  | P2603       | Kinopoisk film ID                       |     253128 |
+| movie  | P12096      | Kinobox film ID                         |     250223 |
+| movie  | P11460      | Plex media key                          |     236849 |
+| movie  | P2704       | EIDR content ID                         |     223989 |
+| movie  | P1258       | Rotten Tomatoes ID                      |     142219 |
+| movie  | P4282       | LUMIERE film ID                         |     132705 |
+| movie  | P3138       | OFDb film ID                            |     129461 |
+| movie  | P4529       | Douban film ID                          |     101369 |
+| movie  | P480        | FilmAffinity film ID                    |      96771 |
+| movie  | P1712       | Metacritic ID                           |      94707 |
+| movie  | P1265       | AlloCiné film ID                        |      64727 |
+| movie  | P4835       | TheTVDB series ID                       |      53091 |
+| movie  | P905        | PORT film ID                            |      44651 |
+| movie  | P8600       | TV Maze series ID                       |      38104 |
+| movie  | P1874       | Netflix ID                              |      31977 |
+| movie  | P7299       | MUBI film numeric ID                    |      20079 |
+| movie  | P1237       | Box Office Mojo film ID (former scheme) |      14365 |
+| movie  | P3808       | The Numbers movie ID                    |      11847 |
+| movie  | P9584       | The Criterion Collection film ID        |       1701 |
++--------+-------------+-----------------------------------------+------------+
++--------+-------------+-----------------------------------+----------+---------+
+| FAMILY | ID_PROPERTY | PROPERTY_LABEL                    | ENTITIES | VALUES_ |
++--------+-------------+-----------------------------------+----------+---------+
+| serie  | P345        | IMDb ID                           |    53640 |   54060 |
+| serie  | P4983       | TMDB TV series ID                 |    53259 |   53997 |
+| serie  | P4835       | TheTVDB series ID                 |    44318 |   44381 |
+| serie  | P2529       | ČSFD film ID                      |    38314 |   38509 |
+| serie  | P11460      | Plex media key                    |    37598 |   37709 |
+| serie  | P8600       | TV Maze series ID                 |    33984 |   34024 |
+| serie  | P8013       | Trakt.tv ID                       |    29528 |   30583 |
+| serie  | P12096      | Kinobox film ID                   |    26194 |   26544 |
+| serie  | P2603       | Kinopoisk film ID                 |    24108 |   24125 |
+| serie  | P646        | Freebase ID                       |    21872 |   21924 |
+| serie  | P12544      | Ratingraph TV show ID             |    19199 |   19251 |
+| serie  | P2671       | Google Knowledge Graph ID         |    18085 |   18266 |
+| serie  | P4282       | LUMIERE film ID                   |    16958 |   18128 |
+| serie  | P5327       | fernsehserien.de ID               |    14758 |   14808 |
+| serie  | P3138       | OFDb film ID                      |    11732 |   11748 |
+| serie  | P14821      | IMCDB work ID                     |     9035 |    9037 |
+| serie  | P12683      | FilmVandaag ID                    |     8592 |    8594 |
+| serie  | P1258       | Rotten Tomatoes ID                |     8483 |    8808 |
+| serie  | P1267       | AlloCiné series ID                |     7502 |    7503 |
+| serie  | P12241      | Schnittberichte.com title ID      |     7454 |    7454 |
+| serie  | P14813      | Filmová databáze seriál ID        |     6816 |    6816 |
+| serie  | P2638       | TV.com ID (archived)              |     6722 |    6734 |
+| serie  | P1712       | Metacritic ID                     |     6009 |    6026 |
+| serie  | P5099       | Il mondo dei doppiatori ID        |     5261 |    5270 |
+| serie  | P5925       | Moviepilot.de series ID           |     5218 |    5242 |
+| serie  | P3121       | Epguides ID                       |     5038 |    5048 |
+| serie  | P4529       | Douban film ID                    |     4890 |    4927 |
+| serie  | P480        | FilmAffinity film ID              |     4885 |    4888 |
+| serie  | P2002       | X (Twitter) username              |     4692 |    5125 |
+| serie  | P4834       | Deutsche Synchronkartei series ID |     4666 |    4747 |
+| serie  | P1874       | Netflix ID                        |     4595 |    4619 |
+| serie  | P6643       | TV Spielfilm series ID            |     4148 |    4193 |
+| serie  | P6127       | Letterboxd film ID                |     4087 |    4119 |
+| serie  | P4086       | MyAnimeList anime ID              |     2864 |    2949 |
+| serie  | P8729       | AniList anime ID                  |     2829 |    2896 |
+| serie  | P13959      | ‎Eiga.com drama ID                |     2782 |    2792 |
+| serie  | P2013       | Facebook username                 |     2761 |    2810 |
+| serie  | P2003       | Instagram username                |     2735 |    2779 |
+| serie  | P4780       | MYmovies audiovisual work ID      |     2659 |    2659 |
+| serie  | P5646       | AniDB anime ID                    |     2625 |    2696 |
+| serie  | P1985       | Anime News Network anime ID       |     2621 |    2656 |
+| serie  | P12489      | livechart.me anime ID             |     2609 |    2683 |
+| serie  | P9751       | Apple TV show ID                  |     2575 |    2584 |
+| serie  | P12477      | aniSearch anime ID                |     2516 |    2584 |
+| serie  | P905        | PORT film ID                      |     2491 |    2498 |
+| serie  | P11495      | Kitsu anime ID                    |     2442 |    2508 |
+| serie  | P12427      | notify.moe anime ID               |     2420 |    2485 |
+| serie  | P11349      | Anime-Planet anime ID             |     2336 |    2396 |
+| serie  | P7017       | Anime Characters Database work ID |     2031 |    2095 |
+| serie  | P8278       | SerialZone serial or episode ID   |     2026 |    2030 |
+| serie  | P5032       | Filmweb.pl film ID                |     2021 |    2022 |
+| serie  | P827        | BBC programme ID                  |     2011 |    2031 |
+| serie  | P6262       | Fandom article ID                 |     2001 |    3628 |
+| serie  | P2704       | EIDR content ID                   |     1994 |    2000 |
+| serie  | P5732       | Bangumi subject ID                |     1954 |    1984 |
+| serie  | P14051      | MyWaifuList work ID               |     1878 |    1940 |
+| serie  | P9821       | Unconsenting Media ID             |     1814 |    1821 |
+| serie  | P7107       | LezWatch.TV show ID               |     1813 |    1825 |
+| serie  | P11039      | Anime Taizen ID                   |     1770 |    1855 |
+| serie  | P4947       | TMDB movie ID                     |     1711 |    1795 |
++--------+-------------+-----------------------------------+----------+---------+
++--------+-------------+-----------------------------------------+------------+
+| FAMILY | ID_PROPERTY | PROPERTY_LABEL                          | STATEMENTS |
++--------+-------------+-----------------------------------------+------------+
+| person | P345        | IMDb ID                                 |    1190067 |
+| person | P646        | Freebase ID                             |     481230 |
+| person | P2671       | Google Knowledge Graph ID               |     422145 |
+| person | P4985       | TMDB person ID                          |     348889 |
+| person | P2605       | ČSFD person ID                          |     288009 |
+| person | P214        | VIAF cluster ID                         |     283512 |
+| person | P213        | ISNI                                    |     189733 |
+| person | P244        | Library of Congress Authorities ID      |     177098 |
+| person | P227        | GND ID                                  |     171426 |
+| person | P1258       | Rotten Tomatoes ID                      |     142219 |
+| person | P2604       | Kinopoisk person ID                     |     114624 |
+| person | P434        | MusicBrainz artist ID                   |     102080 |
+| person | P268        | Bibliothèque nationale de France ID     |      98166 |
+| person | P1712       | Metacritic ID                           |      94707 |
+| person | P2002       | X (Twitter) username                    |      88860 |
+| person | P2003       | Instagram username                      |      86346 |
+| person | P1953       | Discogs artist ID                       |      84317 |
+| person | P1266       | AlloCiné person ID                      |      83883 |
+| person | P2387       | Elonet person ID                        |      41484 |
+| person | P3056       | TCM Movie Database person ID (archived) |       6793 |
+| person | P6327       | Goodreads character ID                  |       2969 |
++--------+-------------+-----------------------------------------+------------+
++--------+----------+----------+-----------+
+| FAMILY | T2S_ROWS | WITH_QID | WITH_IMDB |
++--------+----------+----------+-----------+
+| movie  |   692763 |   692763 |    692763 |
+| serie  |   102857 |   102857 |    102857 |
+| person |   343859 |   343859 |    343859 |
++--------+----------+----------+-----------+
++--------+-------------+----------+------------+-------------+-------+
+| FAMILY | ID_PROPERTY | ENTITIES | STATEMENTS | WITH_AMOUNT | UNITS |
++--------+-------------+----------+------------+-------------+-------+
+| movie  | P2130       |     7139 |       7213 |        7213 |    61 |
+| movie  | P2142       |     5913 |       7858 |        7858 |    46 |
+| serie  | P2130       |       22 |         22 |          22 |    10 |
+| serie  | P2142       |        1 |          1 |           1 |     1 |
++--------+-------------+----------+------------+-------------+-------+
++-------------+------------------+------------+
+| ID_PROPERTY | UNIT_ID_WIKIDATA | STATEMENTS |
++-------------+------------------+------------+
+| P2142       | Q4917            |       6418 |
+| P2130       | Q4917            |       5813 |
+| P2130       | Q4916            |        982 |
+| P2142       | Q259502          |        583 |
+| P2142       | Q4916            |        298 |
+| P2130       | Q25224           |        288 |
+| P2130       | Q41044           |        161 |
+| P2130       | Q1104069         |        113 |
+| P2142       | Q41044           |        111 |
+| P2142       | Q8146            |         98 |
+| P2142       | Q31015           |         67 |
+| P2130       | Q259502          |         59 |
+| P2142       | Q203567          |         48 |
+| P2130       | Q122922          |         46 |
+| P2130       | Q8146            |         44 |
++-------------+------------------+------------+
++-------------+-----------------------+----------------------------------+------------+------------+
+| ID_PROPERTY | ID_QUALIFIER_PROPERTY | PROPERTY_LABEL                   | VALUE_TYPE | STATEMENTS |
++-------------+-----------------------+----------------------------------+------------+------------+
+| P2130       | P459                  | determination method or standard | item       |       1529 |
+| P2130       | P1480                 | sourcing circumstances           | item       |         43 |
+| P2130       | P2241                 | reason for deprecated rank       | item       |         14 |
+| P2130       | P7452                 | reason for preferred rank        | item       |          5 |
+| P2130       | P5102                 | nature of statement              | item       |          4 |
+| P2130       | P1706                 | together with                    | item       |          4 |
+| P2130       | P585                  | point in time                    | time       |          3 |
+| P2130       | P518                  | applies to part                  | item       |          2 |
+| P2130       | P3831                 | object of statement has role     | item       |          1 |
+| P2130       | P38                   | currency                         | item       |          1 |
+| P2130       | P1932                 | object named as                  | string     |          1 |
+| P2142       | P3005                 | valid in place                   | item       |       4679 |
+| P2142       | P585                  | point in time                    | time       |        797 |
+| P2142       | P1352                 | ranking                          | quantity   |        247 |
+| P2142       | P2241                 | reason for deprecated rank       | item       |        126 |
+| P2142       | P582                  | end time                         | time       |         44 |
+| P2142       | P1264                 | valid in period                  | item       |         41 |
+| P2142       | P459                  | determination method or standard | item       |         34 |
+| P2142       | P291                  | place of publication             | item       |         30 |
+| P2142       | P580                  | start time                       | time       |         27 |
+| P2142       | P2047                 | duration                         | quantity   |         14 |
+| P2142       | P813                  | retrieved                        | time       |         14 |
+| P2142       | P1480                 | sourcing circumstances           | item       |         14 |
+| P2142       | P276                  | location                         | item       |         11 |
+| P2142       | P1114                 | quantity                         | quantity   |          6 |
+| P2142       | P17                   | country                          | item       |          5 |
+| P2142       | P1001                 | applies to jurisdiction          | item       |          4 |
+| P2142       | P3831                 | object of statement has role     | item       |          3 |
+| P2142       | P7452                 | reason for preferred rank        | item       |          3 |
+| P2142       | P518                  | applies to part                  | item       |          2 |
+| P2142       | P1552                 | has characteristic               | item       |          2 |
+| P2142       | P2429                 | expected completeness            | item       |          1 |
+| P2142       | P577                  | publication date                 | time       |          1 |
+| P2142       | P1013                 | criterion used                   | item       |          1 |
+| P2142       | P1110                 | attendance                       | quantity   |          1 |
+| P2142       | P1932                 | object named as                  | string     |          1 |
++-------------+-----------------------+----------------------------------+------------+------------+
++-------------+-------------+------------+-----------------------+------------------+-------------------------------------------------------------------+
+| ID_WIKIDATA | ID_PROPERTY | RANK       | AMOUNT                | UNIT_ID_WIKIDATA | QUALIFIERS                                                        |
++-------------+-------------+------------+-----------------------+------------------+-------------------------------------------------------------------+
+| Q163872     | P2130       | normal     |  185000000.0000000000 | Q4917            | NULL                                                              |
+| Q163872     | P2142       | normal     | 1006234167.0000000000 | Q4917            | P1352=50.0000000000 | P3005=Q13780930                             |
+| Q163872     | P2142       | normal     |  534987076.0000000000 | Q4917            | P3005=Q49                                                         |
+| Q163872     | P2142       | normal     |  158411483.0000000000 | Q4917            | P1264=Q116779966 | P3005=Q49                                      |
+| Q24871      | P2130       | normal     |  237000000.0000000000 | Q4917            | NULL                                                              |
+| Q24871      | P2142       | normal     | 2847379794.0000000000 | Q4917            | P1352=1.0000000000 | P3005=Q13780930 | P585=+2022-03-26T00:00:00Z |
+| Q24871      | P2142       | normal     |  760507625.0000000000 | Q4917            | P1352=4.0000000000 | P3005=Q30                                    |
+| Q24871      | P2142       | normal     |   93442625.0000000000 | Q25224           | P1352=4.0000000000 | P3005=Q145                                   |
+| Q25188      | P2130       | normal     |  160000000.0000000000 | Q4917            | P459=Q791801                                                      |
+| Q25188      | P2142       | normal     |  836848102.0000000000 | Q4917            | P1352=84.0000000000 | P3005=Q13780930                             |
+| Q25188      | P2142       | deprecated |  829895144.0000000000 | Q4917            | P1352=78.0000000000 | P2241=Q107356532 | P3005=Q13780930          |
+| Q25188      | P2142       | normal     |  292587330.0000000000 | Q4917            | P1352=100.0000000000 | P3005=Q30                                  |
+| Q44578      | P2130       | normal     |  200000000.0000000000 | Q4917            | NULL                                                              |
+| Q44578      | P2142       | normal     | 1850197130.0000000000 | Q4917            | P1352=3.0000000000 | P3005=Q13780930 | P585=+2020-03-17T00:00:00Z |
+| Q44578      | P2142       | normal     |  659363944.0000000000 | Q4917            | P1352=6.0000000000 | P3005=Q30                                    |
+| Q83495      | P2130       | normal     |   63000000.0000000000 | Q4917            | NULL                                                              |
+| Q83495      | P2142       | normal     |  467222728.0000000000 | Q4917            | P3005=Q13780930                                                   |
+| Q83495      | P2142       | normal     |  172076928.0000000000 | Q4917            | P3005=Q30                                                         |
++-------------+-------------+------------+-----------------------+------------------+-------------------------------------------------------------------+

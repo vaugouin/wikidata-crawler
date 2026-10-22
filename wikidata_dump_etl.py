@@ -265,6 +265,7 @@ class ServerVariableWriter:
         if not self._enabled:
             return ""
         try:
+            self._conn.ping(reconnect=True)
             with self._conn.cursor() as cursor:
                 cursor.execute(
                     f"SELECT VAR_VALUE FROM {self._table} WHERE DELETED=0 AND VAR_NAME=%s",
@@ -282,6 +283,9 @@ class ServerVariableWriter:
             return
         try:
             str_value = "" if value is None else str(value)
+            # A MariaDB restart mid-pass kills the connection: without the ping every
+            # later write fails with (0, '') until the end of the pass.
+            self._conn.ping(reconnect=True)
             with self._conn.cursor() as cursor:
                 cursor.execute(
                     f"SELECT VAR_NAME FROM {self._table} WHERE DELETED=0 AND VAR_NAME=%s",

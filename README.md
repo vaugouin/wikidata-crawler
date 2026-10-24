@@ -743,6 +743,8 @@ That backup cannot be a step `116`. The backup script lives on the host, in `~/d
 
 **No cron line to add.** `run-if-new-dump.sh` calls it on every hourly tick, before checking the dump. The order matters: if the dump turns out to be new, that same script wipes the shared volume and launches a run that will modify the database for three days, so the backup of the finished state has to go first. A backup failure is reported but does not block the launch.
 
+**Work files purged after a successful, backed-up run (1.1.6, WIKIDATA-CRAWLER-030).** On the next hourly tick after the backup, `run-if-new-dump.sh` deletes the dump and the outputs of the three passes from `/home/debian/docker/shared_data/wikidata-crawler` (about 130 GB), keeping only `last_successful_run.json`, which `backup-after-run.sh` reads. It acts only when the sentinel says `SUCCESS` and its batch is the one in `.last-backup-batch`. Nothing needs the dump after that: `check_new_dump.py` compares the remote size with the server variable `strwikidatacrawlerdumpsize`, written by step 101 of every run. The cost is that rerunning a step of a finished run means downloading the dump again. Decided by Philippe on 2026-10-24, after the disk-full incident of 2026-10-20.
+
 By hand:
 
 ```bash

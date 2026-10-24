@@ -134,6 +134,47 @@ fi
 # cache c'est instantane, donc on la construit sans condition.
 docker build -q -t "$IMAGE" . >/dev/null || { echo "ERREUR : construction de l'image."; exit 2; }
 
+# --------------------------------------------------------------------------
+# PURGE APRES SUCCES (WIKIDATA-CRAWLER-030, decision de Philippe du 2026-10-24).
+# Un run reussi et sauvegarde n'a plus besoin de ses fichiers de travail : le
+# dump (environ 100 Go) et les sorties des passes pesaient environ 130 Go sur le
+# disque de 630 Go, a cote d'une base de 331 Go, et ont contribue a le remplir
+# le 2026-10-20 (incident-2026-10-20-mariadb-disk-full.md, Nestor).
+#
+# Trois conditions, toutes necessaires :
+#   1. la sentinelle porte SUCCESS ;
+#   2. son lot est celui que backup-after-run.sh a marque comme sauvegarde, donc
+#      la base est deja copiee ;
+#   3. il reste autre chose que la sentinelle sur le volume.
+# La sentinelle est gardee : backup-after-run.sh la relit a chaque passage. Le
+# guetteur ci-dessous n'a pas besoin du dump : il compare a la variable serveur
+# strwikidatacrawlerdumpsize, ecrite par l'etape 101 de chaque run.
+#
+# Dans un conteneur, comme l'effacement de l'etape 3 : pass1, pass2 et
+# item_cache appartiennent a root.
+# --------------------------------------------------------------------------
+SENTINELLE_RUN="$SHARED/last_successful_run.json"
+MARQUEUR_SAUVEGARDE="$STACK/.last-backup-batch"
+if [ -f "$SENTINELLE_RUN" ] && [ -f "$MARQUEUR_SAUVEGARDE" ]; then
+  STATUT_RUN=$(sed -nE 's/.*"status"[[:space:]]*:[[:space:]]*"([^"]*)".*/\1/p' "$SENTINELLE_RUN")
+  LOT_RUN=$(sed -nE 's/.*"import_batch_id"[[:space:]]*:[[:space:]]*"([^"]*)".*/\1/p' "$SENTINELLE_RUN")
+  LOT_SAUVEGARDE=$(cat "$MARQUEUR_SAUVEGARDE" 2>/dev/null)
+  RESTE_TRAVAIL=$(ls -A "$SHARED" 2>/dev/null | grep -vx 'last_successful_run.json' | wc -l)
+  if [ "$STATUT_RUN" = "SUCCESS" ] && [ -n "$LOT_RUN" ] && [ "$LOT_RUN" = "$LOT_SAUVEGARDE" ] && [ "$RESTE_TRAVAIL" -gt 0 ]; then
+    if [ "$DRY_RUN" = "1" ]; then
+      echo "--dry-run : le lot $LOT_RUN est reussi et sauvegarde, j'effacerais ses fichiers de travail :"
+      ls -la "$SHARED" 2>/dev/null | tail -n +2 | sed 's/^/    /'
+    else
+      echo "Lot $LOT_RUN reussi et sauvegarde : effacement du dump et des sorties des passes ..."
+      df -h "$SHARED" | tail -1 | sed 's/^/  avant : /'
+      docker run --rm -v "$SHARED":/shared --entrypoint find "$IMAGE" /shared -mindepth 1 \
+        ! -path /shared/last_successful_run.json -delete \
+        || echo "AVERTISSEMENT : l'effacement des fichiers de travail a echoue. On continue."
+      df -h "$SHARED" | tail -1 | sed 's/^/  apres : /'
+    fi
+  fi
+fi
+
 # 1. Le guetteur. --network=host et --env-file pour joindre la base (il lit la
 #    taille du dump traite au dernier run) ; --entrypoint parce que l'image en
 #    declare un autre.

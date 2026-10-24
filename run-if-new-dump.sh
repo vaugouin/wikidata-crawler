@@ -173,6 +173,29 @@ if [ -f "$SENTINELLE_RUN" ] && [ -f "$MARQUEUR_SAUVEGARDE" ]; then
       df -h "$SHARED" | tail -1 | sed 's/^/  apres : /'
     fi
   fi
+
+  # Meme run, meme garde : les tables STG_* du lot ne servent plus a rien (le
+  # front ne les lit pas, backupvaugouindb.sh les exclut, l'etape 108 suivante
+  # les recharge). TRUNCATE et non DELETE, pour que la place revienne au disque ;
+  # le detail est dans truncate_staging.py. Le marqueur evite une connexion a la
+  # base a chaque passage horaire une fois le vidage fait.
+  MARQUEUR_STAGING="$STACK/.last-staging-truncate-batch"
+  if [ "$STATUT_RUN" = "SUCCESS" ] && [ -n "$LOT_RUN" ] && [ "$LOT_RUN" = "$LOT_SAUVEGARDE" ] \
+     && [ "$(cat "$MARQUEUR_STAGING" 2>/dev/null)" != "$LOT_RUN" ]; then
+    if [ "$DRY_RUN" = "1" ]; then
+      docker run --rm --network=host --env-file .env \
+        --entrypoint python "$IMAGE" truncate_staging.py --batch "$LOT_RUN" --dry-run
+    else
+      df -h "$SHARED" | tail -1 | sed 's/^/  avant vidage du staging : /'
+      if docker run --rm --network=host --env-file .env \
+           --entrypoint python "$IMAGE" truncate_staging.py --batch "$LOT_RUN"; then
+        echo "$LOT_RUN" > "$MARQUEUR_STAGING"
+      else
+        echo "AVERTISSEMENT : le vidage du staging a echoue ou a ete refuse (voir ci-dessus). On continue."
+      fi
+      df -h "$SHARED" | tail -1 | sed 's/^/  apres vidage du staging : /'
+    fi
+  fi
 fi
 
 # 1. Le guetteur. --network=host et --env-file pour joindre la base (il lit la

@@ -48,6 +48,13 @@
 #   docker logs -f wikidata-crawler
 # =============================================================================
 
+# Switched off by off.sh, back on with on.sh: the flag file CRON_OFF next to this script makes
+# every cron tick exit here. The script keeps its name, so the git clone stays clean.
+if [ -f "$(dirname "$(readlink -f "$0")")/CRON_OFF" ]; then
+    echo "CRON_OFF present: run-if-new-dump switched off (bash on.sh to switch it back on)."
+    exit 0
+fi
+
 set -uo pipefail
 
 # cron demarre avec un PATH minimal, qui ne contient pas toujours docker.

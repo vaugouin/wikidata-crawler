@@ -59,6 +59,14 @@ if [ "${1:-}" = "--v1-backfill-report" ]; then
         --entrypoint python wikidata-crawler-python-app build_v1_backfill_seed.py --report "$@"
 fi
 
+# Switched off by off.sh, back on with on.sh: the flag file CRON_OFF next to this script makes
+# every cron tick exit here (the two read-only questions above
+# still answer). The script keeps its name, so the git clone stays clean.
+if [ -f "$(dirname "$(readlink -f "$0")")/CRON_OFF" ]; then
+    echo "CRON_OFF present: wikidata-crawler switched off (bash on.sh to switch it back on)."
+    exit 0
+fi
+
 # Check if the wikidata-crawler Docker container is running
 if [ $(docker ps -q -f name=wikidata-crawler) ]; then
     echo "wikidata-crawler Docker container is already running."

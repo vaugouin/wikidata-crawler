@@ -1,0 +1,296 @@
+-- wikidata-run-report.sql
+-- run on vaugouindb (container damp-vaugouin-com-mariadb-1) at 2026-10-25 08:44:50 +0100
+--
++--------------------------------------------+
+| section                                    |
++--------------------------------------------+
+| === A1 . statut general du dernier run === |
++--------------------------------------------+
++---------------------------------------------+----------------------------------------------------------------------------------------+---------------------+
+| VAR_NAME                                    | VAR_VALUE                                                                              | TIM_UPDATED         |
++---------------------------------------------+----------------------------------------------------------------------------------------+---------------------+
+| strwikidatacrawlerbulkloadbatchid           | wikidata_full_20261021_0317                                                            | 2026-10-23 11:40:10 |
+| strwikidatacrawlerbulkloadlaststatement     | 74                                                                                     | 2026-10-23 11:40:10 |
+| strwikidatacrawlercleanupbatchid            | wikidata_full_20261021_0317                                                            | 2026-10-23 12:01:31 |
+| strwikidatacrawlercleanuplaststatement      | 25                                                                                     | 2026-10-23 12:01:31 |
+| strwikidatacrawlercleanuprowsdeleted        | 17747                                                                                  | 2026-10-23 12:01:31 |
+| strwikidatacrawlercurrentpass               |                                                                                        | NULL                |
+| strwikidatacrawlercurrentprocess            | 115: cleanup old staging batches                                                       | 2026-10-23 12:06:44 |
+| strwikidatacrawlerdumpfiledate              | 2026-10-21 10:54:47                                                                    | 2026-10-21 10:54:47 |
+| strwikidatacrawlerdumpsize                  | 103488697311                                                                           | 2026-10-21 10:54:47 |
+| strwikidatacrawlerelapsed                   | 9h 37m 56s                                                                             | NULL                |
+| strwikidatacrawlerenddatetime               | 2026-10-23 12:58:38                                                                    | 2026-10-23 12:58:38 |
+| strwikidatacrawlerenddatetimeprevious       | 2026-09-25 22:51:57 UTC                                                                | NULL                |
+| strwikidatacrawlerentitiesprocessed         | 121,971,281                                                                            | NULL                |
+| strwikidatacrawlerentityprunedetail         | MOVIE=2489, SERIE=10574, PERSON=1316, ITEM=40373, SEASON=63, EPISODE=52, CHARACTER=295 | 2026-10-23 12:06:44 |
+| strwikidatacrawlerentityprunerowsdeleted    | 55162                                                                                  | 2026-10-23 12:06:44 |
+| strwikidatacrawleritemcacheentities         | 121971281                                                                              | 2026-10-22 22:27:26 |
+| strwikidatacrawleritemsprocessed            | 1,798,328                                                                              | NULL                |
+| strwikidatacrawlerlasterror                 |                                                                                        | 2026-08-17 07:41:09 |
+| strwikidatacrawlerlivedbschemaapplied       | apply_to_live_db.sql                                                                   | 2026-10-23 00:25:31 |
+| strwikidatacrawlermediaresolvebatchid       | wikidata_full_20261021_0317                                                            | 2026-10-23 11:46:04 |
+| strwikidatacrawlermediaresolvelaststatement | 14                                                                                     | 2026-10-23 11:46:04 |
+| strwikidatacrawlermediaresourcearchive      | 8000                                                                                   | 2026-10-23 11:46:05 |
+| strwikidatacrawlermediaresourcecommons      | 274109                                                                                 | 2026-10-23 11:46:05 |
+| strwikidatacrawlermediaresourcerows         | 303734                                                                                 | 2026-10-23 11:46:05 |
+| strwikidatacrawlermediaresourceurlrows      | 903202                                                                                 | 2026-10-23 11:46:05 |
+| strwikidatacrawlermediaresourceyoutube      | 21625                                                                                  | 2026-10-23 11:46:05 |
+| strwikidatacrawlermoviesdetected            | 0                                                                                      | NULL                |
+| strwikidatacrawlerparseerrors               | 0                                                                                      | NULL                |
+| strwikidatacrawlerpass1entities             | 121971281                                                                              | 2026-10-22 02:48:00 |
+| strwikidatacrawlerpass2statements           | 36690089                                                                               | 2026-10-22 12:49:19 |
+| strwikidatacrawlerpassenddatetime           | 2026-10-22 22:27:24                                                                    | NULL                |
+| strwikidatacrawlerpassenddatetimeprevious   | 2026-10-22 12:49:15                                                                    | NULL                |
+| strwikidatacrawlerpassruntime               | 9h 37m 56s                                                                             | NULL                |
+| strwikidatacrawlerpassruntimeprevious       | 10h 01m 14s                                                                            | NULL                |
+| strwikidatacrawlerpassruntimeseconds        | 34676                                                                                  | NULL                |
+| strwikidatacrawlerpassstartdatetime         | 2026-10-22 12:49:31                                                                    | NULL                |
+| strwikidatacrawlerpersonsdetected           | 0                                                                                      | NULL                |
+| strwikidatacrawlerprocessesexecuted         | 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115,             | 2026-10-23 12:06:44 |
+| strwikidatacrawlerprocessesexecutedprevious | 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115,             | 2026-10-21 05:17:10 |
+| strwikidatacrawlerpropertiesprocessed       | 13,991                                                                                 | NULL                |
+| strwikidatacrawlerrate                      | 3,517 entities/s                                                                       | NULL                |
+| strwikidatacrawlerresolveddumpsource        | /shared/latest-all.json.bz2                                                            | 2026-10-21 10:54:47 |
+| strwikidatacrawlerseriesdetected            | 0                                                                                      | NULL                |
+| strwikidatacrawlerstagingcleanupbatchid     | wikidata_full_20261021_0317                                                            | 2026-10-23 12:58:38 |
+| strwikidatacrawlerstagingcleanuplasttable   | STG_T_WC_WIKIDATA_TIME_VALUE                                                           | 2026-10-23 12:58:38 |
+| strwikidatacrawlerstagingcleanuprowsdeleted | 97261180                                                                               | 2026-10-23 12:58:38 |
+| strwikidatacrawlerstagingrowsloaded         | 97778226                                                                               | 2026-10-23 00:24:22 |
+| strwikidatacrawlerstagingstatementrows      | 39230351                                                                               | 2026-10-23 00:25:31 |
+| strwikidatacrawlerstagingtruncatebatchid    | wikidata_full_20261021_0317                                                            | 2026-10-24 14:17:05 |
+| strwikidatacrawlerstagingtruncategb         | 73.1                                                                                   | 2026-10-24 14:17:05 |
+| strwikidatacrawlerstartdatetime             | 2026-10-21 05:17:10                                                                    | 2026-10-21 05:17:10 |
+| strwikidatacrawlerstartstep                 | 101                                                                                    | 2026-10-21 05:17:10 |
+| strwikidatacrawlerstatementsemitted         | 2,540,262                                                                              | NULL                |
+| strwikidatacrawlerstatus                    | SUCCESS                                                                                | 2026-10-23 12:58:38 |
+| strwikidatacrawlertargetstatementrows       | 39236831                                                                               | 2026-10-23 11:42:43 |
+| strwikidatacrawlertotalruntime              | 2 days, 7 hours, 41 minutes, 27 seconds                                                | 2026-10-23 12:58:38 |
+| strwikidatacrawlertotalruntimeprevious      | 2 days, 20 hours, 2 minutes, 11 seconds                                                | 2026-10-21 05:17:10 |
+| strwikidatacrawlertotalruntimeseconds       | 56501                                                                                  | NULL                |
+| strwikidatacrawlerv1backfilldiverted        | 318                                                                                    | 2026-10-22 22:27:26 |
+| strwikidatacrawlerv1backfillemitted         | 584830                                                                                 | 2026-10-22 22:27:26 |
+| strwikidatacrawlerv1backfillmissing         | 896                                                                                    | 2026-10-22 22:27:26 |
+| strwikidatacrawlerv1backfillseeded          | 696722                                                                                 | 2026-10-22 12:49:27 |
+| strwikidatacrawlerv1backfillskippedcore     | 110678                                                                                 | 2026-10-22 22:27:26 |
+| strwikidatacrawlervaluerowsemitted          | 2,540,262                                                                              | NULL                |
++---------------------------------------------+----------------------------------------------------------------------------------------+---------------------+
++--------------------------------------+
+| section                              |
++--------------------------------------+
+| === A2 . deroule etape par etape === |
++--------------------------------------+
++-------------------------------------+---------------------+
+| VAR_NAME                            | VAR_VALUE           |
++-------------------------------------+---------------------+
+| strwikidatacrawlerstep101finishedat | 2026-10-21 10:54:47 |
+| strwikidatacrawlerstep101startedat  | 2026-10-21 05:17:10 |
+| strwikidatacrawlerstep101status     | SUCCESS             |
+| strwikidatacrawlerstep102finishedat | 2026-10-22 02:48:00 |
+| strwikidatacrawlerstep102startedat  | 2026-10-21 10:54:47 |
+| strwikidatacrawlerstep102status     | SUCCESS             |
+| strwikidatacrawlerstep103finishedat | 2026-10-22 02:48:00 |
+| strwikidatacrawlerstep103startedat  | 2026-10-22 02:48:00 |
+| strwikidatacrawlerstep103status     | SUCCESS             |
+| strwikidatacrawlerstep104finishedat | 2026-10-22 12:49:19 |
+| strwikidatacrawlerstep104startedat  | 2026-10-22 02:48:00 |
+| strwikidatacrawlerstep104status     | SUCCESS             |
+| strwikidatacrawlerstep105finishedat | 2026-10-22 12:49:19 |
+| strwikidatacrawlerstep105startedat  | 2026-10-22 12:49:19 |
+| strwikidatacrawlerstep105status     | SUCCESS             |
+| strwikidatacrawlerstep106finishedat | 2026-10-22 22:27:26 |
+| strwikidatacrawlerstep106startedat  | 2026-10-22 12:49:19 |
+| strwikidatacrawlerstep106status     | SUCCESS             |
+| strwikidatacrawlerstep107finishedat | 2026-10-22 22:27:26 |
+| strwikidatacrawlerstep107startedat  | 2026-10-22 22:27:26 |
+| strwikidatacrawlerstep107status     | SUCCESS             |
+| strwikidatacrawlerstep108finishedat | 2026-10-23 00:24:22 |
+| strwikidatacrawlerstep108startedat  | 2026-10-22 22:27:26 |
+| strwikidatacrawlerstep108status     | SUCCESS             |
+| strwikidatacrawlerstep109finishedat | 2026-10-23 00:25:31 |
+| strwikidatacrawlerstep109startedat  | 2026-10-23 00:24:22 |
+| strwikidatacrawlerstep109status     | SUCCESS             |
+| strwikidatacrawlerstep110finishedat | 2026-10-23 11:40:10 |
+| strwikidatacrawlerstep110startedat  | 2026-10-23 00:25:31 |
+| strwikidatacrawlerstep110status     | SUCCESS             |
+| strwikidatacrawlerstep111finishedat | 2026-10-23 11:42:43 |
+| strwikidatacrawlerstep111startedat  | 2026-10-23 11:40:10 |
+| strwikidatacrawlerstep111status     | SUCCESS             |
+| strwikidatacrawlerstep112finishedat | 2026-10-23 11:46:04 |
+| strwikidatacrawlerstep112startedat  | 2026-10-23 11:42:43 |
+| strwikidatacrawlerstep112status     | SUCCESS             |
+| strwikidatacrawlerstep113finishedat | 2026-10-23 11:46:05 |
+| strwikidatacrawlerstep113startedat  | 2026-10-23 11:46:04 |
+| strwikidatacrawlerstep113status     | SUCCESS             |
+| strwikidatacrawlerstep114finishedat | 2026-10-23 12:06:44 |
+| strwikidatacrawlerstep114startedat  | 2026-10-23 11:46:05 |
+| strwikidatacrawlerstep114status     | SUCCESS             |
+| strwikidatacrawlerstep115finishedat | 2026-10-23 12:58:38 |
+| strwikidatacrawlerstep115startedat  | 2026-10-23 12:06:44 |
+| strwikidatacrawlerstep115status     | SUCCESS             |
++-------------------------------------+---------------------+
++-----------------------------------------------------+
+| section                                             |
++-----------------------------------------------------+
+| === A3a . volumetrie EXACTE des tables d entite === |
++-----------------------------------------------------+
++-------------------------+--------+-----------------+
+| table_entite            | lignes | repere_20261002 |
++-------------------------+--------+-----------------+
+| T_WC_WIKIDATA_MOVIE     | 441406 | 442 843         |
+| T_WC_WIKIDATA_SERIE     | 169513 | 178 583         |
+| T_WC_WIKIDATA_PERSON    | 792058 | 790 089         |
+| T_WC_WIKIDATA_ITEM      | 851056 | 884 017         |
+| T_WC_WIKIDATA_EPISODE   | 189566 | 189 132         |
+| T_WC_WIKIDATA_SEASON    |  28498 | 28 445          |
+| T_WC_WIKIDATA_CHARACTER | 125466 | 125 065         |
++-------------------------+--------+-----------------+
++-----------------------------------------------------------------------------+
+| section                                                                     |
++-----------------------------------------------------------------------------+
+| === A3b . taille disque et grosses tables (INDICATIF, ne rien conclure) === |
++-----------------------------------------------------------------------------+
++-------------------------------------------+-----------------+-----------+-----------------------+
+| TABLE_NAME                                | lignes_ESTIMEES | taille_go | derniere_ecriture_UTC |
++-------------------------------------------+-----------------+-----------+-----------------------+
+| T_WC_WIKIDATA_STATEMENT                   |        37332245 |     26.87 | NULL                  |
+| T_WC_WIKIDATA_STATEMENT_QUALIFIER         |         5214272 |      4.21 | NULL                  |
+| T_WC_WIKIDATA_ITEM_PROPERTY               |        11647256 |      4.10 | NULL                  |
+| T_WC_WIKIDATA_ITEM                        |          460696 |      2.86 | NULL                  |
+| T_WC_WIKIDATA_EXTERNAL_ID_VALUE           |        15508495 |      2.28 | NULL                  |
+| T_WC_WIKIDATA_ITEM_VALUE                  |        18207075 |      2.20 | NULL                  |
+| T_WC_WIKIDATA_SUBCLASS                    |         4889261 |      2.06 | NULL                  |
+| T_WC_WIKIDATA_PERSON                      |          731883 |      1.21 | NULL                  |
+| T_WC_WIKIDATA_ITEM_V1                     |         1387945 |      0.90 | NULL                  |
+| T_WC_WIKIDATA_TIME_VALUE                  |         1784921 |      0.64 | NULL                  |
+| T_WC_WIKIDATA_MEDIA_RESOURCE_URL          |          857285 |      0.59 | NULL                  |
+| T_WC_WIKIDATA_PERSON_V1                   |          723197 |      0.54 | NULL                  |
+| T_WC_WIKIDATA_MOVIE                       |          298729 |      0.48 | NULL                  |
+| T_WC_WIKIDATA_QUALIFIER_TIME_VALUE        |         1437812 |      0.33 | NULL                  |
+| T_WC_WIKIDATA_MOVIE_V1                    |          354098 |      0.30 | NULL                  |
+| T_WC_WIKIDATA_SERIE                       |          152250 |      0.24 | NULL                  |
+| T_WC_WIKIDATA_MEDIA_RESOURCE              |          293335 |      0.24 | NULL                  |
+| T_WC_WIKIDATA_QUALIFIER_ITEM_VALUE        |         1708497 |      0.24 | NULL                  |
+| T_WC_WIKIDATA_QUALIFIER_STRING_VALUE      |         1535312 |      0.17 | NULL                  |
+| T_WC_WIKIDATA_EPISODE_V1                  |          174765 |      0.14 | NULL                  |
+| T_WC_WIKIDATA_SERIE_V1                    |          151692 |      0.13 | NULL                  |
+| T_WC_WIKIDATA_EPISODE                     |          186622 |      0.11 | NULL                  |
+| T_WC_WIKIDATA_QUANTITY_VALUE              |          586215 |      0.11 | NULL                  |
+| T_WC_WIKIDATA_CHARACTER                   |          133604 |      0.10 | NULL                  |
+| T_WC_WIKIDATA_MEDIA_VALUE                 |          259175 |      0.06 | NULL                  |
+| T_WC_WIKIDATA_QUALIFIER_EXTERNAL_ID_VALUE |          382853 |      0.05 | NULL                  |
+| T_WC_WIKIDATA_CHARACTER_V1                |           46121 |      0.05 | NULL                  |
+| T_WC_WIKIDATA_STRING_VALUE                |          313730 |      0.04 | NULL                  |
+| T_WC_WIKIDATA_SEASON_V1                   |           26129 |      0.03 | NULL                  |
+| T_WC_WIKIDATA_SEASON                      |           28505 |      0.02 | NULL                  |
+| T_WC_WIKIDATA_QUALIFIER_QUANTITY_VALUE    |          274582 |      0.02 | NULL                  |
+| T_WC_WIKIDATA_COORDINATE_VALUE            |          166207 |      0.02 | NULL                  |
+| T_WC_WIKIDATA_PROPERTY                    |           14175 |      0.01 | NULL                  |
+| T_WC_WIKIDATA_PROPERTY_METADATA           |           13814 |      0.01 | NULL                  |
+| T_WC_WIKIDATA_QUALIFIER_COORDINATE_VALUE  |            1684 |      0.00 | NULL                  |
+| T_WC_WIKIDATA_MEDIA_RESOURCE_CHECK        |               0 |      0.00 | NULL                  |
+| T_WC_WIKIDATA_QUALIFIER_MEDIA_VALUE       |             643 |      0.00 | NULL                  |
++-------------------------------------------+-----------------+-----------+-----------------------+
++-------------------------------------------------------------------------+
+| section                                                                 |
++-------------------------------------------------------------------------+
+| === B1 . LE controle : les qualificatifs se sont-ils re-effondres ? === |
++-------------------------------------------------------------------------+
++-----------------------+--------+--------------------+------------------------------+
+| ID_QUALIFIER_PROPERTY | lignes | valeurs_distinctes | verdict                      |
++-----------------------+--------+--------------------+------------------------------+
+| P155                  |  42701 |              34987 | ok, une ligne par occurrence |
+| P1686                 |  71466 |              31314 | ok, une ligne par occurrence |
+| P453                  | 115748 |              43827 | ok, une ligne par occurrence |
++-----------------------+--------+--------------------+------------------------------+
++----------------------------------------------------+
+| section                                            |
++----------------------------------------------------+
+| === B2 . les awards ont-ils garde leur annee ? === |
++----------------------------------------------------+
++-----------------+------------+-----------+-----------------+
+| statements_p166 | avec_annee | pct_annee | repere          |
++-----------------+------------+-----------+-----------------+
+|          257353 |     167458 |      65.1 | 64,8 % le 31/07 |
++-----------------+------------+-----------+-----------------+
++-----------------------------------------------------------+
+| section                                                   |
++-----------------------------------------------------------+
+| === B3 . les numeros d episode sont-ils toujours la ? === |
++-----------------------------------------------------------+
++-----------------------+-------------+------+---------------+
+| statements_p179_p4908 | avec_numero | pct  | repere        |
++-----------------------+-------------+------+---------------+
+|                424223 |      388576 | 91.6 | 92 % le 31/07 |
++-----------------------+-------------+------+---------------+
++-------------------------------------------------------------------------+
+| section                                                                 |
++-------------------------------------------------------------------------+
+| === B4 . combien d items ne sont connus que par les qualificatifs ? === |
++-------------------------------------------------------------------------+
++-----------------------------------------+-------------------------------------+
+| items_connus_seulement_par_qualificatif | repere                              |
++-----------------------------------------+-------------------------------------+
+|                                      23 | 26 924 le 31/07, doit tendre vers 0 |
++-----------------------------------------+-------------------------------------+
++---------------------------------------------------------------------+
+| section                                                             |
++---------------------------------------------------------------------+
+| === B4-bis . le temoin, cherche dans TOUTES les tables d entite === |
++---------------------------------------------------------------------+
++----------+---------------------+
+| table_v2 | LABEL_EN            |
++----------+---------------------+
+| serie    | 96th Academy Awards |
++----------+---------------------+
++----------------------------------------+
+| section                                |
++----------------------------------------+
+| === B5 . et la hierarchie (-020) ? === |
++----------------------------------------+
++------------------------------------------+---------------+---------------------------------------------------------------+
+| temoin                                   | nb_statements | verdict                                                       |
++------------------------------------------+---------------+---------------------------------------------------------------+
+| Q103618 (Academy Award for Best Actress) |             3 | nouveau : -020 est livre, relancer Q2/Q3 des requetes de prix |
++------------------------------------------+---------------+---------------------------------------------------------------+
++--------------------------------------------------------------------------+
+| section                                                                  |
++--------------------------------------------------------------------------+
+| === C1 . quels lots ont ecrit dans cette base, et sur quelle duree ? === |
++--------------------------------------------------------------------------+
++-----------------------------+----------+---------------------+---------------------+------------------+
+| IMPORT_BATCH_ID             | lignes   | premiere_ecriture   | derniere_ecriture   | etalement_heures |
++-----------------------------+----------+---------------------+---------------------+------------------+
+| wikidata_full_20261021_0317 | 39230351 | 2026-10-23 00:32:59 | 2026-10-23 00:32:59 |                0 |
++-----------------------------+----------+---------------------+---------------------+------------------+
++--------------------------------------------------------------+
+| section                                                      |
++--------------------------------------------------------------+
+| === C2 . chronologie du dernier lot : y a-t-il un trou ? === |
++--------------------------------------------------------------+
++-----------------------------+
+| lot_analyse                 |
++-----------------------------+
+| wikidata_full_20261021_0317 |
++-----------------------------+
++------------------+----------------+
+| heure            | lignes_ecrites |
++------------------+----------------+
+| 2026-10-23 11:00 |        5729750 |
++------------------+----------------+
++-------------------------------------------------+
+| section                                         |
++-------------------------------------------------+
+| === C3 . le controle B1, rejoue lot par lot === |
++-------------------------------------------------+
++-----------------------------+-----------------------+--------+--------------------+---------+
+| IMPORT_BATCH_ID             | ID_QUALIFIER_PROPERTY | lignes | valeurs_distinctes | verdict |
++-----------------------------+-----------------------+--------+--------------------+---------+
+| wikidata_full_20261021_0317 | P155                  |  42701 |              34987 | ok      |
+| wikidata_full_20261021_0317 | P1686                 |  71466 |              31314 | ok      |
+| wikidata_full_20261021_0317 | P453                  | 115748 |              43827 | ok      |
++-----------------------------+-----------------------+--------+--------------------+---------+
++---------------------------+
+| section                   |
++---------------------------+
+| ========== FIN ========== |
++---------------------------+

@@ -237,7 +237,7 @@ Naive `DATETIME` / `DATE` columns hold naive Europe/Paris time: `datetime.now(cp
 ---
 
 **Last Updated**: 2026-10-24
-**Current Version**: 1.1.7
+**Current Version**: 1.1.8
 
 ## Backlog (Nestor second-brain)
 

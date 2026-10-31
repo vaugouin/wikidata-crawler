@@ -11,12 +11,13 @@ This `README.md` is the operational runbook to use when you need to run the whol
 
 ## Current status
 
-The V2 schema is the production data model. A full end-to-end run of `wikidata_crawler.py` (steps `101` → `111`) has populated:
+The V2 schema is the production data model. A full end-to-end run of `wikidata_crawler.py` (steps `101` → `115`) populates:
 
-- `T_WC_WIKIDATA_MOVIE` / `T_WC_WIKIDATA_SERIE` / `T_WC_WIKIDATA_PERSON` / `T_WC_WIKIDATA_ITEM`
-- `T_WC_WIKIDATA_PROPERTY_METADATA`
-- `T_WC_WIKIDATA_STATEMENT` and all six main typed value tables
-- `T_WC_WIKIDATA_STATEMENT_QUALIFIER` and all six qualifier typed value tables
+- `T_WC_WIKIDATA_MOVIE` / `T_WC_WIKIDATA_SERIE` / `T_WC_WIKIDATA_PERSON` / `T_WC_WIKIDATA_ITEM` / `T_WC_WIKIDATA_SEASON` / `T_WC_WIKIDATA_EPISODE` / `T_WC_WIKIDATA_CHARACTER`
+- `T_WC_WIKIDATA_PROPERTY_METADATA` and `T_WC_WIKIDATA_SUBCLASS`
+- `T_WC_WIKIDATA_STATEMENT` and all seven main typed value tables
+- `T_WC_WIKIDATA_STATEMENT_QUALIFIER` and all seven qualifier typed value tables
+- the three `T_WC_WIKIDATA_MEDIA_RESOURCE*` tables (step `112`)
 
 The old `T_WC_WIKIDATA_ITEM_PROPERTY` table (V1, item-valued only) is no longer authoritative. Front-end pages should read from the V2 tables.
 
@@ -62,6 +63,10 @@ Use these documents as the main references:
 - `build_v1_backfill_seed.py` : construit la graine du relogement V1 (WIKIDATA-CRAWLER-023),
   consommee par l'etape `106`. Voir "Relogement du reliquat V1 dans le cache V2" plus bas.
 - `citizenphil.py`
+- `check_new_dump.py` : is a newer dump published? One HEAD request, compared with `strwikidatacrawlerdumpsize`; called by `--check-dump` and `run-if-new-dump.sh`.
+- `truncate_staging.py` : `TRUNCATE`s the `STG_*` tables after a successful, backed-up run (WIKIDATA-CRAWLER-030), called by `run-if-new-dump.sh`.
+- `migrations/repair_qualifier_identity.py` : offline renumbering of qualifier ids in an existing `/shared/pass2` output (WIKIDATA-CRAWLER-019).
+- `sparql-crawler.py`, `sparql-movies-persons.py`, `tmdb_functions.py` : V1-era legacy copies kept for comparison, not invoked by the V2 pipeline.
 
 ### SQL
 
@@ -71,6 +76,8 @@ Use these documents as the main references:
 - `04_reset_for_full_rerun.sql` — **not** part of the normal rerun. Wipes staging + targets, which
   leaves the front-end without V2 data for the whole multi-day run. Reserved for the cases listed in
   "When a full reset IS required".
+- `05_progress_checks.sql`
+- `06_repair_qualifier_tables.sql`: one-off repair, drops and recreates the qualifier tables; safe only while they are empty.
 - `07_resolve_media_resources.sql`
 - `08_cleanup_old_batches.sql`
 - `09_fix_value_type_conflicts.sql` — manual repair for trigger error 1644 (statement/qualifier
@@ -80,6 +87,10 @@ Use these documents as the main references:
 - `10_clear_staging_batch.sql`: deletes all `STG_*` rows for one `@OLD_BATCH_ID`, keeping every
   other batch; use it to drop one specific batch. Surgical alternative to
   `04_reset_for_full_rerun.sql`.
+- `11_bulk_load_qualifiers_only.sql`: section 4B of `03_bulk_load_from_staging_FULL.sql` run on its own, to reload
+  only the qualifiers after `migrations/repair_qualifier_identity.py` (WIKIDATA-CRAWLER-019).
+- `12_bulk_load_subclass_only.sql`: loads only the P279 subclass graph from a run's `pass1` output
+  (WIKIDATA-CRAWLER-020).
 - `13_cleanup_staging_old_batches.sql`: hand-runnable twin of step `115`, deletes every `STG_*` row
   older than `@IMPORT_BATCH_ID`, leaving staging with just the batch that finished. The crawler does
   not execute this file (step 115 issues the same deletes in chunks); it is for cleaning a database
@@ -104,6 +115,8 @@ Use these documents as the main references:
 - `tests/test_etl_smoke.py` — standalone, no-DB/no-network parity check of the ETL classifier and
   emission (subclass-typed detection, new entity types, IMDb gating, item cache). Run:
   `python tests/test_etl_smoke.py`
+- `tests/test_entity_prune.py`: no-DB check of the step-114 entity prune guard
+  (WIKIDATA-CRAWLER-024). Run: `python tests/test_entity_prune.py`
 
 ### Documentation and scripts
 
@@ -114,6 +127,12 @@ Use these documents as the main references:
 - `doc/wikidata-v1-v2-gap-analysis.md` — V1→V2 gap, classifier fix, new entity types, ETL performance
 - `doc/collation-standardization.md` — database-wide charset/collation standardization plan
 - `wikidata-crawler.sh`
+- `run-if-new-dump.sh` : hourly cron, backs up the database after a successful run, purges its work
+  files and staging, and launches `wikidata-crawler.sh` only when a new dump is published
+- `on.sh` / `off.sh` : write or remove the flag file `CRON_OFF`, which makes `wikidata-crawler.sh` and
+  `run-if-new-dump.sh` exit at once
+- `run_etl.sh` : legacy 3-pass driver, superseded by `wikidata_crawler.py`
+- `check_network_speed.sh` : measures the host's inbound network speed (useful during the step `101` download)
 - `backup-after-run.sh` : sauvegarde de la base declenchee par un run reussi, voir
   "Sauvegarde de la base apres un run" plus bas
 
@@ -196,27 +215,31 @@ So the model now supports deriving award tables without flattening qualifier col
 
 The orchestrator is `wikidata_crawler.py`.
 
-Its steps are:
+Its steps are (`--start-step N` skips every step with a code below `N`):
 
-- `101` resolve dump source
-- `102` run ETL pass1
-- `103` validate ETL pass1
-- `104` run ETL pass2
-- `105` validate ETL pass2
-- `106` run ETL item_cache (reconstruit d'abord la graine du relogement V1)
-- `107` validate ETL item_cache
-- `108` load staging tables
-- `109` validate staging data
-- `110` bulk load target tables
-- `111` validate target tables
-- `112` resolve media resources
-- `113` validate media resources
-- `114` cleanup old import batches
-- `115` cleanup old staging batches
+| Step | Label | What it does |
+|------|-------|--------------|
+| 101 | resolve dump source | Resolve `DUMP_FILE` / `DUMP_URL`; download to `DUMP_FILE` only if it does not already exist. |
+| 102 | run ETL pass1 | Classification pass: stream the full dump, emit `T_WC_WIKIDATA_PROPERTY_METADATA`, build the `P279` subclass graph, classify movies/series/persons, produce `class_roots.jsonl`, `core_entity_ids.txt`, `candidate_person_ids.txt`. |
+| 103 | validate ETL pass1 | Assert pass1 outputs exist, no parse errors, core entities detected. |
+| 104 | run ETL pass2 | Entity/statement pass: emit entity rows + statements + typed values for in-scope movies/series/persons; produce `referenced_item_ids.txt`, `referenced_person_ids.txt`. Requires pass1 outputs. |
+| 105 | validate ETL pass2 | Assert `T_WC_WIKIDATA_STATEMENT.jsonl` exists, no parse errors, statements emitted. |
+| 106 | run ETL item_cache | Rebuilds the V1 backfill seed from the database first (see "Relogement du reliquat V1" below), then the item-cache pass: emit `T_WC_WIKIDATA_ITEM` rows for referenced items and extra `T_WC_WIKIDATA_PERSON` rows for referenced (no-IMDb) persons, plus their `CACHED_ENTITY_PROPERTIES` claims. Requires pass1 + pass2 outputs **and the dump**. |
+| 107 | validate ETL item_cache | Assert `run_summary.json` and item/person outputs exist. |
+| 108 | load staging tables | Delete prior rows for this `IMPORT_BATCH_ID`, then load every NDJSON file into its `STG_*` table via `load_staging_jsonl.load_table`. |
+| 109 | validate staging data | Assert staged statement rows exist for the batch and none have NULL `IMPORT_BATCH_ID`. |
+| 110 | bulk load target tables | Execute `03_bulk_load_from_staging_FULL.sql` statement by statement; idempotent (filters `ROW_STATUS IN ('NEW','VALID')`, flips to `'LOADED'`). |
+| 111 | validate target tables | Assert `T_WC_WIKIDATA_STATEMENT` is non-empty and staging rows were marked `LOADED`. |
+| 112 | resolve media resources | Execute `07_resolve_media_resources.sql`. Idempotent, fully downstream of V2, safe to run alone via `--start-step 112`. |
+| 113 | validate media resources | Assert media-resource tables non-empty; record per-platform counts. |
+| 114 | cleanup old import batches | Execute `08_cleanup_old_batches.sql` (target rows of older batches), then prune the seven entity tables by staging membership (WIKIDATA-CRAWLER-024, since 2026-10-17): delete every entity row whose `ID_WIKIDATA` has no row in the paired `STG_*` table for the current batch. Every table is measured first, and one refusal stops the whole prune: no staging row for the batch, or more than 10 % of a table (`ENTITY_PRUNE_MAX_SHARE`). `ITEM` is left out when `V1_BACKFILL_SEED=0`; `ENTITY_PRUNE=0` turns the prune off. Must run before 115. Idempotent; safe to run alone. |
+| 115 | cleanup old staging batches | Delete older `STG_*` batches in committed 50 000-row chunks. See "Cleanup of old staging batches (step 115)". |
 
 For a full rerun, start from `101`.
 
-Do not start from `104` unless the code is explicitly changed to initialize the dump source when `101` is skipped.
+Resuming at a dump-streaming step (102, 104, 106) is safe since 2026-08-17: `run()` executes step 101 first whenever the resume point would skip it and a step in `DUMP_CONSUMING_STEPS` is still due. Resolution stays on demand, so resuming at 108 or 110 never touches the dump. Those three steps stream the **full 102 GB dump**, not the pass1/pass2 NDJSON, so before resuming at one of them check that `latest-all.json.bz2` is still in `/shared` (it is purged after a backed-up run, and re-downloading costs about 7 h 30), and that it is the same dump the earlier passes consumed (compare its size with `strwikidatacrawlerdumpsize`). If a newer dump comes back, prefer a full run: an item_cache built from this week's dump on top of last week's pools gives a batch whose provenance can no longer be stated.
+
+Measured durations: a full run takes three to four days, each dump pass 20 to 33 h; a replay of step 106 alone took 22 h 45 on the 2026-08 run.
 
 Steps `112` and `113` are fully downstream of V2 and can be re-run on their own with `--start-step 112` — no need to redo the dump ETL or the bulk load. See "Media resolution (steps 112 & 113)" below.
 
@@ -226,7 +249,7 @@ Steps `112` and `113` are fully downstream of V2 and can be re-run on their own 
 
 Three properties make this work:
 
-1. **Statement and qualifier IDs are deterministic.** `derive_statement_identity` in `wikidata_dump_etl.py` hashes the Wikidata `STATEMENT_GUID` (SHA-256 truncated to a positive BIGINT), so the same statement gets the same `ID_STATEMENT` in every run. Qualifier IDs are derived the same way from the snak hash.
+1. **Statement and qualifier IDs are deterministic.** `derive_statement_identity` in `wikidata_dump_etl.py` hashes the Wikidata `STATEMENT_GUID` (SHA-256 truncated to a positive BIGINT), so the same statement gets the same `ID_STATEMENT` in every run. Qualifier IDs hash the parent `ID_STATEMENT` plus the qualifier property and the snak hash (`derive_qualifier_identity`): the snak hash alone covers the value, not the occurrence, and keying on it collapsed every repeated qualifier into one row until 2026-07-31 (WIKIDATA-CRAWLER-019). `migrations/repair_qualifier_identity.py` renumbers an existing `/shared/pass2` output offline (originals kept as `*.jsonl.before-019`), turning a 2-day rerun from step 104 into a ~13 h reload from step 108; `tests/test_etl_smoke.py` pins its copy of the identity formula to the ETL's.
 2. **The bulk load (step `110`) is an upsert, not a replace.** Every INSERT in `03_bulk_load_from_staging_FULL.sql` ends with `ON DUPLICATE KEY UPDATE`. Rows that already exist are updated **in place** — value and `IMPORT_BATCH_ID` refreshed — never duplicated.
 3. **Step `114` performs the deletion `04_reset` would have done, but afterwards.** `08_cleanup_old_batches.sql` removes every target row whose `IMPORT_BATCH_ID` is strictly older than the current batch — precisely the statements that disappeared from the new dump.
 
@@ -264,6 +287,8 @@ In those cases accept that the V2 tables stay empty for the whole run, ETL inclu
 ## What must be done before a new full run
 
 This section is the most important one for future reruns.
+
+On the VPS, `run-if-new-dump.sh` (hourly cron) does steps 1, 2, 4 and 5 by itself when a new dump is published: it empties the shared volume, writes a new `IMPORT_BATCH_ID` into `.env`, then calls `wikidata-crawler.sh`. The steps below are the manual path.
 
 ### 1. Remove the existing `latest-all.json.bz2`
 
@@ -513,10 +538,10 @@ Check the server variable `strwikidatacrawlerbulkloadlaststatement` to see which
 ```bash
 ./wikidata-crawler.sh --start-step 110      # bulk load + final validation (skips the multi-day ETL)
 ./wikidata-crawler.sh --start-step 108      # reload staging tables, then bulk load
-./wikidata-crawler.sh --start-step 104      # rerun pass2 onward (only valid if dump source already cached)
+./wikidata-crawler.sh --start-step 104      # rerun pass2 onward (step 101 runs first to resolve the dump)
 ```
 
-Do not start from `104` unless the code is explicitly changed to initialize the dump source when `101` is skipped.
+Before resuming at 102, 104 or 106, read the dump caveats under "End-to-end workflow".
 
 ### Before resuming, fix the root cause
 
@@ -541,7 +566,7 @@ Earlier versions of this runbook recommended clearing staging **and** the target
 The remaining concerns from that era still hold and are addressed elsewhere:
 
 - staging reloads can duplicate rows if rerun carelessly → step `108` deletes the current batch before loading, and step `115` removes the older ones at the end of the run (`13_cleanup_staging_old_batches.sql` is its manual twin);
-- step `104` depends on dump-source initialization from step `101` → still true, still a reason to start full reruns at `101`;
+- step `104` depends on dump-source initialization from step `101` → handled since 2026-08-17 (`run()` runs 101 first when a dump-streaming step is due), but full reruns still start at `101`;
 - statement and qualifier IDs must remain stable across reruns → still true, and it is exactly the condition under which the incremental path is safe. If you change that logic, reset (see "When a full reset IS required").
 
 So the reliable rerun procedure is now:
@@ -563,6 +588,8 @@ So the reliable rerun procedure is now:
   - clears staging and target tables (including the media-resolution layer) before a fresh full rebuild. **Not part of the normal rerun** — it leaves the front-end with no V2 data for the entire multi-day run. Use only in the cases listed under "When a full reset IS required"; the default path loads on top of the existing tables and lets step `114` prune the leftovers.
 - `05_progress_checks.sql`
   - reports staging and target progress counts for a given `IMPORT_BATCH_ID`
+- `06_repair_qualifier_tables.sql`
+  - one-off repair: drops and recreates the qualifier tables to align them with `01_create_schema.sql`; safe only while they are empty
 - `07_resolve_media_resources.sql`
   - executed by step `112`; populates `T_WC_WIKIDATA_MEDIA_RESOURCE` and `T_WC_WIKIDATA_MEDIA_RESOURCE_URL` from V2 statement/value tables using `INSERT ... ON DUPLICATE KEY UPDATE` (idempotent)
 - `08_cleanup_old_batches.sql`
@@ -571,8 +598,12 @@ So the reliable rerun procedure is now:
   - manual repair for bulk-load trigger error 1644 (`<TABLE>: statement/qualifier already exists in another child table`). When a statement's (or qualifier's) `VALUE_TYPE` changes between two dumps, the upsert-only bulk load updates the parent type but leaves the earlier batch's value row in the now-wrong sibling table, which the "one statement → one value table" triggers reject. This script deletes, for the current `@IMPORT_BATCH_ID`, every target typed-value row whose statement/qualifier is classified as a different `VALUE_TYPE` in this batch's staging. Idempotent. The same purge is built into `03_bulk_load_from_staging_FULL.sql`, so a fresh run self-heals; run this standalone only to unblock an in-flight load without rebuilding the image (set `@IMPORT_BATCH_ID`, then resume with `--start-step 110`).
 - `10_clear_staging_batch.sql`
   - surgical staging cleanup: deletes every `STG_*` row for one `@OLD_BATCH_ID`, leaving every other batch intact. Use it to drop one named batch, typically to reclaim its space *before* a run rather than waiting for step `115` to do it at the end. Set `@OLD_BATCH_ID` to the batch to remove. Lighter than `04_reset_for_full_rerun.sql`, which wipes all staging + targets for a full rebuild.
+- `11_bulk_load_qualifiers_only.sql`
+  - section 4B of `03_bulk_load_from_staging_FULL.sql` extracted to run alone: reloads only the qualifiers after `migrations/repair_qualifier_identity.py` (WIKIDATA-CRAWLER-019)
+- `12_bulk_load_subclass_only.sql`
+  - the subclass-graph section of `03_bulk_load_from_staging_FULL.sql` extracted to run alone: backfills `T_WC_WIKIDATA_SUBCLASS` from a run whose `pass1` directory is still on disk
 - `13_cleanup_staging_old_batches.sql`
-  - hand-runnable twin of step `115`: deletes every `STG_*` row whose `IMPORT_BATCH_ID` is strictly older than `@IMPORT_BATCH_ID`, leaving staging with exactly the batch that just loaded. The crawler does **not** execute this file. Step 115 issues the same deletes in committed 50 000-row chunks, deriving its table list from `TABLE_SPECS` in `load_staging_jsonl.py`. Use it to clean a database by hand, or to catch up a run that predates step 115. Set `@IMPORT_BATCH_ID` to the batch to **keep**, and run the two guard queries in its header first.
+  - hand-runnable twin of step `115`: deletes every `STG_*` row whose `IMPORT_BATCH_ID` is strictly older than `@IMPORT_BATCH_ID`, leaving staging with exactly the batch that just loaded. The crawler does **not** execute this file. Step 115 issues the same deletes in committed 50 000-row chunks, deriving its table list from `TABLE_SPECS` in `load_staging_jsonl.py`. Use it to clean a database by hand, or to catch up a run that predates step 115. Nothing to set since 2026-09-02: the cutoff is read from staging and disarmed when the batch is not yet in `T_WC_WIKIDATA_STATEMENT` (it used to carry a literal batch id, which went stale and silently deleted nothing).
 
 ## Relogement du reliquat V1 dans le cache V2 (etape 106)
 
@@ -636,6 +667,14 @@ defaut) est le plancher sous lequel l'etape refuse de partir, plutot que de tour
 avoir seme. Le cout de l'extension est negligeable a l'echelle de la passe, qui lit de toute
 facon les 120 millions d'entites du dump.
 
+**Chiffrage du 2026-09-19** (`doc/sql/archive/wikidata-v1-backfill-target-set-20260919.txt`) :
+696 660 ids semes, dont 167 928 importables (25,8 % des lignes francaises de V1), 402 312 deja
+dans `ITEM` et 81 456 au plancher. Les « ~250 k » du ticket etaient trop hauts d'un tiers : ils
+comptaient le plancher comme importable. Cout : environ deux claims par item nouvellement mis en
+cache, et `T_WC_WIKIDATA_ITEM` passe de 710 556 a au plus 878 484 lignes (+23,6 %). Effet attendu
+sur `test-017-repli-v1-taux.sql` : de 36,2 % vers environ 11,9 %, plus ce que `...missing`
+revelera.
+
 ## Les aliases en V2 : `ALIASES_JSON` (WIKIDATA-CRAWLER-025)
 
 **Ce que c'est.** Les sept tables d'entites portent une colonne `ALIASES_JSON` a cote de
@@ -689,6 +728,25 @@ aucun run de celui-ci ne les ramenera.
 **Ce que ce depot ne fait pas.** Alimenter les colonnes `ALIASES` de T2S
 (`tmdb-movie-preprocess`) et brancher l'affichage (`tmdb-front`) sont les deux etages en aval,
 et ni l'un ni l'autre ne peut aboutir avant le run de celui-ci.
+
+**Un blob, pas une table, volontairement.** Meme grain que `LABELS_JSON`, meme lecture
+(`JSON_UNQUOTE(JSON_EXTRACT(..., '$.fr'))`), aucune jointure. Une table
+`T_WC_WIKIDATA_ALIAS(ID_WIKIDATA, LANG, ALIAS)` n'aurait qu'un argument serieux, rendre la
+recherche *par* alias indexable ; le jour ou la resolution d'entites le voudra, elle se derive
+du blob par un `INSERT ... SELECT`, sans rejouer le dump. WIKIDATA-CRAWLER-016, close « sans
+objet » en aout, a ete rouverte par ce ticket : la recherche de juillet cherchait un
+consommateur qui *cherche* par alias, alors que les consommateurs vivants les *affichent*, et
+`T_WC_T2S_ITEM` (process 40 de `tmdb-movie-preprocess`) relit `ITEM_V1.ALIASES` a chaque passe.
+
+## V2 extensions: subclass graph, cached-entity facts, coordinates
+
+**The P279 subclass graph is loaded since 2026-08-16.** `collect_subclass_edges` always wrote `/shared/pass1/subclass_edges.jsonl` (5 228 221 edges on a full dump), but nothing loaded it, so the class graph was invisible to SQL. It now lands in `T_WC_WIKIDATA_SUBCLASS` through the ordinary path (`STG_T_WC_WIKIDATA_SUBCLASS`, a `TableSpec`, a section at the end of `03_bulk_load_from_staging_FULL.sql`). The entity pools are derived from that graph at every run (`descendants_of_roots(MOVIE_ROOTS)` and friends), so what counts as a "film" is defined by the P279 edges Wikidata publishes that day; loading them makes that definition auditable. To backfill a run that predates the change, `12_bulk_load_subclass_only.sql` works while that run's `pass1` directory is still on disk. Reference figure, 2026-08-17: the transitive closure under `Q11424` (film) and `Q506240` (television film) holds **842 classes** on batch `wikidata_full_20260807_1043`, against 166 direct subclasses of `Q11424`. A drop in that figure is what an upstream reclassification looks like.
+
+**`item_cache` emits `CACHED_ENTITY_PROPERTIES` since 2026-08-17** (the tuple in `wikidata_dump_etl.py`, rationale in the docstring of `emit_class_claims_for_cached_item`). `P31`/`P279` answer WIKIDATA-CRAWLER-020 track (a): `Q103618` "Academy Award for Best Actress" used to exist by name with zero statements. `P345`, `P569`, `P570`, `P577` serve -015, the decommission of the SPARQL crawlers. `P131`, `P17`, `P50`, `P7937` were added on 2026-10-09 (WIKIDATA-CRAWLER-021: place hierarchy for `tmdb-movie-preprocess` -048, source-work author and form for -055), `P625` on 2026-10-19 (-028). The pass writes `T_WC_WIKIDATA_STATEMENT.jsonl` and value files under `/shared/item_cache`, loaded through matching `TableSpec` entries; no SQL change was needed. Acceptance: `SELECT COUNT(*) FROM T_WC_WIKIDATA_STATEMENT WHERE ID_WIKIDATA='Q103618'` returns non-zero, and Q2/Q3 of `doc/sql/wikidata-v2-awards-queries.sql` return rows. Measured after the first run carrying -021 (2026-10-13 dump, `doc/sql/check-021-cached-place-and-work-properties-20261017.txt`): 658 488 statements on cached items, `P17` 334 963, `P131` 206 198, `P50` 66 247, `P7937` 51 080. A cached place carries its historical parents and countries too (Paris has six `P131` and seven `P17`, France in `preferred`), so a reader of the hierarchy must keep the best rank.
+
+**Coordinates (`globe-coordinate`) are a seventh value type since 2026-10-19 (WIKIDATA-CRAWLER-028, 1.1.0).** Local type `coordinate`, payload from `extract_coordinate_payload`; values in `T_WC_WIKIDATA_COORDINATE_VALUE`, qualifiers in `T_WC_WIKIDATA_QUALIFIER_COORDINATE_VALUE` (a P625 qualifier on a P915 statement is the exact spot of a shoot). Through `P625` in `CACHED_ENTITY_PROPERTIES`, item_cache emits the coordinates of cached places (about 306 000 items carry a P17 or a P131). Field meanings: `WIKIDATA.md`.
+
+**Entity prune (step 114, WIKIDATA-CRAWLER-024).** Before 2026-10-17 the entity tables were never pruned, so an entity that fell out of scope or moved to another table kept its old row: 54 613 such rows, 50 340 entities in two tables (`doc/sql/check-024-entities-in-several-tables-20261017.txt`). `doc/sql/check-024-entity-prune-dry-run.sql` shows what the next run will remove.
 
 ## Cleanup of old import batches (step 114)
 
@@ -827,6 +885,10 @@ Important generated files include:
 - `T_WC_WIKIDATA_SERIE.jsonl`
 - `T_WC_WIKIDATA_PERSON.jsonl`
 - `T_WC_WIKIDATA_ITEM.jsonl`
+- `T_WC_WIKIDATA_SEASON.jsonl`
+- `T_WC_WIKIDATA_EPISODE.jsonl`
+- `T_WC_WIKIDATA_CHARACTER.jsonl`
+- `subclass_edges.jsonl` (pass1, the P279 graph loaded into `T_WC_WIKIDATA_SUBCLASS`)
 - `T_WC_WIKIDATA_STATEMENT.jsonl`
 - `T_WC_WIKIDATA_ITEM_VALUE.jsonl`
 - `T_WC_WIKIDATA_STRING_VALUE.jsonl`

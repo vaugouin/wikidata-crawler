@@ -1,5 +1,9 @@
 # AGENTS.md - Agent Guide for Wikidata Crawler
 
+## Canary
+
+Start every reply with "Philippe,": no exceptions, including short replies and tool summaries.
+
 Rules and traps for agents. Everything descriptive lives elsewhere, read it there:
 - @README.md: canonical operational runbook (steps 101 to 115, rerun and resume, SQL file roles, backup, media resolution, V1 backfill, aliases, V2 extensions).
 - @WIKIDATA.md: conceptual data model (statement / typed value / qualifier layers, tables, award modeling).
@@ -74,7 +78,7 @@ Use it to explore, never to decide:
 ---
 
 **Last Updated**: 2026-10-31
-**Current Version**: 1.1.12
+**Current Version**: 1.1.13
 
 ## Backlog (Nestor second-brain)
 

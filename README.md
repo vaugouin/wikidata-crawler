@@ -746,6 +746,8 @@ consommateur qui *cherche* par alias, alors que les consommateurs vivants les *a
 
 **Coordinates (`globe-coordinate`) are a seventh value type since 2026-10-19 (WIKIDATA-CRAWLER-028, 1.1.0).** Local type `coordinate`, payload from `extract_coordinate_payload`; values in `T_WC_WIKIDATA_COORDINATE_VALUE`, qualifiers in `T_WC_WIKIDATA_QUALIFIER_COORDINATE_VALUE` (a P625 qualifier on a P915 statement is the exact spot of a shoot). Through `P625` in `CACHED_ENTITY_PROPERTIES`, item_cache emits the coordinates of cached places (about 306 000 items carry a P17 or a P131). Field meanings: `WIKIDATA.md`.
 
+**P1476 (title) is read since 2026-11-03 (WIKIDATA-CRAWLER-031, 1.1.14), the only `monolingualtext` property ingested.** Main values only, stored as `VALUE_TYPE` `string` in `T_WC_WIKIDATA_STRING_VALUE`: the text in `VALUE_STRING`, the language in `LANG_CODE`, `WIKIDATA_DATATYPE` `monolingualtext` on the statement; no DDL. Read with `T_WC_WIKIDATA_STATEMENT.ID_PROPERTY = 'P1476'`. Consumer: `tmdb-movie-preprocess`, which builds the movie and series title alias tables from it (TMDB-MOVIE-PREPROCESS-069). Other `monolingualtext` properties (subtitle P1680, slogan, native label) stay out on purpose (`MONOLINGUAL_PROPERTIES`).
+
 **Entity prune (step 114, WIKIDATA-CRAWLER-024).** Before 2026-10-17 the entity tables were never pruned, so an entity that fell out of scope or moved to another table kept its old row: 54 613 such rows, 50 340 entities in two tables (`doc/sql/check-024-entities-in-several-tables-20261017.txt`). `doc/sql/check-024-entity-prune-dry-run.sql` shows what the next run will remove.
 
 ## Cleanup of old import batches (step 114)

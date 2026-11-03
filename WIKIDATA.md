@@ -582,6 +582,7 @@ Example mapping:
 | time | time |
 | quantity | quantity |
 | globe-coordinate | coordinate |
+| monolingualtext (P1476 only) | string, language in `LANG_CODE` (WIKIDATA-CRAWLER-031) |
 
 This table allows automatic routing of claims to the correct value table.
 

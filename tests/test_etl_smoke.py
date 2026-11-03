@@ -52,6 +52,12 @@ def _string_snak(value: str, datatype: str = "external-id") -> dict:
     return {"snaktype": "value", "datatype": datatype, "datavalue": {"type": "string", "value": value}}
 
 
+def _mono_snak(text: str, lang: str) -> dict:
+    # WIKIDATA-CRAWLER-031: the JSON-dump shape of a monolingualtext value (P1476 title).
+    return {"snaktype": "value", "datatype": "monolingualtext",
+            "datavalue": {"type": "monolingualtext", "value": {"text": text, "language": lang}}}
+
+
 def _claim(snak: dict, guid: str) -> dict:
     return {"mainsnak": snak, "type": "statement", "rank": "normal", "id": guid}
 
@@ -68,8 +74,12 @@ def _globe_snak(lat: float, lon: float, globe: str = "Q2") -> dict:
 
 
 def item(qid: str, *, p31=None, p279=None, imdb=None, p2079=None, label="x", aliases=None,
-         p625=None, p915_at=None) -> dict:
+         p625=None, p915_at=None, p1476=None, p1680=None) -> dict:
     claims: dict = {}
+    if p1476:
+        claims["P1476"] = [_claim(_mono_snak(t, lg), f"{qid}$P1476-{i}") for i, (t, lg) in enumerate(p1476)]
+    if p1680:   # subtitle, another monolingualtext: must stay out
+        claims["P1680"] = [_claim(_mono_snak(p1680, "en"), f"{qid}$P1680-0")]
     if p31:
         claims["P31"] = [_claim(_item_snak(q), f"{qid}$P31-{i}") for i, q in enumerate(p31)]
     if p279:
@@ -111,7 +121,8 @@ ENTITIES = [
     item("Q1008", p31=["Q15632617"], label="Fictional Human Character"),
     item("Q202866", p279=["Q11424"], label="animated film"),          # -> movie descendant
     item("Q15632617", p279=["Q95074"], label="fictional human"),       # -> character descendant
-    item("Q1002", p31=["Q11424"], label="Bare Film Movie", p915_at=("Q1009", (48.8584, 2.2945))),
+    item("Q1002", p31=["Q11424"], label="Bare Film Movie", p915_at=("Q1009", (48.8584, 2.2945)),
+         p1476=[("Shichinin no samurai", "ja-latn"), ("七人の侍", "ja")], p1680="A subtitle"),
     # WIKIDATA-CRAWLER-025: the one core entity carrying aliases, emitted by pass2.
     # "zz" is deliberately empty; a language with nothing usable must not survive as [].
     # "de" is outside the default ALIAS_LANGUAGES (fr, en) and must be filtered out.
@@ -230,6 +241,18 @@ def run() -> int:
         check("Q1009" not in ids_in(p2 / "T_WC_WIKIDATA_MOVIE.jsonl"), "irrelevant city not emitted")
         referenced = read_ids(p2 / "referenced_item_ids.txt")
         check("Q184781" in referenced, "P2079 value recorded as a referenced item")
+
+        # WIKIDATA-CRAWLER-031: P1476 (monolingualtext) lands in STRING_VALUE with LANG_CODE;
+        # P1680, another monolingualtext property, stays out.
+        titles = [s for s in stmts if s["ID_WIKIDATA"] == "Q1002" and s["ID_PROPERTY"] == "P1476"]
+        check(len(titles) == 2 and all(s["VALUE_TYPE"] == "string" and s["WIKIDATA_DATATYPE"] == "monolingualtext"
+                                       for s in titles),
+              "pass2 emits the two P1476 statements as VALUE_TYPE string, datatype monolingualtext")
+        check(not any(s["ID_PROPERTY"] == "P1680" for s in stmts), "P1680 (another monolingualtext) is not emitted")
+        strings = read_jsonl(p2 / "T_WC_WIKIDATA_STRING_VALUE.jsonl")
+        check({(v["VALUE_STRING"], v["LANG_CODE"]) for v in strings if v["VALUE_STRING"] in ("七人の侍", "Shichinin no samurai")}
+              == {("七人の侍", "ja"), ("Shichinin no samurai", "ja-latn")},
+              "P1476 text in VALUE_STRING, language in LANG_CODE")
 
         # WIKIDATA-CRAWLER-028: a P625 qualifier on a P915 statement (the exact spot).
         quals = read_jsonl(p2 / "T_WC_WIKIDATA_STATEMENT_QUALIFIER.jsonl")

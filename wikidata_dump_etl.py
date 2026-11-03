@@ -104,6 +104,13 @@ P_COUNTRY = "P17"
 P_AUTHOR = "P50"
 P_FORM_OF_CREATIVE_WORK = "P7937"
 P_COORDINATE_LOCATION = "P625"
+# WIKIDATA-CRAWLER-031: P1476 "title", a monolingualtext (text + language), the one
+# monolingualtext property ingested. It lands in T_WC_WIKIDATA_STRING_VALUE with the text in
+# VALUE_STRING and the language in LANG_CODE (VALUE_TYPE 'string', WIKIDATA_DATATYPE
+# 'monolingualtext'), so no DDL. tmdb-movie-preprocess reads it to build the movie and series
+# title alias tables. Other monolingualtext properties stay out on purpose.
+P_TITLE = "P1476"
+MONOLINGUAL_PROPERTIES = {P_TITLE}
 P_FORMATTER_URL = "P1630"
 # Properties emitted for an entity that exists in the DB only as a cached label.
 # Closed set on purpose, so the added volume stays provable. P31/P279 unlock class
@@ -846,6 +853,17 @@ def extract_string_value(value: Any) -> Optional[str]:
     return value if isinstance(value, str) else None
 
 
+def extract_monolingual_value(value: Any) -> tuple[Optional[str], Optional[str]]:
+    """(text, language) of a monolingualtext datavalue, (None, None) when unusable."""
+    try:
+        text, lang = value.get("text"), value.get("language")
+    except Exception:
+        return None, None
+    if not isinstance(text, str) or not text.strip():
+        return None, None
+    return text, (lang if isinstance(lang, str) and lang else None)
+
+
 def extract_time_payload(value: Any) -> Dict[str, Any]:
     if not value:
         return {}
@@ -1452,6 +1470,8 @@ class WikidataDumpETL:
     def process_property(self, doc: Any, entity_id: str) -> None:
         datatype = doc.get("datatype")
         local_value_type = WIKIDATA_DATATYPE_TO_LOCAL.get(datatype)
+        if datatype == "monolingualtext" and entity_id in MONOLINGUAL_PROPERTIES:
+            local_value_type = "string"   # WIKIDATA-CRAWLER-031: P1476 lands in STRING_VALUE
         child_table = {
             "item": "T_WC_WIKIDATA_ITEM_VALUE",
             "string": "T_WC_WIKIDATA_STRING_VALUE",
@@ -1737,12 +1757,25 @@ class WikidataDumpETL:
             for claim in claim_list:
                 wikidata_datatype, value = extract_mainsnak_datatype_and_value(claim)
                 local_value_type = WIKIDATA_DATATYPE_TO_LOCAL.get(wikidata_datatype)
-                if local_value_type not in SUPPORTED_LOCAL_VALUE_TYPES:
+                if wikidata_datatype == "monolingualtext" and property_id in MONOLINGUAL_PROPERTIES:
+                    local_value_type = "monolingual"   # WIKIDATA-CRAWLER-031, stored as 'string'
+                elif local_value_type not in SUPPORTED_LOCAL_VALUE_TYPES:
                     continue
 
                 payload: Optional[Dict[str, Any]] = None
 
-                if local_value_type == "item":
+                if local_value_type == "monolingual":
+                    text, lang = extract_monolingual_value(value)
+                    if text is None:
+                        continue
+                    local_value_type = "string"
+                    payload = {
+                        "VALUE_STRING": text,
+                        "VALUE_STRING_NORMALIZED": text,
+                        "LANG_CODE": lang,
+                    }
+
+                elif local_value_type == "item":
                     id_item = extract_qid_from_wikibase_value(value)
                     if not id_item:
                         continue

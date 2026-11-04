@@ -1,0 +1,529 @@
+-- data-contribution-003-wikidata-without-tmdb.sql
+-- run on vaugouindb (container damp-vaugouin-com-mariadb-1) at 2026-11-04 19:04:19 +0100
+--
++---------------------+
+| NOW_                |
++---------------------+
+| 2026-11-04 19:04:19 |
++---------------------+
++------------------------------------------------+
+| SECTION                                        |
++------------------------------------------------+
+| A. Movies: candidates and Wikidata write-backs |
++------------------------------------------------+
++----------+-----------+-------------------------------+-----------------+-------------+
+| ENTITIES | WITH_IMDB | WITH_IMDB_NO_TMDB_ON_WIKIDATA | TMDB_CANDIDATES | TMDB_HAS_IT |
++----------+-----------+-------------------------------+-----------------+-------------+
+|   443701 |    340648 |                         61617 |           59727 |        1758 |
++----------+-----------+-------------------------------+-----------------+-------------+
++-------------------------------------------------------+
+| SECTION                                               |
++-------------------------------------------------------+
+| B. Movies: top 200 TMDb candidates by label languages |
++-------------------------------------------------------+
++-------------+------------+-------+-------------+------------------------------------------+-------------------------------------------+
+| ID_WIKIDATA | ID_IMDB    | YEAR_ | LABEL_LANGS | LABEL_EN                                 | LABEL_FR                                  |
++-------------+------------+-------+-------------+------------------------------------------+-------------------------------------------+
+| Q15169906   | tt0216270  |  1992 |         413 | Tatort: Verspekuliert                    | Tatort: Verspekuliert                     |
+| Q15169395   | tt0838240  |  2006 |         413 | Polizeiruf 110 – Mit anderen Augen       | Polizeiruf 110 – Mit anderen Augen        |
+| Q40125608   | tt0431225  |  2004 |         223 | Time Is But Brief                        | Liden tid                                 |
+| Q2651880    | tt4156238  |  2001 |         218 | Amber Eye                                | Amber Eye                                 |
+| Q501529     | tt1985443  |  2012 |          90 | Hatfields & McCoys                       | Hatfields and McCoys                      |
+| Q3516390    | tt2269568  |  2007 |          83 | Taxi de nuit                             | Taxi de nuit                              |
+| Q3029809    | tt1671627  |  2008 |          83 | Disco Sex                                | Disco Sex                                 |
+| Q21184939   | tt1867977  |  1909 |          82 | A Marriage of Convenience                | A Marriage of Convenience                 |
+| Q2819817    | tt0339399  |  1912 |          82 | A Modern Highwayman                      | A Modern Highwayman                       |
+| Q3297855    | tt0338239  |  1913 |          82 | Master and Man                           | Master and Man                            |
+| Q3521091    | tt0002907  |  1913 |          82 | The Governor's Daughter                  | The Governor's Daughter                   |
+| Q3294988    | tt0005717  |  1915 |          82 | Marse Covington                          | Marse Covington                           |
+| Q12493465   | tt1293585  |  1953 |          82 | Lagu Kenangan                            | Lagu Kenangan                             |
+| Q19725084   | tt6040358  |  1963 |          82 | Daerah Tak Bertuan                       | Daerah Tak Bertuan                        |
+| Q20022695   | tt0255632  |  2000 |          82 | Tangled                                  | Tangled                                   |
+| Q1989736    | tt1388785  |  2008 |          82 | Night of the Giving Head                 | Night of the Giving Head                  |
+| Q20005454   | tt1787819  |  1909 |          81 | The Midnight Sons                        | The Midnight Sons                         |
+| Q3521038    | tt0221212  |  1913 |          81 | The Girl and the Judge                   | The Girl and the Judge                    |
+| Q12496139   | tt1293595  |  1951 |          81 | Main-Main Djadi Sungguhan                | Main-Main Djadi Sungguhan                 |
+| Q19727304   | tt1482164  |  1963 |          81 | Kartika Aju                              | Kartika Aju                               |
+| Q26000000   | tt0351673  |  1972 |          81 | Rosa, rosa...                            | Rosa, rosa...                             |
+| Q19725474   | tt1158243  |  1976 |          81 | Dr. Firdaus                              | Dr. Firdaus                               |
+| Q6386867    | tt1058725  |  1977 |          81 | Kembang-Kembang Plastik                  | Kembang-Kembang Plastik                   |
+| Q19724526   | tt10023840 |  1978 |          81 | Bulu-Bulu Cendrawasih                    | Bulu-Bulu Cendrawasih                     |
+| Q12485655   | tt1795605  |  1981 |          81 | Hidup Tanpa Kehormatan                   | Hidup Tanpa Kehormatan                    |
+| Q19725183   | tt0335027  |  1983 |          81 | Damarwulan-Minakjinggo                   | Damarwulan-Minakjinggo                    |
+| Q12472471   | tt1031547  |  1988 |          81 | Arini II                                 | Arini II                                  |
+| Q12496225   | tt1037786  |  1990 |          81 | Makelar Kodok Untung Besar               | Makelar Kodok Untung Besar                |
+| Q12494844   | tt1462567  |  1976 |          80 | Liku-Liku Panasnya Cinta                 | Liku-Liku Panasnya Cinta                  |
+| Q12493527   | tt1147586  |  1978 |          80 | Laki-Laki Binal                          | Laki-Laki Binal                           |
+| Q12495307   | tt2030356  |  1984 |          80 | Lorong-Lorong Asmara                     | Lorong-Lorong Asmara                      |
+| Q12492872   | tt1129981  |  1985 |          80 | Kulihat Cinta di Matanya                 | Kulihat Cinta di Matanya                  |
+| Q12493884   | tt1213688  |  1989 |          80 | Langkah-Langkah Pasti                    | Langkah-Langkah Pasti                     |
+| Q12492794   | tt9329858  |  1992 |          80 | Kuberikan Segalanya                      | Kuberikan Segalanya                       |
+| Q12493996   | tt1068260  |  2007 |          80 | Runaway from Blora                       | Lari dari Blora                           |
+| Q25470673   | tt1066502  |  1990 |          79 | Warisan Terlarang                        | Warisan Terlarang                         |
+| Q1052463    | tt2724592  |  NULL |          78 | Carosello                                | Carosello                                 |
+| Q16109067   | tt0158821  |  1938 |          75 | Natur und Technik                        | Natur und Technik                         |
+| Q18601785   | tt0184312  |  1914 |          73 | Bumbles Goes Butterflying                | Bumbles Goes Butterflying                 |
+| Q25840841   | tt0047910  |  1955 |          73 | Caminhos Longos                          | Caminhos Longos                           |
+| Q3682451    | tt1612271  |  2010 |          72 | Coincidenze                              | Coincidenze                               |
+| Q7805212    | tt14906602 |  NULL |          71 | Time Wars                                | Time Wars                                 |
+| Q56884001   | tt13619032 |  2006 |          71 | Boten Anna                               | Boten Anna                                |
+| Q21280706   | tt4454114  |  2012 |          71 | Vergessen                                | Vergessen                                 |
+| Q56884170   | tt13625834 |  2006 |          70 | Vifta med händerna                       | Vifta med händerna                        |
+| Q56884258   | tt13630456 |  2009 |          70 | I Promised Myself                        | I Promised Myself                         |
+| Q56884361   | tt13633052 |  2013 |          70 | Crash & Burn                             | Crash & Burn                              |
+| Q70590171   | tt13634338 |  2019 |          70 | Home                                     | Home                                      |
+| Q56884161   | tt13624494 |  2006 |          69 | Vi sitter i Ventrilo och spelar DotA     | Vi sitter i Ventrilo och spelar DotA      |
+| Q56884182   | tt13627326 |  2007 |          69 | Now You're Gone                          | Now You're Gone                           |
+| Q56884213   | tt13628794 |  2008 |          69 | Angel in the Night                       | Angel in the Night                        |
+| Q56884206   | tt13628686 |  2008 |          69 | All I Ever Wanted                        | All I Ever Wanted                         |
+| Q56884227   | tt13628950 |  2008 |          69 | I Miss You                               | I Miss You                                |
+| Q56884237   | tt13630336 |  2009 |          69 | Walk on Water                            | Walk on Water                             |
+| Q56884246   | tt13630422 |  2009 |          69 | Every Morning                            | Every Morning                             |
+| Q56884264   | tt13630514 |  2010 |          69 | Saturday                                 | Saturday                                  |
+| Q57273104   | tt13630792 |  2011 |          69 | Melody                                   | Melody                                    |
+| Q56884269   | tt13631976 |  2012 |          69 | Northern Light                           | Northern Light                            |
+| Q56884353   | tt13632194 |  2012 |          69 | Dream on the Dancefloor                  | Dream on the Dancefloor                   |
+| Q56884379   | tt13633266 |  2013 |          69 | Calling Time                             | Calling Time                              |
+| Q58877793   | tt13634280 |  2018 |          69 | Masterpiece                              | Masterpiece                               |
+| Q93375257   | tt13634354 |  2020 |          69 | Angels Ain't Listening                   | Angels Ain't Listening                    |
+| Q333637     | tt0234355  |  1969 |          59 | Well, Just You Wait!                     | Nu, pogodi!                               |
+| Q20802965   | tt0935073  |  1916 |          52 | Out of the Shadows                       | Out of the Shadows                        |
+| Q11464778   | tt3024050  |  2013 |          49 | Senkaku Rock                             | Senkaku Rock                              |
+| Q109795794  | tt16261230 |  2021 |          48 | Life Speaks to Me                        | Life Speaks to Me                         |
+| Q106214917  | tt14323068 |  2021 |          47 | Basshunter Dota Revival                  | NULL                                      |
+| Q102225310  | tt13626612 |  2007 |          43 | DotA                                     | NULL                                      |
+| Q14523957   | tt1653134  |  1907 |          42 | A Christmas Adoption                     | A Christmas Adoption                      |
+| Q14524207   | tt0223980  |  1915 |          42 | A Quiet Little Game                      | A Quiet Little Game                       |
+| Q14411287   | tt0287746  |  2001 |          42 | Tatort: Kindstod                         | Tatort: Kindstod                          |
+| Q114164330  | tt22187886 |  2021 |          42 | ¿?                                       | ¿?                                        |
+| Q19756862   | tt6706132  |  2015 |          38 | See You Again                            | See You Again                             |
+| Q886105     | tt0163929  |  NULL |          34 | Blue's Clues                             | Jeu de Bleue                              |
+| Q59783      | tt0092337  |  1989 |          32 | The Decalogue                            | Le Décalogue                              |
+| Q138678377  | tt38754894 |  2026 |          32 | I Was a Witness                          | Ich war ein Zeuge                         |
+| Q9262969    | tt0085101  |  1983 |          30 | The Thorn Birds                          | Les oiseaux se cachent pour mourir        |
+| Q651276     | tt0707293  |  1999 |          29 | Help Wanted                              | Bienvenue à bord                          |
+| Q125807688  | tt8288854  |  2018 |          29 | Diorama                                  | Diorama                                   |
+| Q1065767    | ev0002006  |  NULL |          28 | Scream Awards                            | Scream Awards                             |
+| Q18388225   | tt0282657  |  1987 |          28 | Kilippattu                               | Kilippattu                                |
+| Q7136307    | tt4245460  |  2004 |          28 | Parayam                                  | Parayam                                   |
+| Q6365379    | tt13907220 |  2011 |          28 | Kanteerava                               | Dureté                                    |
+| Q88785811   | tt6729896  |  1978 |          27 | Bicycle Race                             | Bicycle Race                              |
+| Q87669627   | tt6659340  |  1984 |          27 | Last Christmas                           | Last Christmas                            |
+| Q72409471   | tt11890918 |  1997 |          27 | I Wonder If Heaven Got a Ghetto          | I Wonder If Heaven Got a Ghetto           |
+| Q63183401   | tt6837464  |  2017 |          27 | Despacito                                | Despacito                                 |
+| Q27832214   | tt6132720  |  NULL |          26 | Vatanım Sensin                           | Vatanım Sensin                            |
+| Q1196284    | tt0098492  |  NULL |          26 | Gunbuster                                | Gunbuster                                 |
+| Q125473375  | tt10596986 |  2016 |          26 | Chernobyl. 1986.04.26 P.S.               | Chernobyl. 1986.04.26 P.S.                |
+| Q63237372   | tt6840274  |  2017 |          26 | Shape of You                             | Shape of You                              |
+| Q1542326    | tt0357405  |  NULL |          25 | 45th Annual Grammy Awards                | 45e cérémonie des Grammy Awards           |
+| Q3239412    | tt0701278  |  1990 |          25 | Treehouse of Horror                      | Simpson Horror Show                       |
+| Q4024278    | tt0417290  |  1993 |          25 | Zeropera                                 | Zeropera                                  |
+| Q1682597    | tt0780362  |  2006 |          25 | Jane Eyre                                | Jane Eyre                                 |
+| Q111967146  | tt16358384 |  NULL |          24 | Tulsa King                               | Tulsa King                                |
+| Q12940384   | tt0255542  |  1968 |          24 | Ragini                                   | Ragini                                    |
+| Q1426605    | tt0115392  |  1996 |          24 | Titanic                                  | Le Titanic                                |
+| Q856326     | tt0369277  |  2000 |          24 | Bible Black                              | Bible Black                               |
+| Q1542334    | tt0756614  |  NULL |          23 | 48th Annual Grammy Awards                | 48e cérémonie des Grammy Awards           |
+| Q107539517  | tt5894596  |  1984 |          23 | Ghostbusters                             | Ghostbusters                              |
+| Q118097615  | tt7264118  |  2011 |          23 | Standing Up for Freedom                  | Standing Up for Freedom                   |
+| Q116789762  | tt5931924  |  2016 |          23 | Return of the Spider Monkeys             | Return of the Spider Monkeys              |
+| Q23932874   | tt0857183  |  NULL |          22 | Excess All Areas                         | Excess All Areas                          |
+| Q25366      | tt0061027  |  1966 |          22 | Where No Man Has Gone Before             | Où l'homme dépasse l'homme                |
+| Q108198444  | tt12535934 |  1978 |          22 | Them Heavy People                        | Them Heavy People                         |
+| Q111466482  | tt6863816  |  1978 |          22 | Da Ya Think I'm Sexy?                    | Da Ya Think I'm Sexy?                     |
+| Q104137228  | tt4649250  |  1983 |          22 | Girls Just Want to Have Fun              | Girls Just Want to Have Fun               |
+| Q109898376  | tt6725020  |  1984 |          22 | Forever Young                            | Forever Young                             |
+| Q68998265   | tt0093034  |  1986 |          22 | Der Flieger                              | Der Flieger                               |
+| Q114708271  | tt8448348  |  1986 |          22 | I Can't Wait                             | I Can't Wait                              |
+| Q88488293   | tt4662398  |  1986 |          22 | You Can Call Me Al                       | You Can Call Me Al                        |
+| Q117225662  | tt0195603  |  1987 |          22 | Comeback                                 | Comeback                                  |
+| Q108110215  | tt6782586  |  1988 |          22 | Don't Worry, Be Happy                    | Don't Worry, Be Happy                     |
+| Q112603238  | tt8875278  |  1990 |          22 | From a Distance                          | From a Distance                           |
+| Q108843462  | tt6880194  |  1990 |          22 | Tears on My Pillow                       | Tears on My Pillow                        |
+| Q102163797  | tt21250864 |  1991 |          22 | I Can't Make You Love Me                 | I Can't Make You Love Me                  |
+| Q108345325  | tt6664084  |  1992 |          22 | Heal The World                           | Heal The World                            |
+| Q113194131  | tt7056734  |  1992 |          22 | Why                                      | Why                                       |
+| Q108338106  | tt12536306 |  1993 |          22 | Rubberband Girl                          | Rubberband Girl                           |
+| Q107616785  | tt6677376  |  1997 |          22 | Blood on the Dance Floor                 | Blood on the Dance Floor                  |
+| Q108068431  | tt4978244  |  1997 |          22 | Never, Never Gonna Give You Up           | Never, Never Gonna Give You Up            |
+| Q228396     | tt0144039  |  1999 |          22 | Atomic Train                             | Atomic Train                              |
+| Q108252897  | tt6602654  |  1999 |          22 | If You Had My Love                       | If You Had My Love                        |
+| Q103453290  | tt17679604 |  2001 |          22 | Feeling Good                             | Feeling Good                              |
+| Q103465266  | tt17679608 |  2001 |          22 | Hyper Music                              | Hyper Music                               |
+| Q111143674  | tt6750706  |  2002 |          22 | I Love Rock 'n' Roll                     | I Love Rock 'n' Roll                      |
+| Q111489686  | tt7826710  |  2002 |          22 | Times Like These                         | Times Like These                          |
+| Q7717444    | tt2245988  |  2013 |          22 | The Bible                                | La Bible                                  |
+| Q18285145   | tt3552792  |  2014 |          22 | Treehouse of Horror XXV                  | Simpson Horror Show XXV                   |
+| Q108219731  | tt7115000  |  2015 |          22 | Ain't Nobody (Loves Me Better)           | Ain't Nobody (Loves Me Better)            |
+| Q108214075  | tt6231122  |  2015 |          22 | I Want You to Know                       | I Want You to Know                        |
+| Q108212315  | tt11729566 |  2015 |          22 | Goodbye to Yesterday                     | Goodbye to Yesterday                      |
+| Q108371625  | tt9320112  |  2018 |          22 | Better                                   | Better                                    |
+| Q33101514   | tt6461412  |  2019 |          22 | Sorry                                    | sorry                                     |
+| Q65501088   | tt6672970  |  1992 |          21 | Erotica                                  | Erotica                                   |
+| Q20728634   | tt0231767  |  1996 |          21 | Et hundeliv                              | Et hundeliv                               |
+| Q565293     | tt0246430  |  2001 |          21 | Anne Frank: The Whole Story              | Anne Frank                                |
+| Q2455114    | tt0701284  |  2001 |          21 | Treehouse of Horror XII                  | Simpson Horror Show XII                   |
+| Q2491629    | tt0701285  |  2003 |          21 | Treehouse of Horror XIV                  | Simpson Horror Show XIV                   |
+| Q924889     | tt0430484  |  2004 |          21 | The Power of Nightmares                  | The Power of Nightmares                   |
+| Q108059892  | tt8337978  |  2013 |          21 | Rappin' for Jesus                        | Rappin' for Jesus                         |
+| Q96100975   | tt3464896  |  2020 |          21 | Small Axe                                | Small Axe                                 |
+| Q4451599    | tt4723140  |  1909 |          20 | Taras Bulba                              | Taras Bulba                               |
+| Q15865467   | tt0237434  |  1914 |          20 | The Man Behind the Mask                  | The Man Behind the Mask                   |
+| Q15865818   | tt0332652  |  1916 |          20 | How Times Do Change                      | How Times Do Change                       |
+| Q22025928   | tt0406716  |  1933 |          20 | Don Quichotte (1933)                     | Don Quichotte (1933)                      |
+| Q1287667    | tt0708469  |  1966 |          20 | The Man Trap                             | Ils étaient des millions                  |
+| Q2984502    | tt0708463  |  1966 |          20 | The Enemy Within                         | L'Imposteur                               |
+| Q66973532   | tt6844060  |  1973 |          20 | Life on Mars?                            | Life on Mars?                             |
+| Q65036783   | tt7015776  |  1977 |          20 | Be My Wife                               | Be My Wife                                |
+| Q62057561   | tt8085058  |  1978 |          20 | 10:15 Saturday Night                     | 10:15 Saturday Night                      |
+| Q62056001   | tt8085158  |  1986 |          20 | Killing an Arab                          | Killing an Arab                           |
+| Q241938     | tt6886024  |  1994 |          20 | Janet.                                   | Janet.                                    |
+| Q1087745    | tt0779678  |  1996 |          20 | Treehouse of Horror VII                  | Simpson Horror Show VII                   |
+| Q1100499    | tt0178130  |  1999 |          20 | Cleopatra                                | Cléopâtre                                 |
+| Q1065959    | tt3531628  |  2000 |          20 | Moonlight Lady                           | Moonlight Lady                            |
+| Q20755823   | tt5169708  |  2004 |          20 | 14, Fuld og for meget                    | 14, Fuld og for meget                     |
+| Q1098262    | tt0678483  |  2005 |          20 | Pilot                                    | La Grande Évasion                         |
+| Q20756598   | tt1484993  |  2008 |          20 | Hvor kragerne vender                     | Hvor kragerne vender                      |
+| Q65066546   | tt1676684  |  2009 |          20 | Paparazzi                                | Paparazzi                                 |
+| Q591036     | tt1949720  |  2011 |          20 | Great Expectations                       | De grandes espérances                     |
+| Q65552637   | tt9222502  |  2019 |          20 | SpongeBob's Big Birthday Blowout         | Bob l'éponge : le grand anniversaire      |
+| Q65558354   | tt10588262 |  2019 |          20 | Mother's Daughter                        | Mother's Daughter                         |
+| Q76514010   | tt13687276 |  NULL |          19 | The Game Awards 2020                     | The Game Awards 2020                      |
+| Q1542260    | tt7324904  |  NULL |          19 | 18th Annual Grammy Awards                | 18e cérémonie des Grammy Awards           |
+| Q16251591   | tt1937186  |  1907 |          19 | How Brown Saw the Baseball Game          | How Brown Saw the Baseball Game           |
+| Q4093019    | tt0291050  |  1908 |          19 | The Big Man                              | Bolchoï tchelovek                         |
+| Q3149157    | tt0438100  |  1917 |          19 | Imokawa Mukuzo Genkanban no Maki         | Imokawa Mukuzo - Genkanban no maki        |
+| Q7742138    | tt0326973  |  1929 |          19 | The Inseparables                         | The Inseparables                          |
+| Q2568121    | tt1764742  |  1975 |          19 | Wie informiert das Fernsehen             | Wie informiert das Fernsehen              |
+| Q2586425    | tt0461103  |  1986 |          19 | Muzzy in Gondoland                       | NULL                                      |
+| Q2444196    | tt0701279  |  1993 |          19 | Treehouse of Horror IV                   | Simpson Horror Show IV                    |
+| Q3819229    | tt0416846  |  1994 |          19 | L'imperfetto                             | L'imperfetto                              |
+| Q688651     | tt0366186  |  1994 |          19 | Armitage III                             | Armitage III                              |
+| Q18355473   | tt0266932  |  1996 |          19 | Sathyabhamakkoru Premalekhanam           | Sathyabhamakkoru Premalekhanam            |
+| Q2587038    | tt0763040  |  2000 |          19 | Treehouse of Horror XI                   | Simpson Horror Show XI                    |
+| Q689763     | tt0495055  |  2007 |          19 | War and Peace                            | Guerre et Paix                            |
+| Q1602458    | tt4552032  |  2007 |          19 | Keyboard Cat                             | Keyboard Cat                              |
+| Q57835558   | tt7019540  |  2011 |          19 | Someone Like You                         | Someone Like You                          |
+| Q2659593    | tt0708424  |  1966 |          18 | Charlie X                                | Charlie X                                 |
+| Q2664096    | tt0708439  |  1966 |          18 | Mudd's Women                             | Trois femmes dans un vaisseau             |
+| Q20183781   | tt0103798  |  1991 |          18 | Der Besucher                             | Der Besucher                              |
+| Q2376730    | tt0759267  |  1991 |          18 | Treehouse of Horror II                   | Simpson Horror Show II                    |
+| Q2464574    | tt0701281  |  1994 |          18 | Treehouse of Horror V                    | Simpson Horror Show V                     |
+| Q2361433    | tt0177842  |  1995 |          18 | Treehouse of Horror VI                   | Simpson Horror Show VI                    |
+| Q2062996    | tt0118499  |  1997 |          18 | True Women                               | Sœurs de cœur                             |
+| Q2562051    | tt0281371  |  2001 |          18 | Wilhelmina                               | Wilhelmina                                |
+| Q56085848   | tt5580920  |  2008 |          18 | Make You Feel My Love                    | Make You Feel My Love                     |
+| Q600488     | tt1392842  |  2009 |          18 | Pilot                                    | L'Effet Glee                              |
+| Q4105660    | tt1691882  |  2010 |          18 | Vdoviy parokhod                          | Vdoviy parokhod                           |
+| Q2658559    | tt1628663  |  2010 |          18 | Treehouse of Horror XXI                  | Simpson Horror Show XXI                   |
+| Q1033309    | tt2083065  |  2011 |          18 | Treehouse of Horror XXII                 | Simpson Horror Show XXII                  |
+| Q16684153   | tt2315896  |  2013 |          18 | Eve of Destruction                       | À l'aube de la destruction                |
+| Q15052017   | tt2930940  |  2013 |          18 | Treehouse of Horror XXIV                 | Simpson Horror Show XXIV                  |
+| Q41250422   | tt6255500  |  2017 |          18 | Man in an Orange Shirt                   | Man in an Orange Shirt                    |
+| Q141043723  | tt36294093 |  2023 |          18 | Come un fiore                            | Come un fiore                             |
+| Q1968020    | tt0910812  |  NULL |          17 | Tin Man                                  | Deux Princesses pour un royaume           |
+| Q2271087    | tt0159567  |  NULL |          17 | Mobile Suit Gundam 0083: Stardust Memory | Mobile Suit Gundam 0083 : Stardust Memory |
+| Q710903     | tt0389633  |  NULL |          17 | The Galaxy Railways                      | The Galaxy Railways                       |
++-------------+------------+-------+-------------+------------------------------------------+-------------------------------------------+
++----------------------------------------------------------------------------------+
+| SECTION                                                                          |
++----------------------------------------------------------------------------------+
+| C. Movies: 50 Wikidata items missing the TMDb id TMDb already has (P4947 to add) |
++----------------------------------------------------------------------------------+
++-------------+------------+---------+-------------+------------------------------------------------------+
+| ID_WIKIDATA | ID_IMDB    | ID_TMDB | LABEL_LANGS | LABEL_EN                                             |
++-------------+------------+---------+-------------+------------------------------------------------------+
+| Q12513691   | tt19838538 |  670370 |          81 | Senyum di Pagi Bulan Desember                        |
+| Q12493467   | tt1067187  | 1100126 |          80 | Lagu untuk Seruni                                    |
+| Q136913224  | tt36399781 | 1413708 |          32 | Blame – Bats, Politics and a Planet Out of Balance   |
+| Q138644280  | tt32634780 | 1574297 |          31 | On the Wave                                          |
+| Q138784408  | tt40222589 | 1559067 |          31 | Denn dieses Leben lebst nur Du!                      |
+| Q2892442    | tt1018851  |  823668 |          15 | Tommy e Oscar                                        |
+| Q3832155    | tt0004224  | 1637104 |          12 | Life's Shop Window                                   |
+| Q6416395    | tt0214858  | 1192073 |          11 | Kisan Kanya                                          |
+| Q3986444    | tt0005151  | 1814842 |          11 | The Cowboy and the Lady                              |
+| Q4327887    | tt1315588  | 1152369 |          11 | Well, Just You Wait!                                 |
+| Q4205371    | tt0164542  |  737740 |          10 | House of Greed                                       |
+| Q115807177  | tt17677744 |  989937 |          10 | The Seven Deadly Sins: Grudge of Edinburgh           |
+| Q140524489  | tt37042085 | 1487861 |          10 | Elize: Shadows of a Woman                            |
+| Q4766154    | tt0106287  |  647501 |           9 | Anmol                                                |
+| Q4444815    | tt11570714 |  547670 |           9 | Stewardess                                           |
+| Q19363635   | tt0135454  |  769004 |           8 | Honeymoon Hate                                       |
+| Q126902120  | tt31631414 | 1246014 |           8 | The Night Curse of Reatrei                           |
+| Q21015393   | tt4842814  |  365283 |           8 | Zane                                                 |
+| Q3987107    | tt0010133  |  847992 |           8 | The Follies Girl                                     |
+| Q3990074    | tt0009830  | 1441248 |           8 | The Woman Who Gave                                   |
+| Q128914836  | tt31710037 | 1313006 |           8 | Familia                                              |
+| Q8845177    | tt0004363  | 1815750 |           8 | Mrs. Black Is Back                                   |
+| Q13613970   | tt0156205  | 1425961 |           8 | Creature                                             |
+| Q7752192    | tt0007090  | 1806450 |           8 | The Moonshiners                                      |
+| Q15973356   | tt0225099  | 1502096 |           8 | Honeymoon in a Balloon                               |
+| Q2844866    | tt0231096  | 1807965 |           8 | An Affair of Honor                                   |
+| Q7293511    | tt0005950  | 1813319 |           8 | Ranson's Folly                                       |
+| Q56241160   | tt0006015  | 1814130 |           8 | Sealed Valley                                        |
+| Q140921103  | tt42653197 | 1566991 |           8 | Grown Ups 3                                          |
+| Q18709116   | tt0004338  | 1815840 |           7 | The Million                                          |
+| Q7160844    | tt0246848  |  631685 |           7 | Pehchan                                              |
+| Q18418768   | tt0033197  |  822916 |           7 | Mirage by the Lake                                   |
+| Q12046133   | tt2521652  |  562237 |           7 | Hey Mister                                           |
+| Q3822184    | tt0168699  |  827213 |           7 | La donnaccia                                         |
+| Q4662818    | tt0495794  |  966938 |           7 | Aaya Toofan                                          |
+| Q130305120  | tt10527634 |  680706 |           7 | NULL                                                 |
+| Q10979175   | tt0175735  |  628833 |           7 | Himmat                                               |
+| Q4699550    | tt2253560  | 1178266 |           7 | Ajantha                                              |
+| Q136095321  | tt38066534 | 1537605 |           7 | Bitcoin                                              |
+| Q3935193    | tt0047412  |  965656 |           7 | Laugh! Laugh! Laugh!                                 |
+| Q16038814   | tt0011429  | 1814844 |           7 | A Broadway Cowboy                                    |
+| Q109360134  | tt16444750 |  876797 |           7 | The Last Ten Years                                   |
+| Q104880757  | tt13557516 |  767568 |           7 | Lady Buckit and the Motley Mopsters                  |
+| Q139005148  | tt36593129 | 1466228 |           7 | The Comeback King                                    |
+| Q56887251   | tt0244614  | 1153459 |           7 | The Mole as a Painter                                |
+| Q134612329  | tt36931184 | 1437882 |           7 | A Place in Hell                                      |
+| Q140521092  | tt43658788 | 1658491 |           7 | The Cheetah Girls: Next Gen                          |
+| Q140681805  | tt5782552  | 1729732 |           7 | Growth of the Soil                                   |
+| Q141248493  | tt39528902 | 1529372 |           7 | Don't Be Shy                                         |
+| Q3930928    | tt0028161  |  743589 |           6 | King of Diamonds                                     |
++-------------+------------+---------+-------------+------------------------------------------------------+
++------------------------------------------------+
+| SECTION                                        |
++------------------------------------------------+
+| D. Series: candidates and Wikidata write-backs |
++------------------------------------------------+
++----------+-----------+-------------------------------+-----------------+-------------+
+| ENTITIES | WITH_IMDB | WITH_IMDB_NO_TMDB_ON_WIKIDATA | TMDB_CANDIDATES | TMDB_HAS_IT |
++----------+-----------+-------------------------------+-----------------+-------------+
+|   168060 |     74014 |                         17200 |           16838 |         226 |
++----------+-----------+-------------------------------+-----------------+-------------+
++-------------------------------------------------------+
+| SECTION                                               |
++-------------------------------------------------------+
+| E. Series: top 100 TMDb candidates by label languages |
++-------------------------------------------------------+
++-------------+----------------+-------+-------------+------------------------------+----------------------------------------+
+| ID_WIKIDATA | ID_IMDB        | YEAR_ | LABEL_LANGS | LABEL_EN                     | LABEL_FR                               |
++-------------+----------------+-------+-------------+------------------------------+----------------------------------------+
+| Q12311355   | tt0224479      |  NULL |         223 | Finn'sk fjernsyn             | Finn'sk fjernsyn                       |
+| Q4947166    | tt0303436      |  1979 |          82 | Bosco                        | Bosco                                  |
+| Q61357773   | tt15161414     |  2018 |          81 | Cinta Suci                   | Cinta Suci                             |
+| Q65205227   | tt32334123     |  2019 |          81 | Cinta karena Cinta           | Cinta Karena Cinta                     |
+| Q107870528  | tt22855280     |  2021 |          81 | Cinta Amara                  | Cinta Amara                            |
+| Q111081209  | tt18938186     |  2022 |          81 | Nania Lain Dunia             | Nania Lain Dunia                       |
+| Q111369600  | tt19384082     |  2022 |          81 | Pelangi untuk Nirmala        | Pelangi untuk Nirmala                  |
+| Q10161      | tt2317189      |  2012 |          80 | Eurovision Song Contest 2012 | Concours Eurovision de la chanson 2012 |
+| Q25408640   | tt8152638      |  2018 |          79 | Eurovision Song Contest 2018 | Concours Eurovision de la chanson 2018 |
+| Q6015709    | tt5721098      |  2016 |          78 | Eurovision Song Contest 2016 | Concours Eurovision de la chanson 2016 |
+| Q171784     | tt0313343      |  NULL |          76 | Eurovision Song Contest 1956 | Concours Eurovision de la chanson 1956 |
+| Q10162      | tt2563104      |  2013 |          76 | Eurovision Song Contest 2013 | Concours Eurovision de la chanson 2013 |
+| Q15215081   | tt4702140      |  2015 |          76 | Eurovision Song Contest 2015 | Concours Eurovision de la chanson 2015 |
+| Q50729731   | tt13957998     |  2021 |          76 | Eurovision Song Contest 2021 | Concours Eurovision de la chanson 2021 |
+| Q10157      | tt1430123      |  NULL |          75 | Eurovision Song Contest 2009 | Concours Eurovision de la chanson 2009 |
+| Q4795614    | tt0179651      |  1964 |          75 | Around The Beatles           | Around The Beatles                     |
+| Q3841939    | tt0222173      |  1997 |          75 | Macao                        | Macao                                  |
+| Q5354210    | tt3040806      |  2014 |          75 | Eurovision Song Contest 2014 | Concours Eurovision de la chanson 2014 |
+| Q248688     | tt2461862      |  NULL |          74 | 85th Academy Awards          | 85e cérémonie des Oscars               |
+| Q10158      | tt1657348      |  NULL |          73 | Eurovision Song Contest 2010 | Concours Eurovision de la chanson 2010 |
+| Q154846     | tt0313344      |  NULL |          72 | Eurovision Song Contest 1957 | Concours Eurovision de la chanson 1957 |
+| Q180675     | ev0000003/2012 |  NULL |          72 | 84th Academy Awards          | 84e cérémonie des Oscars               |
+| Q203983     | tt0313351      |  NULL |          72 | Eurovision Song Contest 1964 | Concours Eurovision de la chanson 1964 |
+| Q16773560   | ev0000003/2015 |  NULL |          71 | 87th Academy Awards          | 87e cérémonie des Oscars               |
+| Q10160      | tt1864520      |  NULL |          71 | Eurovision Song Contest 2011 | Concours Eurovision de la chanson 2011 |
+| Q203245     | tt0313347      |  NULL |          71 | Eurovision Song Contest 1960 | Concours Eurovision de la chanson 1960 |
+| Q20022969   | ev0000003/2016 |  NULL |          71 | 88th Academy Awards          | 88e cérémonie des Oscars               |
+| Q10155      | tt1200061      |  NULL |          71 | Eurovision Song Contest 2008 | Concours Eurovision de la chanson 2008 |
+| Q96929880   | tt14706760     |  2022 |          71 | Eurovision Song Contest 2022 | Concours Eurovision de la chanson 2022 |
+| Q13419956   | tt2796782      |  NULL |          70 | 86th Academy Awards          | 86e cérémonie des Oscars               |
+| Q188517     | tt0313345      |  NULL |          70 | Eurovision Song Contest 1958 | Concours Eurovision de la chanson 1958 |
+| Q200794     | tt0313348      |  NULL |          70 | Eurovision Song Contest 1961 | Concours Eurovision de la chanson 1961 |
+| Q10146      | tt0313389      |  NULL |          70 | Eurovision Song Contest 2002 | Concours Eurovision de la chanson 2002 |
+| Q199924     | tt0313346      |  NULL |          70 | Eurovision Song Contest 1959 | concours Eurovision de la chanson 1959 |
+| Q319132     | ev0000003/2006 |  NULL |          69 | 78th Academy Awards          | 78e cérémonie des Oscars               |
+| Q183355     | ev0000003/2011 |  NULL |          69 | 83rd Academy Awards          | 83e cérémonie des Oscars               |
+| Q114565318  | tt27749014     |  2024 |          69 | Eurovision Song Contest 2024 | Concours Eurovision de la chanson 2024 |
+| Q10152      | tt0800959      |  NULL |          68 | Eurovision Song Contest 2006 | Concours Eurovision de la chanson 2006 |
+| Q10153      | tt0991273      |  NULL |          68 | Eurovision Song Contest 2007 | Concours Eurovision de la chanson 2007 |
+| Q203975     | tt0313352      |  NULL |          68 | Eurovision Song Contest 1965 | Concours Eurovision de la chanson 1965 |
+| Q10150      | tt0398050      |  NULL |          68 | Eurovision Song Contest 2004 | Concours Eurovision de la chanson 2004 |
+| Q204010     | tt0313355      |  NULL |          68 | Eurovision Song Contest 1968 | Concours Eurovision de la chanson 1968 |
+| Q211942     | tt0313359      |  NULL |          68 | Eurovision Song Contest 1972 | Concours Eurovision de la chanson 1972 |
+| Q61905655   | tt10900840     |  2019 |          68 | Safari, a la caza de la tele | Safari, a la caza de la tele           |
+| Q64985689   | tt10902254     |  2019 |          68 | ¡Toma salami!                | ¡Toma salami!                          |
+| Q22076019   | tt5850440      |  NULL |          67 | 89th Academy Awards          | 89e cérémonie des Oscars               |
+| Q203254     | tt0313349      |  NULL |          67 | Eurovision Song Contest 1962 | Concours Eurovision de la chanson 1962 |
+| Q203987     | tt0313384      |  NULL |          67 | Eurovision Song Contest 1997 | Concours Eurovision de la chanson 1997 |
+| Q203329     | tt0313356      |  NULL |          67 | Eurovision Song Contest 1969 | Concours Eurovision de la chanson 1969 |
+| Q209673     | tt0313357      |  NULL |          67 | Eurovision Song Contest 1970 | Concours Eurovision de la chanson 1970 |
+| Q11113      | tt0313387      |  NULL |          67 | Eurovision Song Contest 2000 | Concours Eurovision de la chanson 2000 |
+| Q10151      | tt0444082      |  2005 |          67 | Eurovision Song Contest 2005 | Concours Eurovision de la chanson 2005 |
+| Q209429     | tt0313358      |  NULL |          66 | Eurovision Song Contest 1971 | Concours Eurovision de la chanson 1971 |
+| Q10148      | tt0367711      |  NULL |          66 | Eurovision Song Contest 2003 | Concours Eurovision de la chanson 2003 |
+| Q190441     | ev0000003/2009 |  NULL |          66 | 81st Academy Awards          | 81e cérémonie des Oscars               |
+| Q205192     | tt0313354      |  NULL |          66 | Eurovision Song Contest 1967 | Concours Eurovision de la chanson 1967 |
+| Q203968     | tt0313350      |  NULL |          66 | Eurovision Song Contest 1963 | Concours Eurovision de la chanson 1963 |
+| Q107599005  | tt20243990     |  2023 |          66 | Eurovision Song Contest 2023 | Concours Eurovision de la chanson 2023 |
+| Q211490     | tt0313360      |  NULL |          65 | Eurovision Song Contest 1973 | Concours Eurovision de la chanson 1973 |
+| Q11062      | tt0313388      |  NULL |          65 | Eurovision Song Contest 2001 | Concours Eurovision de la chanson 2001 |
+| Q189836     | tt1541775      |  NULL |          65 | 82nd Academy Awards          | 82e cérémonie des Oscars               |
+| Q209751     | tt0313363      |  NULL |          65 | Eurovision Song Contest 1976 | Concours Eurovision de la chanson 1976 |
+| Q215132     | ev0000003/2008 |  NULL |          65 | 80th Academy Awards          | 80e cérémonie des Oscars               |
+| Q118421125  | tt32344937     |  2025 |          65 | Eurovision Song Contest 2025 | Concours Eurovision de la chanson 2025 |
+| Q209745     | tt0313362      |  NULL |          64 | Eurovision Song Contest 1975 | Concours Eurovision de la chanson 1975 |
+| Q213699     | ev0000003/2007 |  NULL |          64 | 79th Academy Awards          | 79e cérémonie des Oscars               |
+| Q11117      | tt0313386      |  NULL |          64 | Eurovision Song Contest 1999 | Concours Eurovision de la chanson 1999 |
+| Q216891     | tt0313366      |  NULL |          63 | Eurovision Song Contest 1979 | Concours Eurovision de la chanson 1979 |
+| Q207889     | tt0313353      |  NULL |          63 | Eurovision Song Contest 1966 | Concours Eurovision de la chanson 1966 |
+| Q211754     | tt0313365      |  NULL |          63 | Eurovision Song Contest 1978 | Concours Eurovision de la chanson 1978 |
+| Q24636843   | ev0000003/2018 |  NULL |          63 | 90th Academy Awards          | 90e cérémonie des Oscars               |
+| Q458646     | ev0000003/2004 |  NULL |          62 | 76th Academy Awards          | 76e cérémonie des Oscars               |
+| Q211752     | tt0313368      |  NULL |          62 | Eurovision Song Contest 1981 | Concours Eurovision de la chanson 1981 |
+| Q213942     | tt0313367      |  1980 |          62 | Eurovision Song Contest 1980 | Concours Eurovision de la chanson 1980 |
+| Q209846     | tt0313371      |  NULL |          61 | Eurovision Song Contest 1984 | Concours Eurovision de la chanson 1984 |
+| Q66707607   | tt20231352     |  NULL |          61 | 95th Academy Awards          | 95e cérémonie des Oscars               |
+| Q504962     | tt0429487      |  NULL |          61 | 77th Academy Awards          | 77e cérémonie des Oscars               |
+| Q109886     | ev0000003/1929 |  NULL |          61 | 1st Academy Awards           | 1re cérémonie des Oscars               |
+| Q207815     | tt0313383      |  1996 |          61 | Eurovision Song Contest 1996 | Concours Eurovision de la chanson 1996 |
+| Q207538     | tt0313377      |  NULL |          60 | Eurovision Song Contest 1990 | Concours Eurovision de la chanson 1990 |
+| Q211469     | tt0313369      |  NULL |          60 | Eurovision Song Contest 1982 | Concours Eurovision de la chanson 1982 |
+| Q209678     | tt0313382      |  NULL |          60 | Eurovision Song Contest 1995 | Concours Eurovision de la chanson 1995 |
+| Q59456966   | ev0000003/2019 |  NULL |          60 | 91st Academy Awards          | 91e cérémonie des Oscars               |
+| Q125933843  | tt36981483     |  2026 |          60 | Eurovision Song Contest 2026 | Concours Eurovision de la chanson 2026 |
+| Q211484     | tt0313381      |  NULL |          59 | Eurovision Song Contest 1994 | Concours Eurovision de la chanson 1994 |
+| Q740425     | ev0000003/2003 |  NULL |          59 | 75th Academy Awards          | 75e cérémonie des Oscars               |
+| Q207541     | tt0313361      |  NULL |          59 | Eurovision Song Contest 1974 | Concours Eurovision de la chanson 1974 |
+| Q751924     | ev0000003/2001 |  NULL |          59 | 73rd Academy Awards          | 73e cérémonie des Oscars               |
+| Q208524     | tt0313376      |  NULL |          59 | Eurovision Song Contest 1989 | Concours Eurovision de la chanson 1989 |
+| Q153578     | tt0313370      |  NULL |          59 | Eurovision Song Contest 1983 | Concours Eurovision de la chanson 1983 |
+| Q211494     | tt0313364      |  NULL |          59 | Eurovision Song Contest 1977 | Concours Eurovision de la chanson 1977 |
+| Q536749     | ev0000003/1998 |  NULL |          58 | 70th Academy Awards          | 70e cérémonie des Oscars               |
+| Q753167     | ev0000003/2002 |  NULL |          58 | 74th Academy Awards          | 74e cérémonie des Oscars               |
+| Q208243     | tt0313380      |  NULL |          58 | Eurovision Song Contest 1993 | Concours Eurovision de la chanson 1993 |
+| Q85314819   | tt27590028     |  2024 |          58 | 96th Academy Awards          | 96e cérémonie des Oscars               |
+| Q179853     | tt0313372      |  1985 |          57 | Eurovision Song Contest 1985 | Concours Eurovision de la chanson 1985 |
+| Q263239     | ev0000003/1999 |  NULL |          56 | 71st Academy Awards          | 71e cérémonie des Oscars               |
+| Q85315079   | ev0000003/2026 |  NULL |          56 | 98th Academy Awards          | 98e cérémonie des Oscars               |
+| Q429319     | ev0000003/2000 |  NULL |          56 | 72nd Academy Awards          | 72e cérémonie des Oscars               |
+| Q57246152   | ev0000003/2021 |  NULL |          56 | 93rd Academy Awards          | 93e cérémonie des Oscars               |
++-------------+----------------+-------+-------------+------------------------------+----------------------------------------+
++-------------------------------------------------+
+| SECTION                                         |
++-------------------------------------------------+
+| F. Persons: candidates and Wikidata write-backs |
++-------------------------------------------------+
++----------+-----------+-------------------------------+-----------------+-------------+
+| ENTITIES | WITH_IMDB | WITH_IMDB_NO_TMDB_ON_WIKIDATA | TMDB_CANDIDATES | TMDB_HAS_IT |
++----------+-----------+-------------------------------+-----------------+-------------+
+|   792963 |    585142 |                        237580 |          222999 |       13747 |
++----------+-----------+-------------------------------+-----------------+-------------+
++--------------------------------------------------------+
+| SECTION                                                |
++--------------------------------------------------------+
+| G. Persons: top 100 TMDb candidates by label languages |
++--------------------------------------------------------+
++-------------+------------+------------+-------------+-------------------------------+
+| ID_WIKIDATA | ID_IMDB    | BIRTH_YEAR | LABEL_LANGS | LABEL_EN                      |
++-------------+------------+------------+-------------+-------------------------------+
+| Q105707720  | nm11464126 |       1996 |         414 | Taylor Lawrence               |
+| Q105598134  | nm13389396 |       2000 |         414 | Leon Felderer                 |
+| Q105396489  | nm13386296 |       1999 |         408 | Mārtiņš Bots                  |
+| Q105602953  | nm13386297 |       2000 |         407 | Roberts Plūme                 |
+| Q302        | ch0006201  |         -7 |         322 | Jesus Christ                  |
+| Q855252     | nm1692743  |       1927 |         297 | Bhumibol Adulyadej            |
+| Q448360     | nm8634285  |       1995 |         285 | Pusarla Venkata Sindhu        |
+| Q464311     | nm8172151  |       1990 |         281 | Saina Nehwal                  |
+| Q1855372    | nm9634669  |       1980 |         276 | Tamim bin Hamad Al Thani      |
+| Q448040     | nm5627774  |       1983 |         276 | Jwala Gutta                   |
+| Q1391342    | nm11073259 |       1955 |         274 | Prakash Padukone              |
+| Q467931     | nm10058915 |       1989 |         272 | Ashwini Ponnappa              |
+| Q119854081  | nm18093597 |       1995 |         272 | Rebeka Cully                  |
+| Q50365049   | nm12063195 |       1976 |         271 | Abiy Ahmed                    |
+| Q586422     | nm4255708  |       1994 |         270 | Viktor Axelsen                |
+| Q516815     | nm10076826 |       1994 |         267 | Tai Tzu-Ying                  |
+| Q464589     | nm12784618 |       1971 |         266 | Susi Susanti                  |
+| Q265153     | nm1782159  |       1979 |         266 | Mia Audina                    |
+| Q267019     | nm12812662 |       1972 |         264 | Bang Soo-hyun                 |
+| Q254353     | nm12813796 |       1968 |         263 | Minarti Timur                 |
+| Q5765114    | nm12296984 |       1969 |         263 | Himanta Biswa Sarma           |
+| Q448676     | nm1353008  |       1974 |         263 | Camilla Martin                |
+| Q725831     | nm1502347  |       1965 |         262 | Poul-Erik Høyer Larsen        |
+| Q1427090    | nm12813793 |       1974 |         262 | Flandy Limpele                |
+| Q558761     | nm8211706  |       1984 |         262 | Markis Kido                   |
+| Q468400     | nm12812657 |       1968 |         261 | Alan Budikusuma               |
+| Q744515     | nm6544977  |       1985 |         260 | Ville Lång                    |
+| Q520043     | nm12807146 |       1992 |         260 | Della Destiara Haris          |
+| Q4604       | ch0054073  |       -552 |         259 | Confucius                     |
+| Q471151     | nm1012178  |       1960 |         259 | Misbun Sidek                  |
+| Q1702607    | nm12813791 |       1966 |         259 | Joko Suprianto                |
+| Q716016     | nm3044407  |       1973 |         259 | Simon Archer                  |
+| Q465053     | nm12813795 |       1974 |         259 | Tri Kusharyanto               |
+| Q461435     | nm12813799 |       1970 |         258 | Denny Kantono                 |
+| Q973256     | nm7614199  |       1971 |         258 | Thomas Stuer-Lauridsen        |
+| Q281224     | nm12813792 |       1972 |         258 | Heryanto Arbi                 |
+| Q468593     | nm14545009 |       1983 |         258 | Maja Tvrdy                    |
+| Q33985636   | nm8638475  |       1997 |         258 | Hkeem                         |
+| Q4979617    | nm2808730  |       1985 |         257 | Sophia Somajo                 |
+| Q1229813    | nm12812667 |       1968 |         256 | Rexy Mainaky                  |
+| Q935        | nm8865538  |       1642 |         255 | Isaac Newton                  |
+| Q961856     | nm12812666 |       1971 |         255 | Ricky Subagja                 |
+| Q57229      | nm1464021  |       1937 |         253 | Sigmund Jähn                  |
+| Q15090186   | nm7335724  |       1976 |         253 | Mikayil Jabbarov              |
+| Q519540     | nm12813789 |       1973 |         252 | Eliza Nathanael               |
+| Q27906395   | nm13573508 |       1975 |         252 | Leopold Lanner                |
+| Q2601809    | nm12813788 |       1971 |         251 | Yuliani Santosa               |
+| Q187415     | nm12813790 |       1972 |         249 | Zelin Resiana                 |
+| Q517        | ch0027456  |       1769 |         248 | Napoleon                      |
+| Q16306607   | nm5621303  |       1994 |         248 | Oranate D. Caballes           |
+| Q1613575    | nm12813794 |       1972 |         247 | Rosalina Riseu                |
+| Q85556433   | nm15675753 |       1981 |         247 | Nina Gorodetzky               |
+| Q2219258    | nm5636626  |       1946 |         246 | Gerard Stellaard              |
+| Q4571055    | nm3877280  |       1956 |         246 | Hermann Berthelsen            |
+| Q76412283   | nm14684140 |       1991 |         246 | Emilie Stordalen              |
+| Q95270      | nm1064056  |       1925 |         245 | Hannes Hegen                  |
+| Q868        | nm12436700 |       -384 |         244 | Aristotle                     |
+| Q31442      | nm10434239 |       1990 |         244 | Emiliano Sala                 |
+| Q76509      | nm1747664  |       1883 |         243 | Karl Jaspers                  |
+| Q12349      | nm4331485  |       1986 |         243 | Inna                          |
+| Q3074013    | nm9351120  |       1963 |         241 | Florence Parly                |
+| Q187210     | nm0259664  |       1970 |         241 | Malena Ernman                 |
+| Q1405       | ch0009975  |        -63 |         240 | Augustus                      |
+| Q207655     | nm0094132  |       1947 |         240 | Kjell Magne Bondevik          |
+| Q5398061    | nm5649315  |       1971 |         240 | Eske Willerslev               |
+| Q1505115    | nm0059156  |       1972 |         239 | Hazel Barton                  |
+| Q1770992    | nm7567088  |       1976 |         239 | Ine Eriksen Søreide           |
+| Q23042593   | nm8957920  |       1990 |         239 | Iselin Solheim                |
+| Q1796800    | nm1812397  |       1953 |         238 | Olaf Böhme                    |
+| Q107401955  | nm12193256 |       1997 |         238 | Tharaka Mahesh                |
+| Q733878     | nm0923923  |       1890 |         237 | Mortimer Wheeler              |
+| Q115859523  | nm0462093  |       1951 |         237 | Lise-Lotte Kobberø            |
+| Q2076465    | nm0473405  |       1956 |         237 | Peter Kube                    |
+| Q42382798   | nm4777823  |       1980 |         237 | Wordsmith                     |
+| Q1927679    | nm1948765  |       1940 |         236 | Michael Hansen                |
+| Q463758     | nm2074605  |       1949 |         236 | Anne Enger                    |
+| Q60536619   | nm9549334  |       1980 |         236 | Johannes Karl Roland Schäfer  |
+| Q7660866    | nm7492171  |       1977 |         235 | Sylvi Listhaug                |
+| Q8409       | ch0031488  |       -356 |         234 | Alexander the Great           |
+| Q156339     | nm1711220  |       1962 |         234 | Markus Merk                   |
+| Q69821388   | nm11872648 |       2000 |         234 | María Becerra                 |
+| Q38460106   | nm9625477  |       2000 |         234 | Manuel Turizo                 |
+| Q11997154   | nm7492140  |       1954 |         233 | Rasmus Hansson                |
+| Q1360904    | nm11085042 |       1987 |         233 | Milan Borjan                  |
+| Q16911049   | nm8859387  |       1994 |         233 | Era Istrefi                   |
+| Q1324433    | nm1204326  |       1942 |         232 | Richard Stoltzman             |
+| Q6515796    | nm7713506  |       1968 |         232 | Monica Mæland                 |
+| Q26255536   | nm11385578 |       1990 |         232 | Niviaq Korneliussen           |
+| Q17097150   | nm8110021  |       1993 |         232 | Filip Ingebrigtsen            |
+| Q62024032   | nm10351051 |       1996 |         232 | Duki                          |
+| Q28586147   | nm9465307  |       1961 |         231 | Tom Homan                     |
+| Q155461     | nm1756040  |       1984 |         231 | Robert Huth                   |
+| Q62887629   | nm10933759 |       1993 |         231 | Tones and I                   |
+| Q44633203   | nm11365545 |       1995 |         231 | Kjartan Lauritzen             |
+| Q106078330  | nm12353440 |       1998 |         231 | Central Cee                   |
+| Q16935051   | nm8361019  |       2006 |         231 | Angelina Jordan               |
+| Q3356395    | nm10489001 |       1926 |         230 | Wenche Lowzow                 |
+| Q288019     | nm9299457  |       1976 |         230 | Gülşen                        |
+| Q17113366   | nm12904215 |       1980 |         230 | Dag-Inge Ulstein              |
+| Q27068196   | nm18190740 |       1990 |         230 | Magnus Nedregotten            |
++-------------+------------+------------+-------------+-------------------------------+
++---------------------+
+| NOW_                |
++---------------------+
+| 2026-11-04 19:17:05 |
++---------------------+

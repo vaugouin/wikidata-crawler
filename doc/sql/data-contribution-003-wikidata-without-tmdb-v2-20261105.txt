@@ -1,0 +1,747 @@
+-- data-contribution-003-wikidata-without-tmdb-v2.sql
+-- run on vaugouindb (container damp-vaugouin-com-mariadb-1) at 2026-11-05 12:57:48 +0100
+--
++---------------------+
+| NOW_                |
++---------------------+
+| 2026-11-05 12:57:48 |
++---------------------+
++--------------------------------------------------------------------------------------------------------------------+
+| SECTION                                                                                                            |
++--------------------------------------------------------------------------------------------------------------------+
+| A0. Movies: Wikidata write-backs, 50 items missing the TMDb id TMDb already has (P4947 to add), by TMDb popularity |
++--------------------------------------------------------------------------------------------------------------------+
++-------------+------------+---------+------------+------------------------------------------+
+| ID_WIKIDATA | ID_IMDB    | ID_TMDB | POPULARITY | LABEL_EN                                 |
++-------------+------------+---------+------------+------------------------------------------+
+| Q141610759  | tt44090278 | 1515692 |       34.2 | Baththa                                  |
+| Q141620448  | tt43750202 | 1437195 |       32.2 | Livestream from Hell                     |
+| Q140502153  | tt43807653 | 1561336 |       16.5 | 2 Valid IDs                              |
+| Q141556217  | tt38097205 | 1538457 |       13.2 | Meesaya Murukku 2                        |
+| Q140524489  | tt37042085 | 1487861 |       12.7 | Elize: Shadows of a Woman                |
+| Q141594244  | tt38990864 | 1590718 |       11.2 | Dhoomakethu                              |
+| Q141203550  | tt44147164 | 1550338 |        9.8 | The Last Scene                           |
+| Q141760245  | tt10098420 | 1697911 |        9.4 | Drummer Boy                              |
+| Q139500648  | tt40891145 | 1659087 |        9.3 | 180                                      |
+| Q138026290  | tt24326458 | 1327688 |        7.4 | One Mile                                 |
+| Q109360134  | tt16444750 |  876797 |        6.5 | The Last Ten Years                       |
+| Q141640870  | tt43738050 | 1763619 |        6.5 | AlMahaitiya                              |
+| Q141276671  | tt39602729 | 1633263 |        6.3 | Wonderful Nightmare                      |
+| Q141247883  | tt38265603 | 1544847 |        6.1 | Pradhama Drishtiya Kuttakkar             |
+| Q141409027  | tt40855841 | 1654581 |        5.5 | Nayyi Navelli                            |
+| Q139694406  | tt38120535 | 1555569 |        5.5 | Crystal Cross                            |
+| Q138571692  | tt34435532 | 1422120 |        5.4 | Mermaid                                  |
+| Q141364483  | tt32881432 | 1314826 |        5.3 | Yellow Eyes                              |
+| Q141859653  | tt30768979 | 1496785 |        5.0 | Aadarsha Kutumbam House No: 47 - AK47    |
+| Q30325147   | tt0296192  |  668698 |        4.8 | Sesame Street Jam: A Musical Celebration |
+| Q138782652  | tt37446301 | 1506747 |        4.7 | Hugo 24                                  |
+| Q126436358  | tt24226306 | 1186823 |        4.7 | Sumo Didi                                |
+| Q138163880  | tt36822366 | 1474226 |        4.7 | Evil Dress                               |
+| Q38887376   | tt8526036  |  460326 |        4.6 | NULL                                     |
+| Q140538610  | tt39370887 | 1616674 |        4.6 | Me Before Me                             |
+| Q11495014   | tt0018040  |  931964 |        4.6 | Jihi shinchō                             |
+| Q138275699  | tt27723650 | 1473027 |        4.6 | Matter of Time                           |
+| Q16355082   | tt1820433  |  248107 |        4.5 | Dunduriņš                                |
+| Q141248493  | tt39528902 | 1529372 |        4.5 | Don't Be Shy                             |
+| Q136713767  | tt38796554 |  615127 |        4.4 | Hello Kitty (film)                       |
+| Q136691773  | tt33184184 | 1529513 |        4.4 | Kong Tao                                 |
+| Q141805277  | tt36555259 | 1580582 |        4.4 | Carnaval                                 |
+| Q131702060  | tt31393276 | 1299364 |        4.2 | NULL                                     |
+| Q141626249  | tt44090550 | 1640396 |        4.2 | Prem Keetanu                             |
+| Q139890269  | tt40007237 | 1635108 |        4.2 | They Know                                |
+| Q138381198  | tt39637432 | 1476706 |        4.1 | Manhood                                  |
+| Q140169908  | tt42898884 | 1680516 |        4.1 | WHO                                      |
+| Q141689566  | tt39370926 | 1616687 |        4.1 | Never Surrender                          |
+| Q138126893  | tt39773435 | 1610901 |        4.1 | Aag Lagay Basti Mein                     |
+| Q139763603  | tt42156410 | 1565550 |        4.1 | Amri                                     |
+| Q141015676  | tt43702189 | 1736025 |        4.1 | Magazine                                 |
+| Q137918968  | tt36121849 | 1433321 |        4.1 | The Corpse (2025 film)                   |
+| Q140921103  | tt42653197 | 1566991 |        4.0 | Grown Ups 3                              |
+| Q141754089  | tt36411726 | 1438966 |        4.0 | Je so' pazzo                             |
+| Q134246490  | tt43475091 | 1315843 |        4.0 | Daddy's in Trouble                       |
+| Q137652475  | tt39398162 | 1533029 |        4.0 | The Loved One                            |
+| Q137184114  | tt36958316 | 1446765 |        4.0 | The Dam                                  |
+| Q140738136  | tt43618517 | 1472287 |        3.9 | NULL                                     |
+| Q138819733  | tt39130911 | 1582328 |        3.9 | Love at Last                             |
+| Q140643845  | tt39832540 | 1634230 |        3.9 | Whatcha Want                             |
++-------------+------------+---------+------------+------------------------------------------+
++-----------------------------------------------------------------------+
+| SECTION                                                               |
++-----------------------------------------------------------------------+
+| A. Movies: filter funnel (V1_CANDIDATES is the TMDB_CANDIDATES of v1) |
++-----------------------------------------------------------------------+
++---------------+------------------+-------------+--------------------+------------------+---------------+-------------------------+
+| V1_CANDIDATES | DROP_IMDB_NOT_TT | DROP_P31_TV | DROP_PART_OF_SERIE | DROP_IN_TV_TABLE | V2_CANDIDATES | V2_WITH_10_EXTERNAL_IDS |
++---------------+------------------+-------------+--------------------+------------------+---------------+-------------------------+
+|         59716 |               26 |         754 |               3143 |                0 |         55793 |                    2002 |
++---------------+------------------+-------------+--------------------+------------------+---------------+-------------------------+
++-------------------------------------------------------------------+
+| SECTION                                                           |
++-------------------------------------------------------------------+
+| B. Movies: top 200 v2 candidates by external ids, then statements |
++-------------------------------------------------------------------+
++-------------+------------+-------+-----------------+---------------+---------------------------------------------------+--------------------------------------------------------------+
+| ID_WIKIDATA | ID_IMDB    | YEAR_ | NB_EXTERNAL_IDS | NB_STATEMENTS | LABEL_EN                                          | LABEL_FR                                                     |
++-------------+------------+-------+-----------------+---------------+---------------------------------------------------+--------------------------------------------------------------+
+| Q617578     | tt0341855  |  2004 |              41 |            69 | La Femme Musketeer                                | La Femme mousquetaire                                        |
+| Q688651     | tt0366186  |  1994 |              41 |            67 | Armitage III                                      | Armitage III                                                 |
+| Q1196284    | tt0098492  |  NULL |              38 |            76 | Gunbuster                                         | Gunbuster                                                    |
+| Q2750339    | tt0495212  |  NULL |              37 |            58 | Hellsing Ultimate                                 | Hellsing Ultimate                                            |
+| Q997465     | tt0088863  |  NULL |              37 |            51 | Bubblegum Crisis                                  | Bubblegum Crisis                                             |
+| Q59783      | tt0092337  |  1989 |              36 |           141 | The Decalogue                                     | Le Décalogue                                                 |
+| Q2271087    | tt0159567  |  NULL |              36 |            77 | Mobile Suit Gundam 0083: Stardust Memory          | Mobile Suit Gundam 0083 : Stardust Memory                    |
+| Q333637     | tt0234355  |  1969 |              35 |            87 | Well, Just You Wait!                              | Nu, pogodi!                                                  |
+| Q1013851    | tt0122129  |  1994 |              35 |            53 | Key the Metal Idol                                | Key the Metal Idol                                           |
+| Q56704597   | tt1587790  |  NULL |              34 |            65 | Mobile Suit Gundam Unicorn                        | NULL                                                         |
+| Q2384898    | tt0110426  |  NULL |              34 |            59 | Macross Plus                                      | Macross Plus                                                 |
+| Q1434524    | tt0377184  |  2004 |              33 |            82 | Gunpowder, Treason & Plot                         | Gunpowder, Treason & Plot                                    |
+| Q96100975   | tt3464896  |  2020 |              33 |            56 | Small Axe                                         | Small Axe                                                    |
+| Q3790113    | tt0485069  |  NULL |              33 |            44 | Saint Seiya: The Hades                            | NULL                                                         |
+| Q19756862   | tt6706132  |  2015 |              32 |            69 | See You Again                                     | See You Again                                                |
+| Q4725448    | tt0107731  |  NULL |              31 |            47 | Oh My Goddess!                                    | NULL                                                         |
+| Q833028     | tt0108900  |  1995 |              30 |            69 | Radetzkymarsch                                    | La Marche de Radetzky                                        |
+| Q23419127   | tt3127798  |  2013 |              30 |            55 | Corpse Party: Tortured Souls                      | NULL                                                         |
+| Q2062996    | tt0118499  |  1997 |              30 |            54 | True Women                                        | Sœurs de cœur                                                |
+| Q2135802    | tt0100044  |  NULL |              30 |            43 | Record of Lodoss War                              | NULL                                                         |
+| Q2568665    | tt0196692  |  NULL |              30 |            42 | Final Fantasy: Legend of the Crystals             | Final Fantasy: Legend of the Crystals                        |
+| Q4373808    | tt0364800  |  2003 |              29 |           104 | Charles II: The Power and the Passion             | Charles II : The Power and the Passion                       |
+| Q652655     | tt0103311  |  1991 |              29 |            80 | Young Catherine                                   | Intrigues impériales                                         |
+| Q3713931    | tt0103193  |  1990 |              29 |            59 | Vendetta: Secrets of a Mafia Bride                | NULL                                                         |
+| Q1215962    | tt0061292  |  1966 |              29 |            48 | Treasure Island                                   | L’Île au trésor                                              |
+| Q1196541    | tt1506339  |  2008 |              29 |            45 | Time of Eve                                       | Time of Eve                                                  |
+| Q856326     | tt0369277  |  2000 |              28 |            54 | Bible Black                                       | Bible Black                                                  |
+| Q232048     | tt0071076  |  1974 |              28 |            47 | Two Years Vacation                                | Deux ans de vacances                                         |
+| Q2579615    | tt0331581  |  1999 |              28 |            42 | Amazing Nurse Nanako                              | NULL                                                         |
+| Q2698991    | tt0110652  |  NULL |              28 |            40 | New Cutie Honey                                   | New Cutey Honey                                              |
+| Q101530036  | tt0270758  |  NULL |              27 |            50 | Agent Aika                                        | Agent Aika                                                   |
+| Q100792754  | tt0105748  |  NULL |              27 |            41 | Video Girl Ai                                     | NULL                                                         |
+| Q3223192    | tt0759567  |  2006 |              27 |            38 | Le Grand Charles                                  | Le Grand Charles                                             |
+| Q23755715   | tt4644822  |  2016 |              27 |            38 | Electra Woman and Dyna Girl                       | Electra Woman and Dyna Girl                                  |
+| Q1726610    | tt0088637  |  1985 |              26 |            46 | Via Mala                                          | Via Mala                                                     |
+| Q5272448    | tt1264363  |  2009 |              26 |            38 | Knights of Bloodsteel                             | NULL                                                         |
+| Q16543818   | tt1967684  |  2013 |              25 |            63 | Carta a Eva                                       | NULL                                                         |
+| Q7752680    | tt0095678  |  1988 |              25 |            52 | The Murder of Mary Phagan                         | NULL                                                         |
+| Q1212932    | tt0165093  |  1969 |              25 |            51 | Acts of the Apostles                              | Les Actes des Apôtres                                        |
+| Q6858088    | tt2399776  |  2012 |              25 |            42 | Don't Ever Wipe Tears Without Gloves              | Snö                                                          |
+| Q1669238    | tt1320320  |  2009 |              25 |            38 | Krupp: A Family Between War and Peace             | NULL                                                         |
+| Q2296719    | tt0101514  |  NULL |              25 |            36 | Bubblegum Crash                                   | Bubblegum Crash                                              |
+| Q106549470  | tt0103720  |  NULL |              25 |            33 | The Heroic Legend of Arslan                       | NULL                                                         |
+| Q1088949    | tt0158310  |  1982 |              24 |            66 | Unknown Chaplin                                   | NULL                                                         |
+| Q1210804    | tt0077037  |  1978 |              24 |            50 | Kidnapped                                         | NULL                                                         |
+| Q3858011    | tt0108859  |  1994 |              24 |            47 | Million Dollar Babies                             | Les Jumelles Dionne                                          |
+| Q5858531    | tt1682487  |  2010 |              24 |            44 | Felipe y Letizia                                  | Felipe y Letizia                                             |
+| Q2712729    | tt0097553  |  1989 |              24 |            41 | I Know My First Name is Steven                    | NULL                                                         |
+| Q3489528    | tt0496201  |  2006 |              24 |            41 | The Impressionists                                | The Impressionists                                           |
+| Q131993300  | tt2076817  |  NULL |              24 |            40 | Carnival Phantasm                                 | NULL                                                         |
+| Q5109038    | tt0094435  |  1988 |              24 |            40 | Christabel                                        | NULL                                                         |
+| Q3287737    | tt0238064  |  2000 |              24 |            40 | The Beach Boys: An American Family                | NULL                                                         |
+| Q3700715    | tt0078616  |  NULL |              24 |            38 | From Here to Eternity                             | Tant qu'il y aura des hommes                                 |
+| Q111954103  | tt0279077  |  2000 |              24 |            33 | FLCL, season 1                                    | saison 1 de FLCL                                             |
+| Q277179     | tt0111811  |  1994 |              24 |            32 | Phantom Quest Corp.                               | Exorciste S.A.                                               |
+| Q7761956    | tt0079840  |  1979 |              23 |            57 | The Sacketts                                      | NULL                                                         |
+| Q1083456    | tt0346226  |  NULL |              23 |            54 | Getter Robo Armageddon                            | NULL                                                         |
+| Q132796579  | tt29465351 |  NULL |              23 |            50 | NULL                                              | NULL                                                         |
+| Q3062408    | tt0250581  |  2001 |              23 |            47 | Life with Judy Garland: Me and My Shadows         | Judy Garland, la vie d'une étoile                            |
+| Q4155587    | tt0287213  |  1976 |              23 |            41 | Two Captains                                      | Deux Capitaines                                              |
+| Q1025733    | tt0069570  |  1973 |              23 |            39 | Joseph Balsamo                                    | Joseph Balsamo                                               |
+| Q124048149  | tt0929753  |  2002 |              23 |            39 | Futari Ecchi                                      | NULL                                                         |
+| Q43998029   | tt0050022  |  1957 |              23 |            38 | Gumby                                             | Gumby                                                        |
+| Q864362     | tt1175003  |  2004 |              23 |            38 | Harukanaru Toki no Naka de 3                      | Harukanaru Toki no Naka de 3                                 |
+| Q6129502    | tt1339394  |  NULL |              23 |            37 | Master of Martial Hearts                          | NULL                                                         |
+| Q1325783    | tt6545722  |  NULL |              23 |            37 | Karas                                             | Karas                                                        |
+| Q4781731    | tt1831575  |  2011 |              23 |            37 | Appropriate Adult                                 | Appropriate Adult                                            |
+| Q1644596    | tt0202299  |  1993 |              23 |            34 | The Cockpit                                       | The Cockpit                                                  |
+| Q604320     | tt0338455  |  2002 |              23 |            34 | Space Pirate Captain Herlock: The Endless Odyssey | Captain Herlock: The Endless Odyssey                         |
+| Q66010776   | tt0160423  |  1988 |              23 |            33 | Mobile Police Patlabor                            | NULL                                                         |
+| Q289871     | tt0088655  |  1990 |              23 |            33 | A.D. Police Files                                 | AD Police                                                    |
+| Q2858357    | tt2094220  |  2011 |              23 |            31 | Apocalypse: The Rise of Hitler                    | Apocalypse, Hitler                                           |
+| Q2029402    | tt0246901  |  NULL |              23 |            30 | Ruin Explorers                                    | NULL                                                         |
+| Q1780891    | tt0107069  |  1993 |              23 |            29 | The Hakkenden                                     | The Hakkenden                                                |
+| Q110867644  | tt0204443  |  NULL |              22 |            48 | Kyō Kara Ore Wa!!                                 | NULL                                                         |
+| Q3616151    | tt0421455  |  NULL |              22 |            48 | New Getter Robo                                   | NULL                                                         |
+| Q3862559    | tt1422182  |  2009 |              22 |            45 | Monty Python: Almost the Truth (Lawyers Cut)      | NULL                                                         |
+| Q3130626    | tt6603172  |  NULL |              22 |            43 | Tenchi Muyo! War on Geminar                       | Isekai no seikishi monogatari                                |
+| Q1050476    | tt2321187  |  2001 |              22 |            41 | Zaion: I Wish You Were Here                       | NULL                                                         |
+| Q15545275   | tt2948358  |  NULL |              22 |            40 | Gigantic                                          | Gigantic                                                     |
+| Q2870233    | tt0111936  |  1995 |              22 |            40 | Dead by Sunset                                    | Au-dessus de tout soupçon                                    |
+| Q106595925  | tt0364867  |  NULL |              22 |            39 | Sakura Diaries                                    | NULL                                                         |
+| Q1077280    | tt0815744  |  2002 |              22 |            39 | DumbLand                                          | Dumbland                                                     |
+| Q120006146  | tt0160503  |  1990 |              22 |            36 | Mad Bull 34                                       | NULL                                                         |
+| Q1050609    | tt1000946  |  NULL |              22 |            35 | ÉX-Driver                                         | ÉX-Driver                                                    |
+| Q20183696   | tt0924167  |  2007 |              22 |            34 | Afrika, mon amour                                 | Afrika, mon amour                                            |
+| Q8001128    | tt0118169  |  1996 |              22 |            33 | Wilderness                                        | NULL                                                         |
+| Q1599444    | tt0072534  |  1975 |              21 |            43 | Burning Daylight                                  | L'Appel de l'or                                              |
+| Q5556356    | tt0107528  |  1993 |              21 |            43 | Killing Grandpa                                   | NULL                                                         |
+| Q1211936    | tt0169432  |  1979 |              21 |            42 | Ladies of the coast                               | Les Dames de la côte                                         |
+| Q2843962    | tt1332664  |  2008 |              21 |            41 | Amour, sexe et mobylette                          | Amour, Sexe et Mobylette                                     |
+| Q22343553   | tt3429354  |  2014 |              21 |            40 | The Lost Honour of Christopher Jefferies          | NULL                                                         |
+| Q3430192    | tt0042839  |  1950 |              21 |            39 | Peppino e Violetta                                | Peppino e Violetta                                           |
+| Q115948406  | tt0124971  |  NULL |              21 |            37 | 8 Man After                                       | NULL                                                         |
+| Q3029732    | tt0159410  |  NULL |              21 |            35 | Dirty Pair 2                                      | Dirty Pair OAV                                               |
+| Q20035686   | tt1785344  |  2010 |              21 |            34 | The Goalgetter's Ship                             | Le navire du buteur                                          |
+| Q20002429   | tt4067076  |  2015 |              21 |            31 | The Secret Life of Marilyn Monroe                 | NULL                                                         |
+| Q3488698    | tt1233231  |  2008 |              21 |            30 | Tamanrasset                                       | Tamanrasset                                                  |
+| Q104815249  | tt14587970 |  2012 |              21 |            28 | Hori-san to Miyamura-kun: Shingakki               | NULL                                                         |
+| Q17054624   | tt0272299  |  1999 |              21 |            26 | Sol Bianca: The Legacy                            | NULL                                                         |
+| Q27685105   | tt0119348  |  1997 |              21 |            25 | The Ice House                                     | NULL                                                         |
+| Q1073660    | tt2629754  |  NULL |              20 |            46 | Tamayura                                          | Tamayura                                                     |
+| Q2442773    | tt4146020  |  NULL |              20 |            44 | Cosplay Complex                                   | Cosplay Complex                                              |
+| Q5230356    | tt0055667  |  NULL |              20 |            43 | Davey and Goliath                                 | Davey and Goliath                                            |
+| Q112682205  | tt0330899  |  NULL |              20 |            38 | Slow Step                                         | NULL                                                         |
+| Q6545195    | tt0760222  |  2005 |              20 |            34 | Life in the Undergrowth                           | La Vie dans les sous-bois                                    |
+| Q2633514    | tt0387584  |  NULL |              20 |            33 | Shamanic Princess                                 | Shamanic Princess                                            |
+| Q135106427  | tt20835112 |  2022 |              20 |            32 | BanG Dream! Morfonication                         | NULL                                                         |
+| Q3049965    | tt0112940  |  NULL |              20 |            31 | El Hazard: The Magnificent World                  | El Hazard, le Monde Magnifique                               |
+| Q7248987    | tt0100421  |  1990 |              20 |            31 | Project A-ko: Grey Side/Blue Side                 | NULL                                                         |
+| Q135278269  | tt0103766  |  NULL |              20 |            30 | All Purpose Cultural Cat Girl Nuku Nuku           | NULL                                                         |
+| Q4924299    | tt0121799  |  NULL |              20 |            28 | Tekkaman Blade II                                 | NULL                                                         |
+| Q1168169    | tt0475800  |  2005 |              20 |            28 | Disparition                                       | Disparition                                                  |
+| Q106617445  | tt9619148  |  2007 |              20 |            28 | Tweeny Witches: The Adventures                    | NULL                                                         |
+| Q1206366    | tt0260853  |  2000 |              19 |            62 | NULL                                              | NULL                                                         |
+| Q28912857   | tt7845932  |  NULL |              19 |            60 | Nordic Murders                                    | Baltic Crimes                                                |
+| Q26962487   | tt4785616  |  2016 |              19 |            54 | Pregau                                            | NULL                                                         |
+| Q1128961    | tt0058059  |  1964 |              19 |            48 | Inferno                                           | L'Enfer                                                      |
+| Q13218942   | tt0272973  |  1962 |              19 |            47 | Das grüne Ungeheuer                               | NULL                                                         |
+| Q103815010  | tt0062689  |  1969 |              19 |            42 | The Deerslayer                                    | La Légende de Bas-de-Cuir                                    |
+| Q16933459   | tt0086809  |  1984 |              19 |            42 | The Sun Also Rises                                | Le soleil se lève aussi                                      |
+| Q3277925    | tt1196655  |  NULL |              19 |            41 | My-Otome 0: S.ifr                                 | Mai-Otome 0                                                  |
+| Q7791238    | tt0118489  |  1997 |              19 |            38 | Thomas Jefferson                                  | Thomas Jefferson                                             |
+| Q100827688  | tt0286637  |  NULL |              19 |            37 | Fushigi Yûgi: Eikoden                             | Fushigi Yugi - Eikoden                                       |
+| Q120081156  | tt2152368  |  NULL |              19 |            35 | Saint Seiya: The Lost Canvas                      | NULL                                                         |
+| Q4656240    | tt0094445  |  1988 |              19 |            33 | A Dangerous Life                                  | A Dangerous Life                                             |
+| Q15215586   | tt3277592  |  2013 |              19 |            33 | Das Mädchen mit dem indischen Smaragd             | NULL                                                         |
+| Q962267     | tt3955190  |  NULL |              19 |            32 | Papa to Kiss in the Dark                          | Papa to Kiss in the Dark                                     |
+| Q26709122   | tt1674217  |  2010 |              19 |            32 | Transit                                           | NULL                                                         |
+| Q59767331   | tt9130692  |  2018 |              19 |            32 | Dynasties                                         | NULL                                                         |
+| Q7766794    | tt1647292  |  NULL |              19 |            31 | The Story of Science: Power, Proof and Passion    | NULL                                                         |
+| Q15036516   | tt0115418  |  1996 |              19 |            31 | The West                                          | NULL                                                         |
+| Q20183910   | tt1227773  |  2009 |              19 |            31 | Desperados on the Block                           | NULL                                                         |
+| Q1388243    | tt0102230  |  NULL |              19 |            29 | Here Is Greenwood                                 | NULL                                                         |
+| Q3206677    | tt0233338  |  2000 |              19 |            29 | The Blue Bicycle                                  | La Bicyclette bleue                                          |
+| Q23016259   | tt2125523  |  2011 |              19 |            29 | Hotel Deutschland 2                               | NULL                                                         |
+| Q112221846  | tt3459088  |  NULL |              19 |            28 | Magic Kaito                                       | NULL                                                         |
+| Q7505626    | tt8014790  |  NULL |              19 |            26 | Shutendoji                                        | Shutendoji                                                   |
+| Q635470     | tt1756988  |  NULL |              19 |            25 | Appleseed XIII                                    | Appleseed XIII                                               |
+| Q10576475   | tt0386620  |  2003 |              18 |            56 | The Man Who Smiled                                | NULL                                                         |
+| Q1168710    | tt0055677  |  1962 |              18 |            50 | Das Halstuch                                      | NULL                                                         |
+| Q2082779    | tt1876229  |  2002 |              18 |            49 | 6 Angels                                          | 6 Angels                                                     |
+| Q141447418  | tt0896540  |  NULL |              18 |            42 | Ghost Talker's Daydream                           | NULL                                                         |
+| Q20804594   | tt0098753  |  1990 |              18 |            39 | Bismarck                                          | NULL                                                         |
+| Q9024509    | tt0368520  |  NULL |              18 |            36 | Love Hina Again                                   | NULL                                                         |
+| Q3145164    | tt0215418  |  1999 |              18 |            34 | Hilltop Hospital                                  | Hôpital Hilltop                                              |
+| Q50649825   | tt7860890  |  2018 |              18 |            33 | The Zen Diaries of Garry Shandling                | NULL                                                         |
+| Q315830     | tt0175392  |  1989 |              18 |            32 | Le grand secret                                   | le Grand Secret                                              |
+| Q51862588   | tt0276176  |  2001 |              18 |            32 | Playing Swede                                     | NULL                                                         |
+| Q7445514    | tt0491807  |  2006 |              18 |            32 | See No Evil: The Moors Murders                    | NULL                                                         |
+| Q18153618   | tt3400010  |  2014 |              18 |            32 | The Roosevelts                                    | NULL                                                         |
+| Q59491638   | tt7758896  |  2018 |              18 |            32 | Aenne Burda: Die Wirtschaftswunderfrau            | NULL                                                         |
+| Q62083679   | tt7097646  |  2018 |              18 |            31 | Bella Germania                                    | NULL                                                         |
+| Q1171092    | tt0377171  |  2003 |              18 |            30 | The Elegant Universe                              | NULL                                                         |
+| Q4726201    | tt0090604  |  1986 |              18 |            29 | Alice to Nowhere                                  | NULL                                                         |
+| Q6094083    | tt0296163  |  1999 |              18 |            28 | Quand les hommes pleurent                         | Quand les hommes pleurent                                    |
+| Q58226084   | tt6520930  |  2018 |              18 |            27 | Blinded By The Lights                             | NULL                                                         |
+| Q23707682   | tt2402917  |  NULL |              18 |            26 | 10 Things I Hate About Life                       | NULL                                                         |
+| Q16028536   | tt0096615  |  1989 |              18 |            25 | The Owl's Legacy                                  | L'Héritage de la chouette                                    |
+| Q136796340  | tt5444308  |  2010 |              18 |            25 | Koe de Oshigoto! The Animation                    | NULL                                                         |
+| Q4753289    | tt2575176  |  1993 |              18 |            24 | Mega Man: Upon a Star                             | Mega Man: Upon a Star                                        |
+| Q7332634    | tt0099884  |  1990 |              17 |            50 | Riders of the Dawn                                | Los jinetes del alba                                         |
+| Q2834214    | tt0250358  |  NULL |              17 |            48 | Ellcia                                            | NULL                                                         |
+| Q107060090  | tt0107188  |  NULL |              17 |            47 | Idol Defense Force Hummingbird                    | NULL                                                         |
+| Q3418513    | tt0026278  |  1936 |              17 |            43 | The Affairs of Maupassant                         | Marie Bashkirtseff                                           |
+| Q319293     | tt0070964  |  1974 |              17 |            41 | Aber Vati!                                        | NULL                                                         |
+| Q3639745    | tt0112497  |  1995 |              17 |            41 | Bidoni                                            | NULL                                                         |
+| Q15270895   | tt1462756  |  NULL |              17 |            39 | B.O.O.: Bureau of Otherworldly Operations         | NULL                                                         |
+| Q111487920  | tt0079861  |  1979 |              17 |            39 | Schilten                                          | NULL                                                         |
+| Q19702591   | tt0128906  |  1978 |              17 |            37 | NULL                                              | NULL                                                         |
+| Q6841812    | tt0108858  |  1994 |              17 |            36 | Middlemarch                                       | Middlemarch                                                  |
+| Q579962     | tt3488994  |  NULL |              17 |            35 | Gate Keepers 21                                   | Gate Keepers 21                                              |
+| Q4295510    | tt0254913  |  1983 |              17 |            35 | Mirage                                            | NULL                                                         |
+| Q106318596  | tt8893624  |  1999 |              17 |            34 | Cat Soup Theater                                  | NULL                                                         |
+| Q2586425    | tt0461103  |  1986 |              17 |            32 | Muzzy in Gondoland                                | NULL                                                         |
+| Q917396     | tt0799892  |  2006 |              17 |            32 | Purple and Brown                                  | Purple et Brown                                              |
+| Q17521640   | tt0258459  |  2000 |              17 |            31 | Blue End                                          | NULL                                                         |
+| Q731045     | tt0175396  |  1970 |              17 |            30 | Mauregard                                         | Mauregard                                                    |
+| Q5354422    | tt0074464  |  1976 |              17 |            30 | Eleanor and Franklin                              | NULL                                                         |
+| Q11796546   | tt0099231  |  1989 |              17 |            30 | A Casualty of War                                 | NULL                                                         |
+| Q61076926   | tt2023474  |  2011 |              17 |            30 | NULL                                              | NULL                                                         |
+| Q4185522    | tt0142997  |  NULL |              17 |            29 | Yamato 2520                                       | NULL                                                         |
+| Q18915775   | tt3183214  |  2013 |              17 |            29 | Triumph of the Vertebrates                        | NULL                                                         |
+| Q28910244   | tt4214012  |  NULL |              17 |            28 | Vet Jacobs - Agent on Occasion                    | NULL                                                         |
+| Q1924886    | tt1899246  |  2011 |              17 |            28 | NULL                                              | NULL                                                         |
+| Q4733987    | tt0165619  |  1938 |              17 |            27 | Almost a Gentleman                                | NULL                                                         |
+| Q935549     | tt0163506  |  1981 |              17 |            27 | The New Trunk of India                            | La Nouvelle Malle des Indes                                  |
+| Q1268710    | tt1509201  |  2009 |              17 |            27 | Pink Taxi                                         | NULL                                                         |
+| Q2502231    | tt1506987  |  2009 |              17 |            27 | NULL                                              | Urville                                                      |
+| Q48674703   | tt4587946  |  2017 |              17 |            27 | American Epic                                     | NULL                                                         |
+| Q135179442  | tt1158219  |  2007 |              17 |            26 | Ah! My Goddess: Fighting Wings                    | NULL                                                         |
+| Q10723685   | tt0352117  |  2003 |              17 |            24 | Young MacGyver                                    | NULL                                                         |
+| Q106995454  | tt14055432 |  2021 |              17 |            24 | The Crime of the Century                          | NULL                                                         |
+| Q134457343  | tt0152666  |  NULL |              17 |            23 | Super Dimension Century Orguss 02                 | NULL                                                         |
+| Q3015568    | tt0479223  |  2006 |              17 |            23 | NULL                                              | Dans un camion rouge                                         |
+| Q141665156  | tt1993299  |  NULL |              17 |            21 | Cats & Dogs: The Revenge of Kitty Galore          | NULL                                                         |
+| Q4735932    | tt0124277  |  1951 |              16 |            65 | Alt dette og Island med                           | NULL                                                         |
+| Q3030553    | tt0111940  |  1989 |              16 |            52 | Disperatamente Giulia                             | Disperatamente Giulia                                        |
+| Q24678186   | tt5359830  |  2016 |              16 |            52 | Soundbreaking                                     | Soundbreaking, la grande aventure de la musique enregistrée  |
+| Q1684094    | tt0135731  |  1978 |              16 |            51 | Manure and Gillyflowers                           | NULL                                                         |
++-------------+------------+-------+-----------------+---------------+---------------------------------------------------+--------------------------------------------------------------+
++--------------------------------------------------------------------------------------------------------------------+
+| SECTION                                                                                                            |
++--------------------------------------------------------------------------------------------------------------------+
+| C0. Series: Wikidata write-backs, 50 items missing the TMDb id TMDb already has (P4983 to add), by TMDb popularity |
++--------------------------------------------------------------------------------------------------------------------+
++-------------+------------+---------+------------+-----------------------------------------------------+
+| ID_WIKIDATA | ID_IMDB    | ID_TMDB | POPULARITY | LABEL_EN                                            |
++-------------+------------+---------+------------+-----------------------------------------------------+
+| Q13423015   | tt0063951  |     502 |      112.8 | 1, rue Sésame                                       |
+| Q16056536   | tt0479336  |    8892 |       51.5 | Pinoy Big Brother Update                            |
+| Q85786050   | tt12100298 |  155449 |       50.0 | Mohor                                               |
+| Q5215438    | tt2043558  |   46030 |       48.2 | Dancin' Days                                        |
+| Q3869166    | tt0080249  |    9807 |       47.4 | Mystery!                                            |
+| Q10338738   | tt0149417  |  227024 |       35.6 | O Astro                                             |
+| Q5186329    | tt0397773  |    8865 |       30.4 | Cristina Bazán                                      |
+| Q30947396   | tt5704228  |   66370 |       28.8 | Ode to Joy                                          |
+| Q112586540  | tt7222086  |   72636 |       26.2 | Made in Abyss: The Golden City of the Scorching Sun |
+| Q109237139  | tt9248932  |  241462 |       19.4 | Arendsvlei                                          |
+| Q104902065  | tt12587386 |  280931 |       18.2 | Dhrubatara                                          |
+| Q80336763   | tt5732752  |  132424 |       17.9 | Trudne sprawy                                       |
+| Q141696782  | tt36838527 |  311853 |       17.0 | Obsess                                              |
+| Q112078201  | tt27121302 |  205145 |       17.0 | Tuzech Mi Geet Gaat Aahe                            |
+| Q106823330  | tt22071890 |  155453 |       15.7 | Dhulokona                                           |
+| Q141538109  | tt49037069 |  336785 |       14.6 | Timbiriche                                          |
+| Q11088406   | tt2019541  |  108906 |       13.7 | Pretty Rhythm Rainbow Live                          |
+| Q913190     | tt1808967  |   40697 |       13.4 | Herzflimmern – Die Klinik am See                    |
+| Q123459177  | tt27458928 |  207197 |       12.7 | Tiger Crane                                         |
+| Q2081199    | tt32341810 |   90357 |       12.3 | Battle Spirits: Sword Eyes                          |
+| Q3107595    | tt1094233  |   46092 |       11.4 | Sky Girls                                           |
+| Q7544602    | tt0364876  |    2587 |       11.3 | Smile                                               |
+| Q18636870   | tt4526110  |  340487 |       10.7 | Yam Hain Hum                                        |
+| Q120142663  | tt32767336 |  278208 |       10.0 | Seetha Raama                                        |
+| Q1125350    | tt0081941  |   21269 |        9.8 | Superbook                                           |
+| Q4410012    | tt1820225  |   46014 |        8.8 | Svaty 5                                             |
+| Q4410007    | tt1820225  |   46014 |        8.8 | Svaty 3                                             |
+| Q135313452  | tt43366573 |  312979 |        8.4 | Na telo                                             |
+| Q86008733   | tt10335936 |  304479 |        8.3 | Happy Memories Vietnam                              |
+| Q70335613   | tt4793592  |  211143 |        8.3 | Rolando Locomotov, He's the master!                 |
+| Q28312038   | tt7880808  |   75283 |        7.9 | Woh Apna Sa                                         |
+| Q121832857  | tt31349734 |  277730 |        6.6 | Uron Tubri                                          |
+| Q138794153  | tt37079815 |  289357 |        6.4 | Blood & Sweat                                       |
+| Q123417586  | tt13710948 |  259621 |        6.3 | Come Follow Up                                      |
+| Q210851     | tt0388160  |   52832 |        6.2 | Junior Eurovision Song Contest 2003                 |
+| Q135003975  | tt34773311 |  290138 |        6.1 | Gram Chikitsalay                                    |
+| Q139551554  | tt41977234 |  309926 |        6.0 | Ormhildur the Brave                                 |
+| Q92376236   | tt12299422 |  206219 |        5.7 | Four Ladies                                         |
+| Q85770112   | tt12951874 |  113841 |        5.5 | Ishq Mein Marjawan 2                                |
+| Q488318     | tt1442553  |   33297 |        5.4 | Undercover Boss                                     |
+| Q55695138   | tt10504902 |   89061 |        5.4 | Best Interest                                       |
+| Q761395     | tt0988290  |   40654 |        5.4 | Endlich Samstag!                                    |
+| Q63773326   | tt8483182  |   80018 |        5.3 | Suno Chanda 2                                       |
+| Q131629791  | tt7997666  |   77117 |        5.1 | NULL                                                |
+| Q23802883   | tt11942050 |  132364 |        5.1 | Battle Spirits: Double Drive                        |
+| Q61071165   | tt0290995  |   48342 |        5.0 | Yeditepe İstanbul                                   |
+| Q140514091  | tt44752529 |  327230 |        4.9 | Bozí plán                                           |
+| Q11871200   | tt0898241  |   99976 |        4.7 | Ketonen & Myllyrinne                                |
+| Q4241497    | tt3700306  |  339841 |        4.7 | NULL                                                |
+| Q141499721  | tt45851964 |  324931 |        4.7 | A Parasite's Heart                                  |
++-------------+------------+---------+------------+-----------------------------------------------------+
++-----------------------------------------------------------------------+
+| SECTION                                                               |
++-----------------------------------------------------------------------+
+| D. Series: filter funnel (V1_CANDIDATES is the TMDB_CANDIDATES of v1) |
++-----------------------------------------------------------------------+
++---------------+------------------+--------------------------+---------------+-------------------------+
+| V1_CANDIDATES | DROP_IMDB_NOT_TT | DROP_CEREMONY_OR_EPISODE | V2_CANDIDATES | V2_WITH_10_EXTERNAL_IDS |
++---------------+------------------+--------------------------+---------------+-------------------------+
+|         16831 |              210 |                       22 |         16599 |                     524 |
++---------------+------------------+--------------------------+---------------+-------------------------+
++-------------------------------------------------------------------+
+| SECTION                                                           |
++-------------------------------------------------------------------+
+| E. Series: top 100 v2 candidates by external ids, then statements |
++-------------------------------------------------------------------+
++-------------+------------+-------+-----------------+---------------+------------------------------------------------+-----------------------------------------+
+| ID_WIKIDATA | ID_IMDB    | YEAR_ | NB_EXTERNAL_IDS | NB_STATEMENTS | LABEL_EN                                       | LABEL_FR                                |
++-------------+------------+-------+-----------------+---------------+------------------------------------------------+-----------------------------------------+
+| Q5502930    | tt14893832 |  1975 |              44 |            84 | Fresh Air                                      | Fresh Air                               |
+| Q1151115    | tt0387776  |  2000 |              41 |            60 | Banner of the Stars                            | Banner of the Stars                     |
+| Q698796     | tt0112031  |  1995 |              39 |            92 | Catherine the Great                            | La Grande Catherine                     |
+| Q1304716    | tt0092613  |  1987 |              33 |            66 | A Child Called Jesus                           | Un bambino di nome Gesù                 |
+| Q19979507   | tt4129452  |  2015 |              33 |            57 | Lupin the Third Part IV                        | Lupin III: L'aventure Italienne         |
+| Q3015151    | tt1130992  |  2009 |              31 |            62 | Pinocchio                                      | Pinocchio, un cœur de bois              |
+| Q940900     | tt0003897  |  1914 |              30 |            57 | The Exploits of Elaine                         | Les Mystères de New York                |
+| Q3491129    | tt0348076  |  2003 |              30 |            56 | Soraya                                         | Soraya                                  |
+| Q4163292    | tt0167123  |  1976 |              27 |            55 | The Days of the Turbins                        | Les Jours des Tourbine                  |
+| Q4255039    | tt0412257  |  2001 |              26 |            37 | Akubi-chan                                     | NULL                                    |
+| Q140681530  | tt8703830  |  NULL |              26 |            30 | Captain Scarlet                                | Captain Scarlet                         |
+| Q16619430   | tt0100878  |  1990 |              25 |            53 | A Violent Life                                 | Cellini, l'or et le sang                |
+| Q15995083   | tt2810310  |  2012 |              25 |            45 | Game Grumps                                    | NULL                                    |
+| Q114565318  | tt27749014 |  2024 |              24 |            91 | Eurovision Song Contest 2024                   | Concours Eurovision de la chanson 2024  |
+| Q12744344   | tt0072205  |  1975 |              24 |            84 | Stephen the Great - Vaslui 1475                | NULL                                    |
+| Q2306831    | tt1556099  |  2008 |              24 |            44 | Yes! Pretty Cure 5 Go Go!                      | NULL                                    |
+| Q97490200   | tt13345834 |  2016 |              24 |            40 | The David Rubenstein Show                      | NULL                                    |
+| Q15142699   | tt0769433  |  1999 |              23 |            47 | Pizza Delivery                                 | Les livreurs de pizza                   |
+| Q61976583   | tt2341806  |  2012 |              22 |            69 | To Love Ru Darkness                            | NULL                                    |
+| Q23680033   | tt6902574  |  NULL |              22 |            52 | h3h3Productions                                | h3h3Productions                         |
+| Q7196384    | tt0081340  |  1980 |              22 |            37 | Pinocchio's Christmas                          | NULL                                    |
+| Q5506227    | tt0134661  |  1976 |              22 |            36 | Frosty's Winter Wonderland                     | NULL                                    |
+| Q10418254   | tt2113148  |  2011 |              22 |            35 | Arne Dahl: The Blinded Man                     | Misterioso                              |
+| Q63981729   | tt0462699  |  1984 |              22 |            34 | Future Boy Conan the Return of the Great Plane | NULL                                    |
+| Q42954558   | tt6645614  |  2017 |              22 |            33 | Trolls Holiday                                 | NULL                                    |
+| Q25951920   | tt7227948  |  2016 |              22 |            29 | Persona 5 The Animation: The Day Breakers      | NULL                                    |
+| Q1093397    | tt0140646  |  1980 |              21 |            58 | Space Battleship Yamato III                    | NULL                                    |
+| Q6393007    | tt0707287  |  2001 |              21 |            47 | Band Geeks                                     | L'orchestre                             |
+| Q56275513   | tt6148324  |  2018 |              21 |            47 | Deutschland 86                                 | Deutschland 86                          |
+| Q2472384    | tt6425810  |  2010 |              21 |            43 | Kurohyō: Ryū ga Gotoku Shinshō                 | Kurohyō: Ryū ga Gotoku Shinshō          |
+| Q111328535  | tt13854210 |  2023 |              21 |            41 | Brydon &                                       | NULL                                    |
+| Q4385651    | tt0258346  |  NULL |              21 |            27 | Dinozaurs                                      | NULL                                    |
+| Q61291780   | tt4755410  |  NULL |              21 |            27 | Durarara!!X2                                   | NULL                                    |
+| Q15215081   | tt4702140  |  2015 |              20 |           103 | Eurovision Song Contest 2015                   | Concours Eurovision de la chanson 2015  |
+| Q96929880   | tt14706760 |  2022 |              20 |            92 | Eurovision Song Contest 2022                   | Concours Eurovision de la chanson 2022  |
+| Q50729731   | tt13957998 |  2021 |              20 |            91 | Eurovision Song Contest 2021                   | Concours Eurovision de la chanson 2021  |
+| Q6110271    | tt0769426  |  2000 |              20 |            46 | Rock Bottom                                    | Les bus farceurs                        |
+| Q1093267    | tt0140645  |  1978 |              20 |            44 | Space Battleship Yamato II                     | NULL                                    |
+| Q17228860   | tt4367664  |  2014 |              20 |            43 | Schoolgirl Strikers                            | NULL                                    |
+| Q10418255   | tt2113149  |  2012 |              20 |            37 | Arne Dahl: Bad Blood                           | NULL                                    |
+| Q66809149   | tt9135316  |  2018 |              20 |            36 | Senran Kagura Shinovi Master                   | NULL                                    |
+| Q2732306    | tt6142346  |  1987 |              20 |            35 | Good Night                                     | Good Night                              |
+| Q4326637    | tt0179804  |  1999 |              20 |            35 | Bonanno: A Godfather's Story                   | Bonanno: A Godfather's Story            |
+| Q50870358   | tt7879496  |  2018 |              20 |            32 | Lupin the 3rd Part 5                           | Lupin III Part V                        |
+| Q2723312    | tt1159863  |  NULL |              20 |            30 | Magical Girl Lyrical Nanoha Strikers           | Magical Girl Lyrical Nanoha StrikerS    |
+| Q15045237   | tt0089412  |  1985 |              20 |            28 | The Key to Rebecca                             | NULL                                    |
+| Q118421125  | tt32344937 |  2025 |              19 |            91 | Eurovision Song Contest 2025                   | Concours Eurovision de la chanson 2025  |
+| Q7400433    | tt0832785  |  2001 |              19 |            47 | Sailor Mouth                                   | La liste des treize mots                |
+| Q3298496    | tt0707292  |  2002 |              19 |            46 | Graveyard Shift                                | Service de nuit                         |
+| Q4035059    | tt0893234  |  2006 |              19 |            41 | Best Day Ever                                  | La plus belle des journées              |
+| Q5960785    | tt0707298  |  2002 |              19 |            40 | Krusty Krab Training Video                     | Tout ce qu'un employé doit savoir       |
+| Q16497124   | tt2220954  |  2012 |              19 |            34 | Arne Dahl: Many Waters                         | NULL                                    |
+| Q107412941  | tt2074341  |  2011 |              19 |            33 | Busou Shinki: Moon Angel                       | NULL                                    |
+| Q6208223    | tt0899109  |  2007 |              19 |            30 | Joe's Palace                                   | NULL                                    |
+| Q5107908    | tt1213574  |  2008 |              19 |            28 | Chris Rock: Kill the Messenger                 | NULL                                    |
+| Q60739982   | tt2011325  |  NULL |              19 |            22 | There's Something Wrong with Aunt Diane        | NULL                                    |
+| Q30125323   | tt6970184  |  2017 |              18 |           130 | One Love Manchester                            | One Love Manchester                     |
+| Q6015709    | tt5721098  |  2016 |              18 |            97 | Eurovision Song Contest 2016                   | Concours Eurovision de la chanson 2016  |
+| Q43401515   | tt6874964  |  2018 |              18 |            49 | Jesus Christ Superstar Live in Concert         | Jesus Christ Superstar Live in Concert  |
+| Q6126862    | tt0707316  |  2001 |              18 |            45 | Shanghaied                                     | Le hollandais volant                    |
+| Q3633152    | tt1407939  |  2009 |              18 |            40 | Bakhita: From Slave to Saint                   | Bakhita, de l'esclavage à la sainteté   |
+| Q3667520    | tt0990362  |  2007 |              18 |            36 | Clare and Francis                              | NULL                                    |
+| Q16497128   | tt2208264  |  2012 |              18 |            36 | Arne Dahl: To the Top of the Mountain          | NULL                                    |
+| Q5374194    | tt0416716  |  2004 |              18 |            34 | Empire of Dreams                               | Star Wars : L'Empire des rêves          |
+| Q2705016    | tt2122472  |  2011 |              18 |            34 | Live from Paris                                | Live from Paris                         |
+| Q3728811    | tt1534184  |  2009 |              18 |            33 | Inuyasha: The Final Act                        | NULL                                    |
+| Q7024871    | tt0263790  |  2000 |              18 |            31 | Nichiyobi wa Owaranai                          | NULL                                    |
+| Q16997079   | tt0788121  |  NULL |              18 |            29 | Low Winter Sun                                 | NULL                                    |
+| Q3828776    | tt0043182  |  1951 |              18 |            29 | The Adventures of Boston Blackie               | NULL                                    |
+| Q7757196    | tt0330768  |  1978 |              18 |            29 | The Pink Panther in: A Pink Christmas          | NULL                                    |
+| Q15819971   | tt2215145  |  2012 |              18 |            27 | Im Alleingang - Die Stunde der Krähen          | Maria la battante                       |
+| Q63441239   | tt11656580 |  NULL |              18 |            26 | To Be Heroine                                  | NULL                                    |
+| Q108897149  | tt15470224 |  2021 |              18 |            24 | Mickey's Tale of Two Witches                   | NULL                                    |
+| Q10846568   | tt37496302 |  NULL |              18 |            23 | Battle Spirits - Heroes                        | Battle Spirits - Heroes                 |
+| Q99043281   | tt3449776  |  2014 |              17 |           106 | Saki: The Nationals                            | NULL                                    |
+| Q11677836   | tt0324674  |  1979 |              17 |            51 | Kogane no Inu                                  | NULL                                    |
+| Q1213861    | tt0053584  |  1960 |              17 |            49 | The Children of Bullerbyn Village              | NULL                                    |
+| Q15995536   | tt3198590  |  NULL |              17 |            45 | The Slow Mo Guys                               | NULL                                    |
+| Q134296548  | tt37648568 |  NULL |              17 |            41 | Real American Freestyle                        | NULL                                    |
+| Q17986457   | tt0707301  |  2002 |              17 |            39 | Chocolate with Nuts                            | Les tablettes de chocolat               |
+| Q16497126   | tt2219106  |  2012 |              17 |            39 | Arne Dahl: Europa Blues                        | Europa Blues                            |
+| Q1545845    | tt2349968  |  2000 |              17 |            33 | Homestar Runner                                | Homestar Runner                         |
+| Q3718901    | tt0416709  |  2005 |              17 |            32 | Edda                                           | NULL                                    |
+| Q11331668   | tt1032839  |  1969 |              17 |            29 | Pinch to Punch                                 | NULL                                    |
+| Q7579594    | tt0390773  |  1987 |              17 |            29 | Sporting Triangles                             | Sporting Triangles                      |
+| Q2819340    | tt18259468 |  NULL |              17 |            28 | APTN National News                             | APTN National News                      |
+| Q3532691    | tt0118496  |  1997 |              17 |            28 | Total Security                                 | Total Security                          |
+| Q22341626   | tt0271911  |  1966 |              17 |            27 | New Jungle Emperor, Go Ahead Leo!              | NULL                                    |
+| Q5506231    | tt0106973  |  1992 |              17 |            26 | Frosty Returns                                 | Frosty Returns                          |
+| Q106569727  | tt1441411  |  2008 |              17 |            26 | Someday's Dreamers II: Sora                    | NULL                                    |
+| Q28501691   | tt4548050  |  2015 |              17 |            24 | Arne Dahl: Eye in the Sky                      | NULL                                    |
+| Q5211392    | tt0429967  |  2004 |              17 |            23 | Dallas Reunion: The Return to Southfork        | NULL                                    |
+| Q19798775   | tt3700882  |  2015 |              17 |            23 | The Ark                                        | NULL                                    |
+| Q63859245   | tt0080457  |  NULL |              17 |            22 | Bogie                                          | NULL                                    |
+| Q25408640   | tt8152638  |  2018 |              16 |            85 | Eurovision Song Contest 2018                   | Concours Eurovision de la chanson 2018  |
+| Q107599005  | tt20243990 |  2023 |              16 |            84 | Eurovision Song Contest 2023                   | Concours Eurovision de la chanson 2023  |
+| Q98821949   | tt12921086 |  NULL |              16 |            36 | Strike Witches: Road to Berlin                 | NULL                                    |
+| Q11964978   | tt0448189  |  2005 |              16 |            35 | Deadline Torp                                  | NULL                                    |
+| Q6602135    | tt0856092  |  2005 |              16 |            33 | Melanoma ahuvati                               | NULL                                    |
+| Q1213851    | tt0429458  |  1985 |              16 |            30 | NULL                                           | NULL                                    |
++-------------+------------+-------+-----------------+---------------+------------------------------------------------+-----------------------------------------+
++---------------------------------------------------------------------------------------------------------------------+
+| SECTION                                                                                                             |
++---------------------------------------------------------------------------------------------------------------------+
+| F0. Persons: Wikidata write-backs, 50 items missing the TMDb id TMDb already has (P4985 to add), by TMDb popularity |
++---------------------------------------------------------------------------------------------------------------------+
++-------------+------------+---------+------------+----------------------------+
+| ID_WIKIDATA | ID_IMDB    | ID_TMDB | POPULARITY | LABEL_EN                   |
++-------------+------------+---------+------------+----------------------------+
+| Q141807973  | nm17944286 | 4580908 |       79.6 | NULL                       |
+| Q7461590    | nm4490004  | 1568074 |       19.0 | Shaheer Sheikh             |
+| Q69843962   | nm4861736  | 1878695 |       17.1 | Kwaku Fortune              |
+| Q64548845   | nm1055824  | 1652517 |       14.7 | Daniel Maslany             |
+| Q98754242   | nm3260157  | 2291525 |       14.6 | Laura Ault                 |
+| Q68546515   | nm3845878  | 1796090 |       11.7 | Ronald Peet                |
+| Q85994026   | nm9321609  | 1878340 |       11.5 | Ruth Marini                |
+| Q1681395    | nm1027224  | 2267004 |       11.5 | Jamie Goodwin              |
+| Q7500361    | nm3260375  | 1641536 |       11.5 | Shonali Nagrani            |
+| Q10983459   | nm0375787  | 2120146 |       11.2 | ʻAzīzah Ḥilmī              |
+| Q7544709    | nm2124966  | 2408091 |       11.0 | Smilie Suri                |
+| Q16222470   | nm2270180  | 1168111 |       10.5 | Koratala Siva              |
+| Q138644677  | nm3223014  | 2200107 |       10.5 | Willow Kean                |
+| Q96318625   | nm3611683  | 1579945 |        8.6 | Nikki Limo                 |
+| Q5109165    | nm0114977  | 1627912 |        8.5 | Christene Browne           |
+| Q2617484    | nm2788279  | 2331000 |        8.0 | Brent Kutzle               |
+| Q96002138   | nm8011939  | 2042226 |        7.8 | Jobanpreet Singh           |
+| Q6075772    | nm2380884  | 1727913 |        7.7 | Ebru Özkan                 |
+| Q110693766  | nm0119963  | 2490221 |        7.4 | Diane Bull                 |
+| Q20643691   | nm4364497  | 1459981 |        7.4 | Reto Stalder               |
+| Q55391281   | nm6379053  | 2464985 |        7.3 | Krzysztof Szczepaniak      |
+| Q9582291    | nm0084536  | 1705771 |        7.3 | Adam Bitterman             |
+| Q98762069   | nm0187412  | 1720666 |        7.2 | Randy Crenshaw             |
+| Q15860641   | nm0867993  | 1878248 |        7.2 | Jeremy Torgerson           |
+| Q6835117    | nm3558350  | 1456466 |        7.1 | Michael Voltaggio          |
+| Q110044286  | nm5885052  | 1696080 |        7.0 | Kennedy Tucker             |
+| Q1736556    | nm2859149  | 1470865 |        7.0 | Kathy Ann Kelly            |
+| Q28008594   | nm7175563  | 1932495 |        6.8 | Imran Ashraf               |
+| Q3296095    | nm3471859  | 2013669 |        6.5 | Marwan Berreni             |
+| Q3850550    | nm0879647  | 1709506 |        6.4 | Marzia Ubaldi              |
+| Q12230908   | nm0071448  | 1749955 |        6.2 | Fadila Benmoussa           |
+| Q7383106    | nm0537966  | 1663948 |        6.2 | Ruth Maitland              |
+| Q9094439    | nm0016107  | 1770486 |        6.1 | Viridiana Alatriste        |
+| Q88385607   | nm10085322 | 5598110 |        6.1 | Cherkas Danylo             |
+| Q136346781  | nm3839773  | 2722857 |        6.0 | Ali Lopez-Sohaili          |
+| Q4974971    | nm2643935  | 2162954 |        5.9 | Brooks Ashmanskas          |
+| Q119553     | nm0702542  | 1658707 |        5.9 | Hans Pössenbacher          |
+| Q108435381  | nm0052186  |     783 |        5.9 | Jonathan Banks filmography |
+| Q113679118  | nm3417134  | 1588833 |        5.8 | Brandon Christensen        |
+| Q23491585   | nm4584004  | 1574334 |        5.7 | Dileesh Pothan             |
+| Q141735386  | nm14095889 | 3693678 |        5.6 | Gaozheng Dai               |
+| Q96392261   | nm9497172  | 2304504 |        5.6 | Mathew Varghese            |
+| Q48700547   | nm4841923  | 1343197 |        5.5 | Mahesh Babu                |
+| Q141737409  | nm14903145 | 4515680 |        5.5 | Xiaobei Liu                |
+| Q65704459   | nm5813961  | 1604387 |        5.5 | Edgar Moreno               |
+| Q31176164   | nm8311266  | 2028856 |        5.4 | Shabnom Bubly              |
+| Q22271912   | nm5744355  | 1467730 |        5.2 | Stella Mozgawa             |
+| Q18812019   | nm0323514  | 2370877 |        5.1 | Didi Gnocchi               |
+| Q11715303   | nm2240929  | 1940467 |        5.0 | Jacek Grondowy             |
+| Q2347269    | nm0707063  | 1749888 |        4.9 | Steve Raines               |
++-------------+------------+---------+------------+----------------------------+
++------------------------------------------------------------------------+
+| SECTION                                                                |
++------------------------------------------------------------------------+
+| G. Persons: filter funnel (V1_CANDIDATES is the TMDB_CANDIDATES of v1) |
++------------------------------------------------------------------------+
++---------------+------------------+---------------+---------------+-------------+--------------------------+
+| V1_CANDIDATES | DROP_IMDB_NOT_NM | DROP_NOT_FILM | V2_CANDIDATES | V2_CREDITED | V2_CREDITED_ON_TMDB_WORK |
++---------------+------------------+---------------+---------------+-------------+--------------------------+
+|        222959 |              572 |         90460 |        131927 |       77931 |                    60590 |
++---------------+------------------+---------------+---------------+-------------+--------------------------+
++---------------------------------------------------------------------------------------------+
+| SECTION                                                                                     |
++---------------------------------------------------------------------------------------------+
+| H. Persons: top 200 v2 candidates by credits on TMDb works, then credits, then external ids |
++---------------------------------------------------------------------------------------------+
++-------------+-----------+------------+--------------------+------------+-----------------+-----------------+------------------------------+
+| ID_WIKIDATA | ID_IMDB   | BIRTH_YEAR | NB_CREDITS_ON_TMDB | NB_CREDITS | FILM_OCCUPATION | NB_EXTERNAL_IDS | LABEL_EN                     |
++-------------+-----------+------------+--------------------+------------+-----------------+-----------------+------------------------------+
+| Q5512207    | nm0222219 |       1924 |                194 |        320 |               0 |              14 | G. Devarajan                 |
+| Q2269625    | nm0755364 |       1937 |                100 |        103 |               1 |              55 | José Sacristán               |
+| Q26878090   | nm0707492 |       NULL |                 84 |        100 |               1 |               4 | Gautam Raju                  |
+| Q4751271    | nm0025607 |       1961 |                 78 |         82 |               1 |              18 | Anand Raj Anand              |
+| Q6108101    | nm0175570 |       NULL |                 76 |         77 |               0 |               7 | Ricardo Conord               |
+| Q28070985   | nm7075397 |       NULL |                 72 |         74 |               1 |               7 | Hareesh Perumanna            |
+| Q13110599   | nm0880899 |       1933 |                 67 |        163 |               0 |               6 | A. T. Ummer                  |
+| Q731703     | nm0488932 |       1880 |                 66 |        261 |               1 |              36 | Viggo Larsen                 |
+| Q2053416    | nm0035021 |       1936 |                 66 |        128 |               0 |              10 | M. K. Arjunan                |
+| Q2928642    | nm0454535 |       1877 |                 65 |        144 |               1 |              23 | Burton L. King               |
+| Q7238852    | nm3164715 |       1977 |                 65 |         68 |               1 |               6 | Praveen K. L.                |
+| Q16599878   | nm0767759 |       1913 |                 62 |         67 |               1 |               6 | Mario Savino                 |
+| Q5055301    | nm0083178 |       1902 |                 60 |         65 |               1 |               8 | Cayetano Biondo              |
+| Q26251134   | nm4425773 |       1965 |                 60 |         62 |               1 |               5 | Alencier Ley Lopez           |
+| Q3726570    | nm0535982 |       1902 |                 60 |         61 |               1 |               9 | Enzo Maggio                  |
+| Q5667396    | nm0713999 |       1916 |                 59 |         59 |               1 |              11 | Alfonso del Real             |
+| Q16624098   | nm0228315 |       NULL |                 58 |         65 |               1 |               6 | Rafael Diserio               |
+| Q21067208   | nm8326844 |       1968 |                 58 |         62 |               1 |               4 | Vijayakumar                  |
+| Q6434301    | nm0619758 |       1922 |                 56 |         87 |               1 |               6 | Kottarakkara Sreedharan Nair |
+| Q19903994   | nm0091291 |       1900 |                 54 |         55 |               1 |               6 | Francis Boeniger             |
+| Q7929224    | nm6168318 |       1931 |                 51 |        111 |               0 |              10 | Vijaya Bhaskar               |
+| Q2417167    | nm0702957 |       1905 |                 51 |         55 |               1 |              21 | Pedro Quartucci              |
+| Q6172768    | nm0243938 |       1906 |                 50 |         55 |               0 |               7 | Álvaro Durañona y Vedia      |
+| Q6893516    | nm0595897 |       1956 |                 49 |         57 |               1 |               9 | Mohan                        |
+| Q8962663    | nm0959433 |       1892 |                 49 |         52 |               1 |              16 | Francisco Álvarez            |
+| Q2792151    | nm3374348 |       1948 |                 48 |        141 |               1 |               4 | Jayiram Samal                |
+| Q4288040    | nm0583468 |       1920 |                 48 |         65 |               0 |              29 | Mikhail Meerovich            |
+| Q6014454    | nm0350861 |       1894 |                 47 |         49 |               1 |              14 | Miguel Gómez Bao             |
+| Q4779123    | nm3382815 |       1962 |                 46 |        153 |               1 |               7 | Aparajita Mohanty            |
+| Q55374      | nm0296809 |       1954 |                 46 |         50 |               1 |              59 | Jan Frycz                    |
+| Q5865167    | nm0041540 |       NULL |                 46 |         50 |               1 |               6 | Francisco Audenino           |
+| Q3707818    | nm0672809 |       1901 |                 45 |         48 |               1 |              11 | Dina Perbellini              |
+| Q11689767   | nm0218120 |       1906 |                 45 |         47 |               0 |              33 | Lucio Demare                 |
+| Q7108170    | nm0831524 |       1866 |                 45 |         47 |               0 |              23 | Oswald Stoll                 |
+| Q37994724   | nm4236361 |       NULL |                 44 |         45 |               1 |               5 | Rony David                   |
+| Q155202     | nm0845652 |       1912 |                 43 |         44 |               1 |              38 | Gunnar Sønstevold            |
+| Q23771900   | nm5035495 |       NULL |                 43 |         43 |               0 |              14 | Jatinder Shah                |
+| Q16200798   | nm1985564 |       NULL |                 42 |         45 |               1 |               5 | Kozhikode Narayanan Nair     |
+| Q4984538    | nm0895825 |       1909 |                 42 |         44 |               1 |              41 | Marguerite Viby              |
+| Q6004557    | nm0764202 |       1899 |                 42 |         44 |               1 |               7 | María Santos                 |
+| Q7787584    | nm0072872 |       1884 |                 41 |         63 |               1 |              25 | Thomas Bentley               |
+| Q23581929   | nm0059341 |       NULL |                 41 |         45 |               0 |               8 | Felix Bartsch                |
+| Q5969631    | nm0539118 |       1903 |                 41 |         43 |               1 |               6 | Lalo Malcolm                 |
+| Q3530914    | nm0909398 |       1883 |                 41 |         41 |               1 |              32 | Tom Walls                    |
+| Q15117297   | nm0394742 |       1881 |                 40 |        170 |               1 |               5 | E.D. Horkheimer              |
+| Q3429974    | nm0710550 |       1922 |                 40 |         62 |               1 |              16 | Ghantasala Venkateswara Rao  |
+| Q7357181    | nm0648617 |       1913 |                 40 |         46 |               1 |              12 | Rodolfo Onetto               |
+| Q6414811    | nm0474820 |       1953 |                 40 |         46 |               1 |               9 | Kiran Kumar                  |
+| Q4790711    | nm1908800 |       1964 |                 40 |         44 |               1 |              13 | Arindam Sil                  |
+| Q10857806   | nm0274534 |       1880 |                 40 |         41 |               1 |               6 | Aurelia Ferrer               |
+| Q5694513    | nm0664221 |       1922 |                 40 |         40 |               1 |              15 | Ricardo Passano              |
+| Q103723     | nm0268732 |       1868 |                 39 |         54 |               1 |              21 | Max Fassbender               |
+| Q102349718  | nm9616225 |       1966 |                 39 |         42 |               1 |               5 | Ivan Sochor                  |
+| Q7898244    | nm3368198 |       1941 |                 38 |         67 |               0 |              10 | Upendra Kumar                |
+| Q4727362    | nm0739793 |       1912 |                 38 |         44 |               1 |              12 | Alita Román                  |
+| Q9153319    | nm0699465 |       1943 |                 38 |         42 |               0 |              16 | Andrzej Przedworski          |
+| Q16567025   | nm1015922 |       NULL |                 38 |         42 |               1 |               6 | Fernando Campos              |
+| Q169262     | nm0538667 |       1927 |                 38 |         41 |               1 |              44 | Zdzisław Maklakiewicz        |
+| Q16585806   | nm0719191 |       NULL |                 38 |         39 |               1 |               6 | Julio Renato                 |
+| Q16490280   | nm0278589 |       1911 |                 38 |         39 |               1 |               6 | Carlos Fioriti               |
+| Q2629972    | nm0164244 |       1883 |                 38 |         38 |               1 |              32 | Marguerite Clark             |
+| Q3767127    | nm0223751 |       1948 |                 38 |         38 |               1 |              16 | Giovanni Di Clemente         |
+| Q16518802   | nm0194495 |       1926 |                 37 |        172 |               1 |               6 | János Czipauer               |
+| Q6764546    | nm0056170 |       1905 |                 37 |         39 |               1 |               7 | Mario Baroffio               |
+| Q5831371    | nm0896311 |       1918 |                 37 |         38 |               1 |               8 | Emilio Vidal                 |
+| Q16583854   | nm0752334 |       NULL |                 37 |         37 |               1 |               7 | José Ruzzo                   |
+| Q3620239    | nm0818960 |       NULL |                 37 |         37 |               1 |               6 | Antonio Spinnato             |
+| Q40816946   | nm1141054 |       1966 |                 36 |         69 |               1 |              12 | Wolfgang Cimera              |
+| Q4662776    | nm0040490 |       1921 |                 36 |         63 |               1 |              16 | Aathreya                     |
+| Q5834634    | nm0896741 |       1933 |                 36 |         41 |               1 |              12 | Enzo Viena                   |
+| Q5638065    | nm0070259 |       1916 |                 36 |         40 |               0 |              17 | Saulo Benavente              |
+| Q5223859    | nm0595948 |       1958 |                 35 |        133 |               1 |               4 | Uttam Mohanty                |
+| Q24731      | nm0036472 |       1920 |                 35 |         35 |               1 |              38 | Harry Arnold                 |
+| Q3946295    | nm0508730 |       1927 |                 35 |         35 |               1 |              10 | Salvo Libassi                |
+| Q21288081   | nm0058282 |       1938 |                 34 |         37 |               1 |               9 | Teresa Barska                |
+| Q7278407    | nm1601855 |       1942 |                 34 |         36 |               0 |              13 | Raam Laxman                  |
+| Q12751792   | nm0587030 |       1928 |                 33 |         45 |               1 |              11 | Živojin Milenković           |
+| Q3852571    | nm0195208 |       1912 |                 33 |         41 |               1 |              19 | Maurizio D'Ancora            |
+| Q7966322    | nm0880405 |       1901 |                 33 |         40 |               1 |              14 | Walter Ulfig                 |
+| Q38051125   | nm0676781 |       1897 |                 33 |         39 |               1 |               6 | Carl H. Petersen             |
+| Q7339062    | nm0062568 |       1966 |                 33 |         37 |               1 |               5 | Rizabawa                     |
+| Q64853044   | nm3170229 |       1985 |                 33 |         37 |               1 |               3 | Lakshmi Priya                |
+| Q2877071    | nm0213530 |       1929 |                 33 |         36 |               0 |              31 | Horacio Malvicino            |
+| Q28070864   | nm0161109 |       NULL |                 33 |         35 |               1 |               5 | Rafael Chumbito              |
+| Q5750695    | nm0481428 |       1901 |                 33 |         34 |               1 |               6 | Carlos Lagrotta              |
+| Q101078982  | nm1856576 |       1890 |                 33 |         33 |               1 |               3 | Jiřina Vávrová               |
+| Q5203845    | nm0006769 |       1920 |                 32 |         47 |               1 |              12 | D. V. Narasa Raju            |
+| Q14635419   | nm0701366 |       1926 |                 32 |         46 |               1 |               7 | Milan Puzić                  |
+| Q7290486    | nm0304890 |       1896 |                 32 |         35 |               1 |               7 | Ramón Garay                  |
+| Q3419227    | nm0545808 |       1892 |                 32 |         34 |               1 |              22 | Raoul Marco                  |
+| Q16581804   | nm0678065 |       NULL |                 32 |         34 |               1 |               7 | Joaquín Petrosino            |
+| Q29553741   | nm7600010 |       1943 |                 32 |         33 |               1 |               5 | Sethu Lakshmi                |
+| Q38051129   | nm0421343 |       NULL |                 31 |         59 |               1 |               8 | Birger Møller Jensen         |
+| Q12752897   | nm0029732 |       1943 |                 31 |         41 |               1 |              19 | Kole Angelovski              |
+| Q7283614    | nm2508427 |       1980 |                 31 |         37 |               0 |               6 | Rahul Raj                    |
+| Q5868035    | nm0667056 |       1914 |                 31 |         34 |               1 |              11 | Francisco de Paula           |
+| Q6161120    | nm0285277 |       1898 |                 31 |         32 |               1 |               6 | Vicente Forastieri           |
+| Q76548457   | nm8814704 |       NULL |                 31 |         32 |               1 |               5 | Nirmal Palazhi               |
+| Q3529698    | nm0864573 |       1882 |                 31 |         31 |               1 |               9 | Titys                        |
+| Q7668250    | nm2408922 |       1927 |                 30 |         59 |               0 |               7 | T. G. Lingappa               |
+| Q1506837    | nm0011748 |       1866 |                 30 |         42 |               1 |              67 | George Ade                   |
+| Q101246458  | nm0688686 |       1948 |                 30 |         36 |               1 |               5 | Daniela Pokorná              |
+| Q7630724    | nm0836890 |       1962 |                 30 |         35 |               1 |               6 | Subair                       |
+| Q7117509    | nm0654929 |       1946 |                 30 |         34 |               1 |               7 | P. S. Nivas                  |
+| Q16557914   | nm0617298 |       1901 |                 30 |         33 |               1 |               7 | Domingo Márquez              |
+| Q6069437    | nm0544933 |       1912 |                 30 |         32 |               1 |              12 | Pedro Maratea                |
+| Q5664454    | nm0562839 |       1933 |                 30 |         32 |               1 |               7 | Aldo Mayo                    |
+| Q3619141    | nm0010265 |       1893 |                 30 |         31 |               1 |               9 | Antonio Acqua                |
+| Q130388255  | nm6639016 |       1952 |                 30 |         30 |               1 |               4 | Hans Doodkorte               |
+| Q39058843   | nm1549846 |       1946 |                 29 |         60 |               1 |               2 | KJ Joy                       |
+| Q7906129    | nm5564682 |       NULL |                 29 |         59 |               1 |               8 | V. Manohar                   |
+| Q4102526    | nm1552433 |       1974 |                 29 |         43 |               1 |              12 | Timur Vainshtein             |
+| Q6456254    | nm0478353 |       1952 |                 29 |         34 |               1 |               3 | L. B. Sriram                 |
+| Q8192407    | nm0563327 |       1961 |                 29 |         33 |               1 |              18 | Aitor Mazo                   |
+| Q5990605    | nm0956982 |       1921 |                 29 |         32 |               1 |              15 | Malisa Zini                  |
+| Q6309479    | nm0692180 |       1916 |                 29 |         31 |               1 |              18 | Julio Porter                 |
+| Q5042036    | nm0258069 |       1898 |                 29 |         31 |               1 |               6 | Carlos Enríquez              |
+| Q13220286   | nm4273228 |       1985 |                 29 |         31 |               1 |               5 | Sidhartha Siva               |
+| Q1342340    | nm0946157 |       1968 |                 29 |         29 |               1 |              30 | Filipp Yankovsky             |
+| Q3300715    | nm1042104 |       1901 |                 29 |         29 |               1 |              22 | Maurice Dorléac              |
+| Q31072713   | nm1048600 |       1975 |                 28 |         50 |               1 |              10 | Henrik Vincent Thiesen       |
+| Q1802784    | nm0004576 |       1937 |                 28 |         42 |               1 |              12 | Sobhan Babu                  |
+| Q5890760    | nm0905561 |       1911 |                 28 |         37 |               1 |               9 | Homi Wadia                   |
+| Q4099200    | nm1240999 |       1908 |                 28 |         37 |               1 |               9 | Teodor Bunimovich            |
+| Q6986700    | nm1899900 |       1979 |                 28 |         32 |               0 |              12 | Neel Dutt                    |
+| Q6147538    | nm0351272 |       1920 |                 28 |         30 |               1 |               8 | Tito Gómez                   |
+| Q116943124  | nm1401052 |       1977 |                 28 |         30 |               1 |               7 | David Petersen               |
+| Q16563074   | nm0710977 |       1908 |                 28 |         29 |               1 |               7 | Ernesto Raquén               |
+| Q134008505  | nm0610572 |       NULL |                 28 |         29 |               1 |               2 | Lisa Mozden                  |
+| Q137556062  | nm0752275 |       NULL |                 28 |         29 |               1 |               2 | Ton Ruys                     |
+| Q5725776    | nm0701389 |       1885 |                 28 |         28 |               1 |              12 | Benita Puértolas             |
+| Q5658515    | nm0192108 |       1912 |                 28 |         28 |               1 |              10 | Adrián Cuneo                 |
+| Q16605817   | nm0530274 |       1914 |                 28 |         28 |               1 |               6 | Mecha López                  |
+| Q20652472   | nm0084429 |       1929 |                 27 |         39 |               1 |               4 | Dhira Biswal                 |
+| Q7357149    | nm0187477 |       1921 |                 27 |         31 |               1 |               6 | Rodolfo Crespi               |
+| Q5819697    | nm0762270 |       1908 |                 27 |         30 |               1 |               9 | Eduardo Sandrini             |
+| Q64748612   | nm3440285 |       1961 |                 27 |         30 |               1 |               3 | Lishoy                       |
+| Q4015508    | nm0684853 |       1916 |                 27 |         29 |               1 |              11 | Vittorio Ripamonti           |
+| Q27865686   | nm0273179 |       NULL |                 27 |         29 |               1 |               6 | Isidro Fernán Valdez         |
+| Q17333390   | nm0701099 |       1896 |                 27 |         28 |               0 |              21 | Venedikt Pushkov             |
+| Q16570288   | nm0869043 |       NULL |                 27 |         28 |               1 |               7 | Félix Tortorelli             |
+| Q138379474  | nm2121170 |       NULL |                 27 |         28 |               1 |               1 | Jeffrey De Vore              |
+| Q4903693    | nm1901403 |       1966 |                 27 |         27 |               1 |              28 | Bickram Ghosh                |
+| Q5998376    | nm0785883 |       1850 |                 27 |         27 |               1 |               9 | Marino Seré                  |
+| Q16147361   | nm5573564 |       1990 |                 27 |         27 |               1 |               7 | Anusree                      |
+| Q5545867    | nm4265498 |       NULL |                 27 |         27 |               1 |               5 | George Wang                  |
+| Q526779     | nm0723735 |       1893 |                 26 |         75 |               1 |              11 | Vivian Rich                  |
+| Q7359721    | nm0917407 |       1949 |                 26 |         49 |               0 |              16 | Rohana Weerasinghe           |
+| Q15719770   | nm1389583 |       1950 |                 26 |         44 |               1 |               4 | B. C. Gowrishankar           |
+| Q5405588    | nm0409066 |       1926 |                 26 |         33 |               1 |               7 | Diana Ingro                  |
+| Q15241263   | nm0889150 |       1965 |                 26 |         31 |               1 |               5 | Vanitha Krishnachandran      |
+| Q4739519    | nm0837007 |       1957 |                 26 |         30 |               1 |               6 | Amanchi Venkata Subrahmanyam |
+| Q21288158   | nm0473036 |       1917 |                 26 |         29 |               0 |              10 | Wojciech Krysztofiak         |
+| Q16646749   | nm0739132 |       1916 |                 26 |         28 |               1 |               6 | Virginia Romay               |
+| Q6071691    | nm0034718 |       1900 |                 26 |         27 |               1 |              17 | Pepe Arias                   |
+| Q20014854   | nm1070868 |       1916 |                 26 |         27 |               1 |               6 | Ernesto Villegas             |
+| Q3130817    | nm0153481 |       1900 |                 26 |         26 |               1 |              12 | Henri Charrett               |
+| Q6128418    | nm0745025 |       1924 |                 26 |         26 |               1 |              11 | Silvana Roth                 |
+| Q3935905    | nm0556146 |       1937 |                 26 |         26 |               1 |               8 | Rina Mascetti                |
+| Q16528628   | nm0685398 |       1901 |                 26 |         26 |               1 |               8 | Alfonso Pisano               |
+| Q54823905   | nm0845963 |       1910 |                 26 |         26 |               1 |               4 | Pablo Tabernero              |
+| Q74009758   | nm3713533 |       NULL |                 25 |         96 |               1 |               3 | Jiban Panda                  |
+| Q7141278    | nm2116782 |       1939 |                 25 |         30 |               1 |               9 | Parvathamma Rajkumar         |
+| Q6126438    | nm0273766 |       1898 |                 25 |         28 |               1 |              13 | Severo Fernández             |
+| Q2903721    | nm0561028 |       1906 |                 25 |         28 |               1 |              10 | José Maurer                  |
+| Q5550765    | nm0537354 |       1953 |                 25 |         28 |               1 |               8 | Wolf Maya                    |
+| Q7668684    | nm3595566 |       1986 |                 25 |         28 |               1 |               5 | T. S. Suresh                 |
+| Q2848642    | nm0801441 |       1893 |                 25 |         27 |               1 |              11 | André Siméon                 |
+| Q5906363    | nm0704158 |       1893 |                 25 |         27 |               1 |              10 | Héctor Quintanilla           |
+| Q5652086    | nm0343086 |       1922 |                 25 |         27 |               1 |               7 | Iván Grondona                |
+| Q28073986   | nm0703562 |       NULL |                 25 |         27 |               1 |               5 | Alberto Quiles               |
+| Q3779085    | nm0420614 |       1952 |                 25 |         26 |               1 |              20 | Guia Jelo                    |
+| Q20894408   | nm7447035 |       1992 |                 25 |         25 |               1 |              31 | Ammy Virk                    |
+| Q11996928   | nm0845717 |       1915 |                 25 |         25 |               1 |              19 | Ragnar Sørensen              |
+| Q17369899   | nm0554363 |       NULL |                 25 |         25 |               1 |               6 | Víctor Martucci              |
+| Q39074581   | nm1459571 |       1969 |                 25 |         25 |               1 |               5 | Mukundan                     |
+| Q111535198  | nm1618362 |       NULL |                 25 |         25 |               1 |               4 | Baiju Ezhupunna              |
+| Q17859733   | nm7726073 |       2000 |                 25 |         25 |               1 |               3 | Assim Jamal                  |
+| Q12205887   | nm6303619 |       1945 |                 24 |         56 |               0 |               7 | Jamal Salameh                |
+| Q4020116    | nm0247358 |       1882 |                 24 |         41 |               1 |              12 | William P.S. Earle           |
+| Q2176884    | nm0562251 |       1925 |                 24 |         34 |               1 |              29 | Russ Mayberry                |
+| Q5760184    | nm0313922 |       2000 |                 24 |         29 |               1 |               7 | Celia Geraldy                |
+| Q5520843    | nm0665982 |       1945 |                 24 |         29 |               1 |               5 | Ganesh Patro                 |
+| Q11813973   | nm0120893 |       1969 |                 24 |         28 |               1 |              28 | Paweł Burczyk                |
+| Q10857011   | nm1070037 |       1877 |                 24 |         28 |               1 |               9 | Arsenio Perdiguero           |
+| Q6003386    | nm1023002 |       1917 |                 24 |         28 |               1 |               8 | Maria Armanda                |
+| Q28370128   | nm5016551 |       1986 |                 24 |         27 |               1 |               6 | Anirban Bhattacharya         |
+| Q140184277  | nm2467282 |       NULL |                 24 |         27 |               1 |               1 | Nicolas Boyer                |
+| Q9157666    | nm0944227 |       1925 |                 24 |         26 |               1 |              17 | Antoni Wójtowicz             |
+| Q6350726    | nm0587314 |       1931 |                 24 |         25 |               1 |              27 | Anna Milewska                |
+| Q6165743    | nm0772327 |       1903 |                 24 |         25 |               0 |              17 | Víctor Slister               |
+| Q20015314   | nm0340721 |       1928 |                 24 |         25 |               1 |               6 | Zulma Grey                   |
+| Q498897     | nm0006023 |       1927 |                 24 |         24 |               1 |              80 | John Dankworth               |
+| Q3163127    | nm0013706 |       1935 |                 24 |         24 |               1 |              32 | Javier Aguirre               |
+| Q15723616   | nm3364786 |       1951 |                 23 |         78 |               1 |               7 | Anita Das                    |
+| Q12310451   | nm0932765 |       1931 |                 23 |         71 |               1 |              11 | Erik Wittrup Willumsen       |
+| Q18127102   | nm1550223 |       1936 |                 23 |         53 |               1 |               5 | Pappanamkodu Lakshmanan      |
+| Q12750676   | nm0129850 |       1934 |                 23 |         43 |               1 |              11 | Dara Čalenić                 |
+| Q37493342   | nm1081230 |       1972 |                 23 |         38 |               1 |              11 | Nanna Frank Møller           |
+| Q2052070    | nm1803939 |       1939 |                 23 |         36 |               1 |               7 | Jerry Amaldev                |
++-------------+-----------+------------+--------------------+------------+-----------------+-----------------+------------------------------+
++---------------------+
+| NOW_                |
++---------------------+
+| 2026-11-05 13:17:32 |
++---------------------+

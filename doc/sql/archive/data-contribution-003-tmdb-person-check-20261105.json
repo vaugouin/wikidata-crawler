@@ -1,0 +1,6600 @@
+[
+ {
+  "rank": 1,
+  "qid": "Q5512207",
+  "imdb": "nm0222219",
+  "name": "G. Devarajan",
+  "status": "present_with_imdb",
+  "tmdb_id": 1122114,
+  "tmdb_name": "G Devarajan",
+  "tmdb_imdb": null,
+  "tmdb_wikidata": null,
+  "tmdb_credits": 114,
+  "wikidata_credits_on_tmdb_works": 194,
+  "already_on_tmdb": 102,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "304994",
+    "title": "Kadalamma",
+    "year": "1963",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1632825",
+    "title": "School Master",
+    "year": "1964",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1632619",
+    "title": "Kaliyodum",
+    "year": "1965",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1632617",
+    "title": "Kathirunna Nikah",
+    "year": "1965",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1632612",
+    "title": "Kattu Pookkal",
+    "year": "1965",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "301182",
+    "title": "Odayil Ninnu",
+    "year": "1965",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1632601",
+    "title": "Pattuthoovaala",
+    "year": "1965",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "307182",
+    "title": "Kasavuthattam",
+    "year": "1967",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1641803",
+    "title": "Agni Pareeksha",
+    "year": "1968",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "531104",
+    "title": "Hotel High Range",
+    "year": "1968",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "305881",
+    "title": "Kavalaam Chundan",
+    "year": "1968",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "305898",
+    "title": "Naadan Pennu",
+    "year": "1968",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "402060",
+    "title": "Thulabharam",
+    "year": "1968",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1632286",
+    "title": "Viplavakarikal",
+    "year": "1968",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "305207",
+    "title": "Anaachadanam",
+    "year": "1969",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "301086",
+    "title": "Jwala",
+    "year": "1969",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "301643",
+    "title": "Kattu Kurangu",
+    "year": "1969",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1633243",
+    "title": "Kootu Kudumbam",
+    "year": "1969",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "949560",
+    "title": "Kumara Sambhavam",
+    "year": "1969",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "302217",
+    "title": "Nadhi",
+    "year": "1969",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "301681",
+    "title": "Susie",
+    "year": "1969",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1633238",
+    "title": "Urangatha Sundary",
+    "year": "1969",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1633227",
+    "title": "Aa Chithrasalabham Parannotte",
+    "year": "1970",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1633235",
+    "title": "Dattuputhran",
+    "year": "1970",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "474371",
+    "title": "Othenante makan",
+    "year": "1970",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "950087",
+    "title": "Swapnangal",
+    "year": "1970",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1188390",
+    "title": "Vazhve Mayam",
+    "year": "1970",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1633308",
+    "title": "Ganga Sangamam",
+    "year": "1971",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1633307",
+    "title": "Kalithozhi",
+    "year": "1971",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "497388",
+    "title": "Karakanakadal",
+    "year": "1971",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "301640",
+    "title": "Karinizhal",
+    "year": "1971",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1633291",
+    "title": "Navavadhu",
+    "year": "1971",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1633289",
+    "title": "Oru Penninte Katha",
+    "year": "1971",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "304725",
+    "title": "Panchavan Kadu",
+    "year": "1971",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1633284",
+    "title": "Shiksha",
+    "year": "1971",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1633279",
+    "title": "Sindhoora Cheppu",
+    "year": "1971",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "301691",
+    "title": "Thettu",
+    "year": "1971",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1633275",
+    "title": "Vivahasammanam",
+    "year": "1971",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "698384",
+    "title": "Maravil Thirivu Sookshikkuka",
+    "year": "1972",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1633257",
+    "title": "Omana",
+    "year": "1972",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "142188",
+    "title": "Kaliyugam",
+    "year": "1973",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1635456",
+    "title": "Manushya Puthran",
+    "year": "1973",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "318857",
+    "title": "Maram",
+    "year": "1973",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "304714",
+    "title": "Nakhangal",
+    "year": "1973",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "301666",
+    "title": "Preathangalude Thazhvaram",
+    "year": "1973",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1634992",
+    "title": "Swarga Puthri",
+    "year": "1973",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1635429",
+    "title": "Thaniniram",
+    "year": "1973",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1236956",
+    "title": "Bhoomidevi Pushpiniyayi",
+    "year": "1974",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "262399",
+    "title": "Devi Kanyakumari",
+    "year": "1974",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "308239",
+    "title": "Panchathanthram",
+    "year": "1974",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1641766",
+    "title": "Sethu Bandhanam",
+    "year": "1974",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1585087",
+    "title": "Thumbolarcha",
+    "year": "1974",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "801800",
+    "title": "Alibaba and Forty-One Thieves",
+    "year": "1975",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1637066",
+    "title": "Ayodhya",
+    "year": "1975",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1636247",
+    "title": "Chumaduthangi",
+    "year": "1975",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1637063",
+    "title": "Manishada",
+    "year": "1975",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1637061",
+    "title": "Mucheettu Kalikarante Magal",
+    "year": "1975",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1635811",
+    "title": "Priyamulla Sophia",
+    "year": "1975",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1636170",
+    "title": "Ammini Ammavan",
+    "year": "1976",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "301070",
+    "title": "Anaavaranam",
+    "year": "1976",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "306070",
+    "title": "Ayalkari",
+    "year": "1976",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1636042",
+    "title": "Hridayam Oru Kshethram",
+    "year": "1976",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "949991",
+    "title": "Mohiniyattom",
+    "year": "1976",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "306344",
+    "title": "Agni Nakshatram",
+    "year": "1977",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "306390",
+    "title": "Guruvayoor Kesavan",
+    "year": "1977",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "307910",
+    "title": "Innale Innu",
+    "year": "1977",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1635637",
+    "title": "Panchamrutham",
+    "year": "1977",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1641761",
+    "title": "Samudram",
+    "year": "1977",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1639140",
+    "title": "Vidarunna Mottugal",
+    "year": "1977",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1639108",
+    "title": "Adimakachavadam",
+    "year": "1978",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "440788",
+    "title": "Aniyara",
+    "year": "1978",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "304930",
+    "title": "Avalkku Maranamilla",
+    "year": "1978",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "438100",
+    "title": "Nakshathrangale Kaaval",
+    "year": "1978",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1643808",
+    "title": "Nivedhyam",
+    "year": "1978",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "306435",
+    "title": "Njan Njan Mathram",
+    "year": "1978",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1643472",
+    "title": "Paadasaram",
+    "year": "1978",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "312750",
+    "title": "Rathinirvedam",
+    "year": "1978",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1643470",
+    "title": "Yagaswam",
+    "year": "1978",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1643205",
+    "title": "Mochanam",
+    "year": "1979",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1636129",
+    "title": "Chaakara",
+    "year": "1980",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1644742",
+    "title": "Dwik Vijayam",
+    "year": "1980",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1644137",
+    "title": "Ishtamanu Pakshe",
+    "year": "1980",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1644138",
+    "title": "Ivar",
+    "year": "1980",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1644136",
+    "title": "Kalika",
+    "year": "1980",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1643823",
+    "title": "Lava",
+    "year": "1980",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1643817",
+    "title": "Paallattu Kunjikannan",
+    "year": "1980",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1643816",
+    "title": "Prakadanam",
+    "year": "1980",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "456615",
+    "title": "Maniyanpilla Adhava Maniyanpilla",
+    "year": "1981",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "301207",
+    "title": "Sono Un Fenomeno Paranormale / Babasciò",
+    "year": "1981",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "582479",
+    "title": "Madrasile Mon",
+    "year": "1982",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "993731",
+    "title": "Premalekhanam",
+    "year": "1985",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "934445",
+    "title": "Sree Narayana Guru",
+    "year": "1985",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 2,
+  "qid": "Q2269625",
+  "imdb": "nm0755364",
+  "name": "José Sacristán",
+  "status": "present_with_imdb",
+  "tmdb_id": 105217,
+  "tmdb_name": "José Sacristán",
+  "tmdb_imdb": "nm0755366",
+  "tmdb_wikidata": null,
+  "tmdb_credits": 187,
+  "wikidata_credits_on_tmdb_works": 100,
+  "already_on_tmdb": 91,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "56356",
+    "title": "Between God, The Devil and a Winchester",
+    "year": "1968",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "115470",
+    "title": "The Dead Mother",
+    "year": "1993",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "264766",
+    "title": "¡Oh, cielos!",
+    "year": "1995",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "tv",
+    "tmdb_id": "62841",
+    "title": "Querido maestro",
+    "year": "1997",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "116695",
+    "title": "Killer Housewives",
+    "year": "2001",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "3865",
+    "title": "Dark Blue Almost Black",
+    "year": "2006",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "23049",
+    "title": "My Life in Ruins",
+    "year": "2009",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "420648",
+    "title": "The Bar",
+    "year": "2017",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "tv",
+    "tmdb_id": "88239",
+    "title": "High Seas",
+    "year": "2019",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 3,
+  "qid": "Q26878090",
+  "imdb": "nm0707492",
+  "name": "Gautam Raju",
+  "status": "present_with_imdb",
+  "tmdb_id": 1106924,
+  "tmdb_name": "Gautham Raju",
+  "tmdb_imdb": "nm1179074",
+  "tmdb_wikidata": null,
+  "tmdb_credits": 111,
+  "wikidata_credits_on_tmdb_works": 84,
+  "already_on_tmdb": 49,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "1316766",
+    "title": "Amarajeevi",
+    "year": "1983",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "663530",
+    "title": "Ananda Bhairavi",
+    "year": "1983",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "82754",
+    "title": "Srivariki Premalekha",
+    "year": "1984",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "66364",
+    "title": "Indrudu Chandrudu",
+    "year": "1989",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "81066",
+    "title": "Karthavyam",
+    "year": "1990",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "995320",
+    "title": "Kobbari Bondam",
+    "year": "1991",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "63648",
+    "title": "Naalaiya Theerpu",
+    "year": "1992",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "87681",
+    "title": "Major Chandrakanth",
+    "year": "1993",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "280359",
+    "title": "Nippu Ravva",
+    "year": "1993",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "63651",
+    "title": "Sendhoorapandi",
+    "year": "1993",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "78659",
+    "title": "Rasigan",
+    "year": "1994",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1190361",
+    "title": "Abhishekam",
+    "year": "1998",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "199812",
+    "title": "Suswagatham",
+    "year": "1998",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "274569",
+    "title": "Premaku Velayera",
+    "year": "1999",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "80930",
+    "title": "Chennakesava Reddy",
+    "year": "2002",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "97343",
+    "title": "Tagore",
+    "year": "2003",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "275871",
+    "title": "Athanokkade",
+    "year": "2005",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "77035",
+    "title": "Lakshmi",
+    "year": "2006",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "267354",
+    "title": "Veerabhadra",
+    "year": "2006",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "80948",
+    "title": "Krishna",
+    "year": "2008",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "137472",
+    "title": "Ontari",
+    "year": "2008",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "137273",
+    "title": "Mahatma",
+    "year": "2009",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "57736",
+    "title": "Mirapakay",
+    "year": "2011",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "99354",
+    "title": "Prema Kavali",
+    "year": "2011",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "200339",
+    "title": "Veedu Theda",
+    "year": "2011",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "86719",
+    "title": "Bodyguard",
+    "year": "2012",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "104069",
+    "title": "Nippu",
+    "year": "2012",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "155738",
+    "title": "Sudigaadu",
+    "year": "2012",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "242301",
+    "title": "Venkatadri Express",
+    "year": "2013",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "377668",
+    "title": "Subramanyam For Sale",
+    "year": "2015",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "419245",
+    "title": "Hyper",
+    "year": "2016",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "443635",
+    "title": "DJ: Duvvada Jagannadham",
+    "year": "2017",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "682594",
+    "title": "4 Letters",
+    "year": "2019",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "607313",
+    "title": "Sarileru Neekevvaru",
+    "year": "2020",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "811944",
+    "title": "Game Changer",
+    "year": "2025",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 4,
+  "qid": "Q4751271",
+  "imdb": "nm0025607",
+  "name": "Anand Raj Anand",
+  "status": "present_without_imdb",
+  "tmdb_id": 1039576,
+  "tmdb_name": "Anand Raj Anand",
+  "tmdb_imdb": null,
+  "tmdb_wikidata": null,
+  "tmdb_credits": 52,
+  "wikidata_credits_on_tmdb_works": 78,
+  "already_on_tmdb": 32,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "277258",
+    "title": "Sultanat",
+    "year": "1986",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "214064",
+    "title": "Masoom",
+    "year": "1996",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "936626",
+    "title": "Kaalia",
+    "year": "1997",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "849621",
+    "title": "Koi Kisise Kum Nahin",
+    "year": "1997",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "267529",
+    "title": "Aakrosh: Cyclone Of Anger",
+    "year": "1998",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "84321",
+    "title": "Major Saab",
+    "year": "1998",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "461786",
+    "title": "Pardesi Babu",
+    "year": "1998",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "464515",
+    "title": "Qila",
+    "year": "1998",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "274532",
+    "title": "Tirchhi Topiwale",
+    "year": "1998",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "364652",
+    "title": "Heera Lal Panna Lal",
+    "year": "1999",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "316686",
+    "title": "Hote Hote Pyar Hogaya",
+    "year": "1999",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "46385",
+    "title": "Hadh Kar Di Aapne",
+    "year": "2000",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "tv",
+    "tmdb_id": "33139",
+    "title": "Dishayen",
+    "year": "2001",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "302936",
+    "title": "Tera Mera Saath Rahen",
+    "year": "2001",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "819735",
+    "title": "Annarth",
+    "year": "2002",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "358794",
+    "title": "Maseeha",
+    "year": "2002",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "499242",
+    "title": "Pyaasa",
+    "year": "2002",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "465164",
+    "title": "Yeh Mohabbat Hai",
+    "year": "2002",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "767771",
+    "title": "Zindagi Khoobsoorat Hai",
+    "year": "2002",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "303398",
+    "title": "Jaal: The Trap",
+    "year": "2003",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "222955",
+    "title": "Janasheen",
+    "year": "2003",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "46413",
+    "title": "Mumbai Matinee",
+    "year": "2003",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "304344",
+    "title": "Pyaar Kiya Nahin Jaata",
+    "year": "2003",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "510459",
+    "title": "Ek Se Badhkar Ek",
+    "year": "2004",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "117356",
+    "title": "Musafir",
+    "year": "2004",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "103212",
+    "title": "Rakht",
+    "year": "2004",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "362812",
+    "title": "Chaahat Ek Nasha...",
+    "year": "2005",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "20132",
+    "title": "Kaal",
+    "year": "2005",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "353944",
+    "title": "Padmashree Laloo Prasad Yadav",
+    "year": "2005",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "301687",
+    "title": "Tango Charlie",
+    "year": "2005",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "117409",
+    "title": "Viruddh... Family Comes First",
+    "year": "2005",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "369843",
+    "title": "Humko Tumse Pyaar Hai",
+    "year": "2006",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "309168",
+    "title": "Love Ke Chakkar Mein",
+    "year": "2006",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "276343",
+    "title": "Chhodon Naa Yaar",
+    "year": "2007",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "310298",
+    "title": "Sarhad Paar",
+    "year": "2007",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "20295",
+    "title": "C Kkompany",
+    "year": "2008",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "22291",
+    "title": "Baabarr",
+    "year": "2009",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "37671",
+    "title": "Chal Chala Chal",
+    "year": "2009",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "21365",
+    "title": "Shadow",
+    "year": "2009",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "117133",
+    "title": "Benny And Babloo",
+    "year": "2010",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "67386",
+    "title": "Bin Bulaye Baraati",
+    "year": "2011",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "63468",
+    "title": "Chalo Dilli",
+    "year": "2011",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "238408",
+    "title": "Singh Saab the Great",
+    "year": "2013",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "303457",
+    "title": "Chaar Sahibzaade",
+    "year": "2014",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "403788",
+    "title": "Dil Toh Deewana Hai",
+    "year": "2016",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "363185",
+    "title": "Mastizaade",
+    "year": "2016",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 5,
+  "qid": "Q6108101",
+  "imdb": "nm0175570",
+  "name": "Ricardo Conord",
+  "status": "present_without_imdb",
+  "tmdb_id": 1815972,
+  "tmdb_name": "Ricardo J. Conord",
+  "tmdb_imdb": null,
+  "tmdb_wikidata": null,
+  "tmdb_credits": 74,
+  "wikidata_credits_on_tmdb_works": 76,
+  "already_on_tmdb": 70,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "629898",
+    "title": "El caballo del pueblo",
+    "year": "1935",
+    "job": "Art / Production Design",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "623205",
+    "title": "Noches de Buenos Aires",
+    "year": "1935",
+    "job": "Art / Production Design",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "506916",
+    "title": "Así es la vida",
+    "year": "1939",
+    "job": "Art / Production Design",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "710049",
+    "title": "El tesoro de la isla Maciel",
+    "year": "1941",
+    "job": "Art / Production Design",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "713855",
+    "title": "El fabricante de estrellas",
+    "year": "1943",
+    "job": "Art / Production Design",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "767594",
+    "title": "La mujer del león",
+    "year": "1951",
+    "job": "Art / Production Design",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 6,
+  "qid": "Q28070985",
+  "imdb": "nm7075397",
+  "name": "Hareesh Perumanna",
+  "status": "present_without_imdb",
+  "tmdb_id": 1608615,
+  "tmdb_name": "Hareesh Perumanna",
+  "tmdb_imdb": null,
+  "tmdb_wikidata": null,
+  "tmdb_credits": 94,
+  "wikidata_credits_on_tmdb_works": 72,
+  "already_on_tmdb": 68,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "836062",
+    "title": "Upacharapoorvam Gunda Jayan",
+    "year": "NULL",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "835690",
+    "title": "Vidhi",
+    "year": "NULL",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "296632",
+    "title": "Ulsaha Committee",
+    "year": "2014",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "tv",
+    "tmdb_id": "316422",
+    "title": "Selfie Family",
+    "year": "2026",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 7,
+  "qid": "Q13110599",
+  "imdb": "nm0880899",
+  "name": "A. T. Ummer",
+  "status": "present_without_imdb",
+  "tmdb_id": 1167695,
+  "tmdb_name": "A T Ummer",
+  "tmdb_imdb": null,
+  "tmdb_wikidata": null,
+  "tmdb_credits": 49,
+  "wikidata_credits_on_tmdb_works": 67,
+  "already_on_tmdb": 39,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "307850",
+    "title": "Jalakanta",
+    "year": "1971",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "322281",
+    "title": "Preethi",
+    "year": "1972",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "531844",
+    "title": "Thekkan Kattu",
+    "year": "1973",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "305193",
+    "title": "Aaranya Kaandum",
+    "year": "1975",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "301214",
+    "title": "Abhimanam",
+    "year": "1975",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1529341",
+    "title": "Utsavam",
+    "year": "1975",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1636173",
+    "title": "Alinganam",
+    "year": "1976",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "531839",
+    "title": "Amrithavaahini",
+    "year": "1976",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "301072",
+    "title": "Anubhavam",
+    "year": "1976",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "307792",
+    "title": "Raja Parampara",
+    "year": "1977",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1643281",
+    "title": "Aarattu",
+    "year": "1979",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1296389",
+    "title": "Angakkuri",
+    "year": "1979",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "307531",
+    "title": "Manasa Vacha Karmana",
+    "year": "1979",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1644135",
+    "title": "Kaaval Maadam",
+    "year": "1980",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "707309",
+    "title": "Moorkhan",
+    "year": "1980",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1643815",
+    "title": "Pralayam",
+    "year": "1980",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1590246",
+    "title": "Asthamikkatha Pakalukal",
+    "year": "1981",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "707300",
+    "title": "Thadavara",
+    "year": "1981",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1590972",
+    "title": "Beedi Kunjamma",
+    "year": "1982",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "308215",
+    "title": "Maruppacha",
+    "year": "1982",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "435123",
+    "title": "Sree Ayyappanum Vavarum",
+    "year": "1982",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "582687",
+    "title": "Ente Katha",
+    "year": "1983",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "359501",
+    "title": "April Pathinettu",
+    "year": "1984",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "440412",
+    "title": "Padayani",
+    "year": "1986",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "277970",
+    "title": "Vartha",
+    "year": "1986",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1159301",
+    "title": "Inquilabinte Puthri",
+    "year": "1988",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "627787",
+    "title": "Simon Peter Ninakku Vendi",
+    "year": "1988",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "358863",
+    "title": "Ammavanu Pattiya Amali",
+    "year": "1989",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 8,
+  "qid": "Q731703",
+  "imdb": "nm0488932",
+  "name": "Viggo Larsen",
+  "status": "present_with_imdb",
+  "tmdb_id": 1172452,
+  "tmdb_name": "Viggo Larsen",
+  "tmdb_imdb": "nm0488933",
+  "tmdb_wikidata": "Q38052538",
+  "tmdb_credits": 74,
+  "wikidata_credits_on_tmdb_works": 66,
+  "already_on_tmdb": 55,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "1696984",
+    "title": "A Wedding During the French Revolution",
+    "year": "1910",
+    "job": "Directing / Director",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "297448",
+    "title": "Dr. Jekyll and Mr. Hyde",
+    "year": "1910",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "891630",
+    "title": "The Dock Catastrophe",
+    "year": "1913",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1139943",
+    "title": "First Love",
+    "year": "1918",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "985700",
+    "title": "Panopta I",
+    "year": "1918",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "834642",
+    "title": "Schloss am See",
+    "year": "1918",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "316355",
+    "title": "Schill's eleven officers",
+    "year": "1932",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "292251",
+    "title": "The Yellow Flag",
+    "year": "1937",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "5887",
+    "title": "Shadows over St. Pauli",
+    "year": "1938",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "301553",
+    "title": "Clarissa",
+    "year": "1941",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "270144",
+    "title": "G.P.U.",
+    "year": "1942",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 9,
+  "qid": "Q2053416",
+  "imdb": "nm0035021",
+  "name": "M. K. Arjunan",
+  "status": "present_without_imdb",
+  "tmdb_id": 1199677,
+  "tmdb_name": "M.K. Arjunan",
+  "tmdb_imdb": null,
+  "tmdb_wikidata": null,
+  "tmdb_credits": 41,
+  "wikidata_credits_on_tmdb_works": 66,
+  "already_on_tmdb": 37,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "302256",
+    "title": "Rest House",
+    "year": "1969",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "142019",
+    "title": "C.I.D. Nazir",
+    "year": "1971",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1633270",
+    "title": "Aadhyathe Katha",
+    "year": "1972",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "307844",
+    "title": "Agnathavasam",
+    "year": "1973",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "508253",
+    "title": "Pacha Nottukal",
+    "year": "1973",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "860795",
+    "title": "Padmavyooham",
+    "year": "1973",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "860797",
+    "title": "Panchavadi",
+    "year": "1973",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "303017",
+    "title": "Ragging",
+    "year": "1973",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1635005",
+    "title": "Yamini",
+    "year": "1973",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "531830",
+    "title": "Poonthenaruvi",
+    "year": "1974",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1637110",
+    "title": "Rehasya Rathri",
+    "year": "1974",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "306432",
+    "title": "Ashtami Rohini",
+    "year": "1975",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1231868",
+    "title": "Hello Darling",
+    "year": "1975",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1637060",
+    "title": "Pravaham",
+    "year": "1975",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "304697",
+    "title": "Kayamkulam Kochunniyude Maghan",
+    "year": "1976",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1635870",
+    "title": "Light House",
+    "year": "1976",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1641787",
+    "title": "Jayikkanaayi Janichavan",
+    "year": "1978",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1054114",
+    "title": "Avano Atho Avalo",
+    "year": "1979",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1643251",
+    "title": "Irumpazhikal",
+    "year": "1979",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1644745",
+    "title": "Thuramugham",
+    "year": "1979",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "532089",
+    "title": "Kari Puranda Jeevithangal",
+    "year": "1980",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "502660",
+    "title": "Raagam Thaanam Pallavi",
+    "year": "1980",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "750314",
+    "title": "Agni Saram",
+    "year": "1981",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "798542",
+    "title": "Balloon",
+    "year": "1982",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "972728",
+    "title": "Kayam",
+    "year": "1982",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "507953",
+    "title": "Mahabali",
+    "year": "1983",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1480745",
+    "title": "Ambada Njane!",
+    "year": "1986",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "238063",
+    "title": "Nyayavidhi",
+    "year": "1986",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "469977",
+    "title": "Naradhan Keralathil",
+    "year": "1987",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 10,
+  "qid": "Q2928642",
+  "imdb": "nm0454535",
+  "name": "Burton L. King",
+  "status": "present_without_imdb",
+  "tmdb_id": 1153824,
+  "tmdb_name": "Burton L. King",
+  "tmdb_imdb": null,
+  "tmdb_wikidata": null,
+  "tmdb_credits": 73,
+  "wikidata_credits_on_tmdb_works": 65,
+  "already_on_tmdb": 62,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "1474147",
+    "title": "The Reaping",
+    "year": "1915",
+    "job": "Writing / Screenplay",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "300294",
+    "title": "The Forty-Niners",
+    "year": "1932",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "159082",
+    "title": "The Penal Code",
+    "year": "1932",
+    "job": "Production / Producer",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 11,
+  "qid": "Q7238852",
+  "imdb": "nm3164715",
+  "name": "Praveen K. L.",
+  "status": "present_without_imdb",
+  "tmdb_id": 222845,
+  "tmdb_name": "Praveen K. L.",
+  "tmdb_imdb": null,
+  "tmdb_wikidata": null,
+  "tmdb_credits": 111,
+  "wikidata_credits_on_tmdb_works": 65,
+  "already_on_tmdb": 54,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "76788",
+    "title": "Mankatha",
+    "year": "2011",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "262569",
+    "title": "Murattu Kaalai",
+    "year": "2012",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "243706",
+    "title": "Endrendrum Punnagai",
+    "year": "2013",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "198264",
+    "title": "Thillu Mullu",
+    "year": "2013",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "274851",
+    "title": "Koothara",
+    "year": "2014",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "327709",
+    "title": "Komban",
+    "year": "2015",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "376455",
+    "title": "Kodi",
+    "year": "2016",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "534963",
+    "title": "100",
+    "year": "2019",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "610301",
+    "title": "Dharma Prabhu",
+    "year": "2019",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "595490",
+    "title": "Mehandi Circus",
+    "year": "2019",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "791390",
+    "title": "30 Rojullo Preminchadam Ela?",
+    "year": "2020",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 12,
+  "qid": "Q16599878",
+  "imdb": "nm0767759",
+  "name": "Mario Savino",
+  "status": "present_without_imdb",
+  "tmdb_id": 1819306,
+  "tmdb_name": "Mario Savino",
+  "tmdb_imdb": null,
+  "tmdb_wikidata": null,
+  "tmdb_credits": 68,
+  "wikidata_credits_on_tmdb_works": 62,
+  "already_on_tmdb": 51,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "673898",
+    "title": "Pecadora",
+    "year": "1956",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "313728",
+    "title": "Creo en ti",
+    "year": "1960",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "757061",
+    "title": "Alias Flequillo",
+    "year": "1963",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "868659",
+    "title": "The Devil in the Blood",
+    "year": "1964",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "370163",
+    "title": "La perra",
+    "year": "1967",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "451060",
+    "title": "El sátiro (Strip tease mortal)",
+    "year": "1970",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "568246",
+    "title": "The Money",
+    "year": "1970",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "642150",
+    "title": "Un elefante color ilusión",
+    "year": "1970",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "144952",
+    "title": "Había una vez un circo",
+    "year": "1972",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "493847",
+    "title": "The Inquisitor",
+    "year": "1975",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "391304",
+    "title": "La guerra de los sostenes",
+    "year": "1976",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 13,
+  "qid": "Q5055301",
+  "imdb": "nm0083178",
+  "name": "Cayetano Biondo",
+  "status": "present_without_imdb",
+  "tmdb_id": 1544183,
+  "tmdb_name": "Cayetano Biondo",
+  "tmdb_imdb": null,
+  "tmdb_wikidata": null,
+  "tmdb_credits": 59,
+  "wikidata_credits_on_tmdb_works": 60,
+  "already_on_tmdb": 50,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "1107629",
+    "title": "Callejón sin salida",
+    "year": "1938",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "864187",
+    "title": "Torrente indiano",
+    "year": "1954",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "199221",
+    "title": "El último perro",
+    "year": "1956",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "559868",
+    "title": "Detrás de un largo muro",
+    "year": "1958",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "95776",
+    "title": "Buscando a Mónica",
+    "year": "1962",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "768306",
+    "title": "Placeres conyugales",
+    "year": "1964",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "722983",
+    "title": "Esquiú, una luz en el sendero",
+    "year": "1965",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "612902",
+    "title": "Kuma-Ching",
+    "year": "1969",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "568246",
+    "title": "The Money",
+    "year": "1970",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "624739",
+    "title": "La mayoría silenciada",
+    "year": "1986",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 14,
+  "qid": "Q26251134",
+  "imdb": "nm4425773",
+  "name": "Alencier Ley Lopez",
+  "status": "present_without_imdb",
+  "tmdb_id": 1574335,
+  "tmdb_name": "Alencier Ley Lopez",
+  "tmdb_imdb": null,
+  "tmdb_wikidata": null,
+  "tmdb_credits": 100,
+  "wikidata_credits_on_tmdb_works": 60,
+  "already_on_tmdb": 60,
+  "missing": []
+ },
+ {
+  "rank": 15,
+  "qid": "Q3726570",
+  "imdb": "nm0535982",
+  "name": "Enzo Maggio",
+  "status": "present_with_imdb",
+  "tmdb_id": 1169660,
+  "tmdb_name": "Enzo Maggio",
+  "tmdb_imdb": "nm5037444",
+  "tmdb_wikidata": null,
+  "tmdb_credits": 49,
+  "wikidata_credits_on_tmdb_works": 60,
+  "already_on_tmdb": 35,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "211561",
+    "title": "The City Defends Itself",
+    "year": "1951",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "818459",
+    "title": "Viva il cinema",
+    "year": "1952",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "445532",
+    "title": "Il cantante misterioso",
+    "year": "1954",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "207590",
+    "title": "Napoli piange e ride",
+    "year": "1954",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "995700",
+    "title": "Peppino e la vecchia signora",
+    "year": "1954",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "334232",
+    "title": "Sins of Casanova",
+    "year": "1954",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "43194",
+    "title": "Ulysses",
+    "year": "1954",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "325016",
+    "title": "I giorni più belli",
+    "year": "1956",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "212450",
+    "title": "Caccia al marito",
+    "year": "1960",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "353620",
+    "title": "My Pal, Dr. Jekyll",
+    "year": "1960",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "142979",
+    "title": "The Joy of Living",
+    "year": "1961",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "331782",
+    "title": "Zorro and the Three Musketeers",
+    "year": "1963",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "296491",
+    "title": "3 Avengers",
+    "year": "1964",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "123206",
+    "title": "Bullet in the Flesh",
+    "year": "1964",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "103027",
+    "title": "Hercules and the Pirates",
+    "year": "1964",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "338315",
+    "title": "Revenge of the Musketeers",
+    "year": "1964",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "416235",
+    "title": "Money",
+    "year": "1965",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "205490",
+    "title": "SuperSeven Calling Cairo",
+    "year": "1965",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "143760",
+    "title": "Johnny Colt",
+    "year": "1966",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "388275",
+    "title": "Kill Me Quick, I'm Cold",
+    "year": "1967",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "63432",
+    "title": "The Three Fantastic Supermen",
+    "year": "1967",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "90779",
+    "title": "When Men Carried Clubs and Women Played Ding-Dong",
+    "year": "1971",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "436902",
+    "title": "Decamerone '300",
+    "year": "1972",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "260883",
+    "title": "Silence the Witness",
+    "year": "1974",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "81803",
+    "title": "First Love",
+    "year": "1978",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 16,
+  "qid": "Q5667396",
+  "imdb": "nm0713999",
+  "name": "Alfonso del Real",
+  "status": "present_without_imdb",
+  "tmdb_id": 1605277,
+  "tmdb_name": "Alfonso del Real",
+  "tmdb_imdb": null,
+  "tmdb_wikidata": null,
+  "tmdb_credits": 113,
+  "wikidata_credits_on_tmdb_works": 59,
+  "already_on_tmdb": 55,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "320033",
+    "title": "Fall of the Mohicans",
+    "year": "1965",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "111688",
+    "title": "Novios 68",
+    "year": "1967",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "160457",
+    "title": "The Sea and the Weather",
+    "year": "1989",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "3586",
+    "title": "Prêt-à-Porter",
+    "year": "1994",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 17,
+  "qid": "Q16624098",
+  "imdb": "nm0228315",
+  "name": "Rafael Diserio",
+  "status": "present_without_imdb",
+  "tmdb_id": 1775328,
+  "tmdb_name": "Rafael Diserio",
+  "tmdb_imdb": null,
+  "tmdb_wikidata": null,
+  "tmdb_credits": 61,
+  "wikidata_credits_on_tmdb_works": 58,
+  "already_on_tmdb": 43,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "657517",
+    "title": "La rubia Mireya",
+    "year": "1948",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "564214",
+    "title": "Mujeres que bailan",
+    "year": "1949",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "319853",
+    "title": "El pendiente",
+    "year": "1951",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "436433",
+    "title": "The Strange Case of the Man and the Beast",
+    "year": "1951",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "580139",
+    "title": "Ellos nos hicieron así",
+    "year": "1952",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "158830",
+    "title": "The Lady of the Camelias",
+    "year": "1953",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "492312",
+    "title": "Cinco gallinas y el cielo",
+    "year": "1957",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "561203",
+    "title": "Las campanas de Teresa",
+    "year": "1957",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "559868",
+    "title": "Detrás de un largo muro",
+    "year": "1958",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "96222",
+    "title": "Forbidden Love",
+    "year": "1958",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "269496",
+    "title": "Missing Persons Section",
+    "year": "1958",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "143536",
+    "title": "Masterworks of Terror",
+    "year": "1960",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "335487",
+    "title": "Alias Gardelito",
+    "year": "1961",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "186630",
+    "title": "Il gaucho",
+    "year": "1964",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "768306",
+    "title": "Placeres conyugales",
+    "year": "1964",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 18,
+  "qid": "Q21067208",
+  "imdb": "nm8326844",
+  "name": "Vijayakumar",
+  "status": "present_without_imdb",
+  "tmdb_id": 1501423,
+  "tmdb_name": "Vijayakumar",
+  "tmdb_imdb": null,
+  "tmdb_wikidata": null,
+  "tmdb_credits": 82,
+  "wikidata_credits_on_tmdb_works": 58,
+  "already_on_tmdb": 45,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "342817",
+    "title": "Onnam Loka Mahayudham",
+    "year": "NULL",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "935520",
+    "title": "Panthrand Twelve",
+    "year": "NULL",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1388349",
+    "title": "The King maker Leader",
+    "year": "2003",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1142492",
+    "title": "Nirakazhcha",
+    "year": "2010",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "141929",
+    "title": "Hero",
+    "year": "2012",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "176419",
+    "title": "I Love Me",
+    "year": "2012",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "339297",
+    "title": "Angels",
+    "year": "2014",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "269820",
+    "title": "God's Own Country",
+    "year": "2014",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "371107",
+    "title": "Anarkali",
+    "year": "2015",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "411871",
+    "title": "Ithinumappuram",
+    "year": "2015",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "412107",
+    "title": "IDI: Inspector Dawood Ibrahim",
+    "year": "2016",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "428658",
+    "title": "The Great Father",
+    "year": "2017",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1115022",
+    "title": "Azadi",
+    "year": "2025",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 19,
+  "qid": "Q6434301",
+  "imdb": "nm0619758",
+  "name": "Kottarakkara Sreedharan Nair",
+  "status": "present_without_imdb",
+  "tmdb_id": 1337566,
+  "tmdb_name": "Kottarakkara Sreedharan Nair",
+  "tmdb_imdb": null,
+  "tmdb_wikidata": null,
+  "tmdb_credits": 69,
+  "wikidata_credits_on_tmdb_works": 56,
+  "already_on_tmdb": 37,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "1632113",
+    "title": "Aniyathi",
+    "year": "1955",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "945421",
+    "title": "C.I.D",
+    "year": "1955",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1632126",
+    "title": "Mariakutty",
+    "year": "1958",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "536035",
+    "title": "Laila Majnu",
+    "year": "1962",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "302277",
+    "title": "Snapaka Yohannan",
+    "year": "1963",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1632601",
+    "title": "Pattuthoovaala",
+    "year": "1965",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1153395",
+    "title": "Shakunthala",
+    "year": "1965",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "307182",
+    "title": "Kasavuthattam",
+    "year": "1967",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "307320",
+    "title": "Adyapika",
+    "year": "1968",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "304974",
+    "title": "Collector Malathy",
+    "year": "1968",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1632331",
+    "title": "Lady Doctor",
+    "year": "1968",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "530960",
+    "title": "Punnapra Vayalar",
+    "year": "1968",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1632313",
+    "title": "Thirichadi",
+    "year": "1968",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "301086",
+    "title": "Jwala",
+    "year": "1969",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "301681",
+    "title": "Susie",
+    "year": "1969",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "633311",
+    "title": "Kakkathamburatti",
+    "year": "1970",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1633308",
+    "title": "Ganga Sangamam",
+    "year": "1971",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "307850",
+    "title": "Jalakanta",
+    "year": "1971",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1644136",
+    "title": "Kalika",
+    "year": "1980",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 20,
+  "qid": "Q19903994",
+  "imdb": "nm0091291",
+  "name": "Francis Boeniger",
+  "status": "present_without_imdb",
+  "tmdb_id": 1713738,
+  "tmdb_name": "Francis Boeniger",
+  "tmdb_imdb": null,
+  "tmdb_wikidata": null,
+  "tmdb_credits": 67,
+  "wikidata_credits_on_tmdb_works": 54,
+  "already_on_tmdb": 52,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "820866",
+    "title": "Con las alas rotas",
+    "year": "1938",
+    "job": "Camera / Director of Photography",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "359278",
+    "title": "Mujeres casadas",
+    "year": "1954",
+    "job": "Camera / Director of Photography",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 21,
+  "qid": "Q7929224",
+  "imdb": "nm6168318",
+  "name": "Vijaya Bhaskar",
+  "status": "present_with_imdb",
+  "tmdb_id": 585265,
+  "tmdb_name": "Vijaya Bhaskar",
+  "tmdb_imdb": "nm6457449",
+  "tmdb_wikidata": null,
+  "tmdb_credits": 30,
+  "wikidata_credits_on_tmdb_works": 51,
+  "already_on_tmdb": 21,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "1632742",
+    "title": "Santha Thukaram",
+    "year": "1963",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1789053",
+    "title": "Thoogudeepa",
+    "year": "1966",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "305886",
+    "title": "Beedi Basavanna",
+    "year": "1967",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1780536",
+    "title": "Mannina Maga",
+    "year": "1968",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "326801",
+    "title": "Naagarahaavu",
+    "year": "1972",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1517173",
+    "title": "Nanda Gokula",
+    "year": "1972",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1509156",
+    "title": "Bhagya Jyothi",
+    "year": "1975",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1729281",
+    "title": "Mayangukiral Oru Maadhu",
+    "year": "1975",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1316758",
+    "title": "Shubhamangala",
+    "year": "1975",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1584748",
+    "title": "Yarukku Mappillai Yaro",
+    "year": "1975",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1313648",
+    "title": "Phalitamsha",
+    "year": "1976",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1556944",
+    "title": "Banashankari",
+    "year": "1977",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "300296",
+    "title": "Maagiya Kanasu",
+    "year": "1977",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1556886",
+    "title": "Mugdha Manava",
+    "year": "1977",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "370419",
+    "title": "Grahana",
+    "year": "1978",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "305904",
+    "title": "Paduvaaralli Pandavaru",
+    "year": "1978",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1511178",
+    "title": "Bangarada Jinke",
+    "year": "1980",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1552999",
+    "title": "Driver Hanumanthu",
+    "year": "1980",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "514730",
+    "title": "Soundaryame Varuga Varuga",
+    "year": "1980",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "320896",
+    "title": "Manasa Sarovara",
+    "year": "1982",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "301604",
+    "title": "Suvarna Sethuve",
+    "year": "1982",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1313454",
+    "title": "Dharani Mandala Madhyadolage",
+    "year": "1983",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "307849",
+    "title": "Amrutha Ghalige",
+    "year": "1984",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1509159",
+    "title": "Huli Hejje",
+    "year": "1984",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "320901",
+    "title": "Masanada Hoovu",
+    "year": "1984",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1316763",
+    "title": "Runa Mukthalu",
+    "year": "1984",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "307966",
+    "title": "Malaya Marutha",
+    "year": "1986",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1320947",
+    "title": "Avasthe",
+    "year": "1987",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "320902",
+    "title": "Mithileya Seetheyaru",
+    "year": "1988",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "305226",
+    "title": "Devaru Kotta Thangi",
+    "year": "2009",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 22,
+  "qid": "Q2417167",
+  "imdb": "nm0702957",
+  "name": "Pedro Quartucci",
+  "status": "present_without_imdb",
+  "tmdb_id": 1791674,
+  "tmdb_name": "Pedro Quartucci",
+  "tmdb_imdb": null,
+  "tmdb_wikidata": null,
+  "tmdb_credits": 54,
+  "wikidata_credits_on_tmdb_works": 51,
+  "already_on_tmdb": 50,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "684789",
+    "title": "El casamiento de Laucha",
+    "year": "1977",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 23,
+  "qid": "Q6172768",
+  "imdb": "nm0243938",
+  "name": "Álvaro Durañona y Vedia",
+  "status": "present_without_imdb",
+  "tmdb_id": 1813631,
+  "tmdb_name": "Álvaro Durañona y Vedia",
+  "tmdb_imdb": null,
+  "tmdb_wikidata": null,
+  "tmdb_credits": 57,
+  "wikidata_credits_on_tmdb_works": 50,
+  "already_on_tmdb": 40,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "624745",
+    "title": "La muerte está mintiendo",
+    "year": "1950",
+    "job": "Art / Production Design",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "318590",
+    "title": "Dishonor",
+    "year": "1952",
+    "job": "Art / Production Design",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "677687",
+    "title": "El gaucho y el diablo",
+    "year": "1952",
+    "job": "Art / Production Design",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "864372",
+    "title": "La dama del millón",
+    "year": "1956",
+    "job": "Art / Production Design",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "198834",
+    "title": "Primero yo",
+    "year": "1964",
+    "job": "Art / Production Design",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "881490",
+    "title": "Si se calla el cantor",
+    "year": "1973",
+    "job": "Art / Production Design",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "558984",
+    "title": "A World of Love",
+    "year": "1975",
+    "job": "Art / Production Design",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "776320",
+    "title": "No hay que aflojarle a la vida",
+    "year": "1975",
+    "job": "Art / Production Design",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "684789",
+    "title": "El casamiento de Laucha",
+    "year": "1977",
+    "job": "Art / Production Design",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "771058",
+    "title": "Ritmo, amor y primavera",
+    "year": "1981",
+    "job": "Art / Production Design",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 24,
+  "qid": "Q6893516",
+  "imdb": "nm0595897",
+  "name": "Mohan",
+  "status": "present_with_imdb",
+  "tmdb_id": 584359,
+  "tmdb_name": "Mohan",
+  "tmdb_imdb": "nm2061768",
+  "tmdb_wikidata": null,
+  "tmdb_credits": 107,
+  "wikidata_credits_on_tmdb_works": 49,
+  "already_on_tmdb": 47,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "278413",
+    "title": "Shikari",
+    "year": "2012",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1747666",
+    "title": "Insha Allah: An inception at closure",
+    "year": "2019",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 25,
+  "qid": "Q8962663",
+  "imdb": "nm0959433",
+  "name": "Francisco Álvarez",
+  "status": "present_with_imdb",
+  "tmdb_id": 1452586,
+  "tmdb_name": "Francisco Álvarez",
+  "tmdb_imdb": "nm1643711",
+  "tmdb_wikidata": null,
+  "tmdb_credits": 55,
+  "wikidata_credits_on_tmdb_works": 49,
+  "already_on_tmdb": 48,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "864073",
+    "title": "Su seguro servidor",
+    "year": "1954",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 26,
+  "qid": "Q2792151",
+  "imdb": "nm3374348",
+  "name": "Jayiram Samal",
+  "status": "present_without_imdb",
+  "tmdb_id": 3877549,
+  "tmdb_name": "Jayiram Samal",
+  "tmdb_imdb": null,
+  "tmdb_wikidata": null,
+  "tmdb_credits": 31,
+  "wikidata_credits_on_tmdb_works": 48,
+  "already_on_tmdb": 22,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "1100631",
+    "title": "Ae Nuhen Kahani",
+    "year": "1977",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1625828",
+    "title": "Naga Phasa",
+    "year": "1977",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1100331",
+    "title": "Manini",
+    "year": "1979",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "304958",
+    "title": "Bilwa Mangala",
+    "year": "1981",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1100513",
+    "title": "Subarna Sita",
+    "year": "1983",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1430412",
+    "title": "Swapna Sagara",
+    "year": "1983",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1100311",
+    "title": "Aei Ta Dunia",
+    "year": "1987",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1041967",
+    "title": "Bidhir Bidhan",
+    "year": "1989",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "304061",
+    "title": "Laxman Rekha",
+    "year": "1996",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "305918",
+    "title": "Yashoda",
+    "year": "1996",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1099119",
+    "title": "Kie Kahara",
+    "year": "1997",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1099920",
+    "title": "Aei Akhi Ama Sakhi",
+    "year": "1999",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1441816",
+    "title": "Kalki Abatar",
+    "year": "1999",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1098191",
+    "title": "Sarapancha Babu",
+    "year": "1999",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1096933",
+    "title": "Barsha My Darling",
+    "year": "2004",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1096926",
+    "title": "Agni Parikshya",
+    "year": "2005",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1096054",
+    "title": "Babu I Love You",
+    "year": "2005",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "512306",
+    "title": "Dhauli Express",
+    "year": "2007",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "964256",
+    "title": "Kali Shankar",
+    "year": "2007",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1441209",
+    "title": "To Bina Mo Kahani Adhaa",
+    "year": "2007",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1011836",
+    "title": "Bhagya Chakra",
+    "year": "2008",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1095825",
+    "title": "Aa Jahnare Lekhiba Naa",
+    "year": "2009",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "493459",
+    "title": "Rangila Toka",
+    "year": "2012",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1094216",
+    "title": "ACP Sagarika",
+    "year": "2013",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "493940",
+    "title": "Ashok Samrat",
+    "year": "2013",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "497340",
+    "title": "Tu Kahibu Na Mu",
+    "year": "2016",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 27,
+  "qid": "Q4288040",
+  "imdb": "nm0583468",
+  "name": "Mikhail Meerovich",
+  "status": "present_without_imdb",
+  "tmdb_id": 1587508,
+  "tmdb_name": "Mikhail Meerovich",
+  "tmdb_imdb": null,
+  "tmdb_wikidata": null,
+  "tmdb_credits": 84,
+  "wikidata_credits_on_tmdb_works": 48,
+  "already_on_tmdb": 35,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "1370344",
+    "title": "The Overcoat",
+    "year": "NULL",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "196673",
+    "title": "Where have I seen him?",
+    "year": "1965",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "428946",
+    "title": "The Forest Chronicle",
+    "year": "1971",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "420688",
+    "title": "Handyman from Clamecy",
+    "year": "1972",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "84815",
+    "title": "Adventures of Homa",
+    "year": "1978",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "144430",
+    "title": "Father Frost and the Grey Wolf",
+    "year": "1978",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "306035",
+    "title": "A Kitten Named Woof: The Fourth Story",
+    "year": "1980",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "248188",
+    "title": "The Imp N13",
+    "year": "1982",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "448879",
+    "title": "Adventures of Brownie",
+    "year": "1986",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "446251",
+    "title": "Elephant and Warbler",
+    "year": "1986",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "469449",
+    "title": "Tale for Natasha",
+    "year": "1986",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "273951",
+    "title": "At the Zoo - Repair!",
+    "year": "1987",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "469450",
+    "title": "Return of Brownie",
+    "year": "1987",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 28,
+  "qid": "Q6014454",
+  "imdb": "nm0350861",
+  "name": "Miguel Gómez Bao",
+  "status": "present_without_imdb",
+  "tmdb_id": 1586413,
+  "tmdb_name": "Miguel Gómez Bao",
+  "tmdb_imdb": null,
+  "tmdb_wikidata": null,
+  "tmdb_credits": 52,
+  "wikidata_credits_on_tmdb_works": 47,
+  "already_on_tmdb": 47,
+  "missing": []
+ },
+ {
+  "rank": 29,
+  "qid": "Q4779123",
+  "imdb": "nm3382815",
+  "name": "Aparajita Mohanty",
+  "status": "present_without_imdb",
+  "tmdb_id": 1956712,
+  "tmdb_name": "Aparajita Mohanty",
+  "tmdb_imdb": null,
+  "tmdb_wikidata": null,
+  "tmdb_credits": 31,
+  "wikidata_credits_on_tmdb_works": 46,
+  "already_on_tmdb": 25,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "1100560",
+    "title": "Aparichita",
+    "year": "1980",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1100544",
+    "title": "Ramayan",
+    "year": "1980",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "302562",
+    "title": "Astaraga",
+    "year": "1982",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1100427",
+    "title": "School Master",
+    "year": "1985",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1100311",
+    "title": "Aei Ta Dunia",
+    "year": "1987",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1041967",
+    "title": "Bidhir Bidhan",
+    "year": "1989",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1099918",
+    "title": "Kapala Likhana",
+    "year": "1992",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1099855",
+    "title": "Akuha Katha",
+    "year": "1994",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1097877",
+    "title": "Sahara Jaluchi",
+    "year": "1998",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1441816",
+    "title": "Kalki Abatar",
+    "year": "1999",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1098198",
+    "title": "Prema Bandhana",
+    "year": "1999",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1441827",
+    "title": "Sasu Ghara Chali Jibi",
+    "year": "2006",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1011836",
+    "title": "Bhagya Chakra",
+    "year": "2008",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1095825",
+    "title": "Aa Jahnare Lekhiba Naa",
+    "year": "2009",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1095428",
+    "title": "Aila Re Odia Pua",
+    "year": "2009",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "496006",
+    "title": "Loafer",
+    "year": "2011",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "496007",
+    "title": "Akhire Akhire",
+    "year": "2014",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "507353",
+    "title": "Kie Daba Takkar",
+    "year": "2015",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "496763",
+    "title": "Jabardast Premika",
+    "year": "2016",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "496889",
+    "title": "Sister Sridevi",
+    "year": "2017",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1087884",
+    "title": "Baala: The Rhythm of Life",
+    "year": "2019",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 30,
+  "qid": "Q55374",
+  "imdb": "nm0296809",
+  "name": "Jan Frycz",
+  "status": "present_with_imdb",
+  "tmdb_id": 46246,
+  "tmdb_name": "Jan Frycz",
+  "tmdb_imdb": "nm0296810",
+  "tmdb_wikidata": null,
+  "tmdb_credits": 107,
+  "wikidata_credits_on_tmdb_works": 46,
+  "already_on_tmdb": 42,
+  "missing": [
+   {
+    "type": "tv",
+    "tmdb_id": "114988",
+    "title": "Osiecka",
+    "year": "NULL",
+    "job": "Acting / Actor",
+    "character": "Q11837795"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "544936",
+    "title": "Dagny",
+    "year": "1977",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "246032",
+    "title": "The Knight",
+    "year": "1980",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "246158",
+    "title": "Custody",
+    "year": "1985",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 31,
+  "qid": "Q5865167",
+  "imdb": "nm0041540",
+  "name": "Francisco Audenino",
+  "status": "present_without_imdb",
+  "tmdb_id": 1819863,
+  "tmdb_name": "Francisco Audenino",
+  "tmdb_imdb": null,
+  "tmdb_wikidata": null,
+  "tmdb_credits": 41,
+  "wikidata_credits_on_tmdb_works": 46,
+  "already_on_tmdb": 37,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "565996",
+    "title": "Las tres ratas",
+    "year": "1946",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "914584",
+    "title": "El tambor de Tacuarí",
+    "year": "1948",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "199506",
+    "title": "Pasó en mi barrio",
+    "year": "1951",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "580139",
+    "title": "Ellos nos hicieron así",
+    "year": "1952",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "538653",
+    "title": "There is nobody like me",
+    "year": "1952",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "476922",
+    "title": "Los ojos llenos de amor",
+    "year": "1954",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "559868",
+    "title": "Detrás de un largo muro",
+    "year": "1958",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "595556",
+    "title": "Procesado 1040",
+    "year": "1958",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "455566",
+    "title": "Esta tierra es mía",
+    "year": "1961",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 32,
+  "qid": "Q3707818",
+  "imdb": "nm0672809",
+  "name": "Dina Perbellini",
+  "status": "present_without_imdb",
+  "tmdb_id": 1021648,
+  "tmdb_name": "Dina Perbellini",
+  "tmdb_imdb": null,
+  "tmdb_wikidata": null,
+  "tmdb_credits": 44,
+  "wikidata_credits_on_tmdb_works": 45,
+  "already_on_tmdb": 35,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "199694",
+    "title": "Three Cornered Hat",
+    "year": "1934",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "296624",
+    "title": "I Was to Blame",
+    "year": "1937",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "427943",
+    "title": "Pia de' Tolomei",
+    "year": "1941",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "289317",
+    "title": "Yes, Ma'am",
+    "year": "1941",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "625785",
+    "title": "Cortocircuito",
+    "year": "1943",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "328419",
+    "title": "Che distinta famiglia!",
+    "year": "1945",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "326716",
+    "title": "Miss Italia",
+    "year": "1950",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "827456",
+    "title": "Porca miseria!",
+    "year": "1951",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "328590",
+    "title": "Perdonami!",
+    "year": "1953",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "355141",
+    "title": "Husbands in the City",
+    "year": "1957",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 33,
+  "qid": "Q11689767",
+  "imdb": "nm0218120",
+  "name": "Lucio Demare",
+  "status": "present_without_imdb",
+  "tmdb_id": 1722292,
+  "tmdb_name": "Lucio Demare",
+  "tmdb_imdb": null,
+  "tmdb_wikidata": null,
+  "tmdb_credits": 49,
+  "wikidata_credits_on_tmdb_works": 45,
+  "already_on_tmdb": 43,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "616477",
+    "title": "Dos amigos y un amor",
+    "year": "1938",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "916333",
+    "title": "Encadenado",
+    "year": "1940",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 34,
+  "qid": "Q7108170",
+  "imdb": "nm0831524",
+  "name": "Oswald Stoll",
+  "status": "absent",
+  "tmdb_id": null,
+  "tmdb_name": null,
+  "tmdb_imdb": null,
+  "tmdb_wikidata": null,
+  "tmdb_credits": 0,
+  "wikidata_credits_on_tmdb_works": 45,
+  "already_on_tmdb": 0,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "787359",
+    "title": "A Case of Identity",
+    "year": "1921",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "787366",
+    "title": "A Scandal in Bohemia",
+    "year": "1921",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "787714",
+    "title": "The Beryl Coronet",
+    "year": "1921",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "788202",
+    "title": "The Copper Beeches",
+    "year": "1921",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "224419",
+    "title": "The Devil's Foot",
+    "year": "1921",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "175491",
+    "title": "The Dying Detective",
+    "year": "1921",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "788205",
+    "title": "The Empty House",
+    "year": "1921",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "224420",
+    "title": "The Man with the Twisted Lip",
+    "year": "1921",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "787717",
+    "title": "The Noble Bachelor",
+    "year": "1921",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "788212",
+    "title": "The Priory School",
+    "year": "1921",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "787363",
+    "title": "The Red-Haired League",
+    "year": "1921",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "787365",
+    "title": "The Resident Patient",
+    "year": "1921",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "788218",
+    "title": "The Solitary Cyclist",
+    "year": "1921",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "788207",
+    "title": "The Tiger of San Pedro",
+    "year": "1921",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "787360",
+    "title": "The Yellow Face",
+    "year": "1921",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "790745",
+    "title": "Black Peter",
+    "year": "1922",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "439994",
+    "title": "Charles Augustus Milverton",
+    "year": "1922",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "791020",
+    "title": "The Boscombe Valley Mystery",
+    "year": "1922",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "790746",
+    "title": "The Bruce Partington Plans",
+    "year": "1922",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "791025",
+    "title": "The Golden Pince-Nez",
+    "year": "1922",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "791027",
+    "title": "The Greek Interpreter",
+    "year": "1922",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "791022",
+    "title": "The Musgrave Ritual",
+    "year": "1922",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "790735",
+    "title": "The Naval Treaty",
+    "year": "1922",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "790732",
+    "title": "The Norwood Builder",
+    "year": "1922",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "790739",
+    "title": "The Red Circle",
+    "year": "1922",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "790734",
+    "title": "The Reigate Squires",
+    "year": "1922",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "790737",
+    "title": "The Second Stain",
+    "year": "1922",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "790742",
+    "title": "The Six Napoleons",
+    "year": "1922",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "791017",
+    "title": "The Stockbroker's Clerk",
+    "year": "1922",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1080598",
+    "title": "His Last Bow",
+    "year": "1923",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "796041",
+    "title": "Silver Blaze",
+    "year": "1923",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "788221",
+    "title": "The Abbey Grange",
+    "year": "1923",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "796054",
+    "title": "The Blue Carbuncle",
+    "year": "1923",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1080581",
+    "title": "The Cardboard Box",
+    "year": "1923",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1080214",
+    "title": "The Crooked Man",
+    "year": "1923",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1080211",
+    "title": "The Disappearance of Lady Frances Carfax",
+    "year": "1923",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1080601",
+    "title": "The Engineer's Thumb",
+    "year": "1923",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1033629",
+    "title": "The Final Problem",
+    "year": "1923",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "796051",
+    "title": "The Gloria Scott",
+    "year": "1923",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1080551",
+    "title": "The Missing Three Quarter",
+    "year": "1923",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1080561",
+    "title": "The Mystery of the Dancing Men",
+    "year": "1923",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1080559",
+    "title": "The Mystery of Thor Bridge",
+    "year": "1923",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "796045",
+    "title": "The Speckled Band",
+    "year": "1923",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "315168",
+    "title": "The Stone of Mazarin",
+    "year": "1923",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1080593",
+    "title": "The Three Students",
+    "year": "1923",
+    "job": "Production / Producer",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 35,
+  "qid": "Q37994724",
+  "imdb": "nm4236361",
+  "name": "Rony David",
+  "status": "present_with_imdb",
+  "tmdb_id": 1389740,
+  "tmdb_name": "Rony David Raj",
+  "tmdb_imdb": "nm5445536",
+  "tmdb_wikidata": null,
+  "tmdb_credits": 76,
+  "wikidata_credits_on_tmdb_works": 44,
+  "already_on_tmdb": 40,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "384027",
+    "title": "916",
+    "year": "2012",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "200201",
+    "title": "Karmayodha",
+    "year": "2012",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "412711",
+    "title": "Karinkunnam 6's",
+    "year": "2016",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "512291",
+    "title": "Parole",
+    "year": "2018",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 36,
+  "qid": "Q155202",
+  "imdb": "nm0845652",
+  "name": "Gunnar Sønstevold",
+  "status": "present_without_imdb",
+  "tmdb_id": 1635713,
+  "tmdb_name": "Gunnar Sønstevold",
+  "tmdb_imdb": null,
+  "tmdb_wikidata": null,
+  "tmdb_credits": 44,
+  "wikidata_credits_on_tmdb_works": 43,
+  "already_on_tmdb": 32,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "368110",
+    "title": "Englandsfarere",
+    "year": "1946",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "76077",
+    "title": "Operation Swallow: The Battle for Heavy Water",
+    "year": "1948",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "890540",
+    "title": "Vi flyger på Rio",
+    "year": "1949",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "471013",
+    "title": "The VI Olympic Winter Games, Oslo 1952",
+    "year": "1952",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "583033",
+    "title": "Roald Amundsen",
+    "year": "1954",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "209670",
+    "title": "Children of the Sun",
+    "year": "1955",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "269282",
+    "title": "Ut av mørket",
+    "year": "1958",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "126497",
+    "title": "The Bus",
+    "year": "1961",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "231198",
+    "title": "About Tilla",
+    "year": "1963",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "201673",
+    "title": "The Guards",
+    "year": "1965",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "231201",
+    "title": "Journey to the Sea",
+    "year": "1966",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 37,
+  "qid": "Q23771900",
+  "imdb": "nm5035495",
+  "name": "Jatinder Shah",
+  "status": "present_without_imdb",
+  "tmdb_id": 1810701,
+  "tmdb_name": "Jatinder Shah",
+  "tmdb_imdb": null,
+  "tmdb_wikidata": null,
+  "tmdb_credits": 26,
+  "wikidata_credits_on_tmdb_works": 43,
+  "already_on_tmdb": 15,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "124380",
+    "title": "Jatt & Juliet",
+    "year": "2012",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "138082",
+    "title": "Pinky Moge Wali",
+    "year": "2012",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "209863",
+    "title": "Best of Luck",
+    "year": "2013",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "195737",
+    "title": "Jatts in Golmaal",
+    "year": "2013",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "188342",
+    "title": "Lucky Di Unlucky Story",
+    "year": "2013",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "166226",
+    "title": "Dil Vil Pyaar Vyaar",
+    "year": "2014",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "288790",
+    "title": "Double Di Trouble",
+    "year": "2014",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "291345",
+    "title": "Goreyan Nu Daffa Karo",
+    "year": "2014",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "302227",
+    "title": "Happy Go Lucky",
+    "year": "2014",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "266315",
+    "title": "Jatt James Bond",
+    "year": "2014",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "269800",
+    "title": "Romeo Ranjha",
+    "year": "2014",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "365890",
+    "title": "Dildariyaan",
+    "year": "2015",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "347955",
+    "title": "Hero Naam Yaad Rakhi",
+    "year": "2015",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "345833",
+    "title": "Oh Yaara Ainvayi Ainvayi Lut Gaya",
+    "year": "2015",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "346081",
+    "title": "Sardaarji",
+    "year": "2015",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "389231",
+    "title": "Ambarsariya",
+    "year": "2016",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "419823",
+    "title": "Nikka Zaildar",
+    "year": "2016",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "391763",
+    "title": "Sardaarji 2",
+    "year": "2016",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "491836",
+    "title": "Bailaras",
+    "year": "2017",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "483208",
+    "title": "Firangi",
+    "year": "2017",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "435029",
+    "title": "Sarvann",
+    "year": "2017",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "520761",
+    "title": "Thug Life",
+    "year": "2017",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "479618",
+    "title": "Vekh Baraatan Challiyan",
+    "year": "2017",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "568722",
+    "title": "Bhajjo Veero Ve",
+    "year": "2018",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "496324",
+    "title": "Sajjan Singh Rangroot",
+    "year": "2018",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "582315",
+    "title": "Kala Shah Kala",
+    "year": "2019",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "498448",
+    "title": "Kesari",
+    "year": "2019",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "632658",
+    "title": "Nikka Zaildar 3",
+    "year": "2019",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 38,
+  "qid": "Q16200798",
+  "imdb": "nm1985564",
+  "name": "Kozhikode Narayanan Nair",
+  "status": "present_with_imdb",
+  "tmdb_id": 1296865,
+  "tmdb_name": "Kozhikode Narayanan Nair",
+  "tmdb_imdb": "nm5000970",
+  "tmdb_wikidata": null,
+  "tmdb_credits": 100,
+  "wikidata_credits_on_tmdb_works": 42,
+  "already_on_tmdb": 32,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "301202",
+    "title": "Sudhinam",
+    "year": "1994",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "387253",
+    "title": "The Porter",
+    "year": "1994",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1237265",
+    "title": "Five Star Hospital",
+    "year": "1997",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "359498",
+    "title": "Bharthavudyogam",
+    "year": "2001",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "279536",
+    "title": "Lokanathan I. A. S.",
+    "year": "2005",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1737258",
+    "title": "Mohitham",
+    "year": "2008",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1590968",
+    "title": "Vilapangalkkappuram",
+    "year": "2008",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "586318",
+    "title": "Kalikaalam",
+    "year": "2012",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "569104",
+    "title": "Madura Raja",
+    "year": "2019",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "847742",
+    "title": "Drishyam 3",
+    "year": "2026",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 39,
+  "qid": "Q4984538",
+  "imdb": "nm0895825",
+  "name": "Marguerite Viby",
+  "status": "present_with_imdb",
+  "tmdb_id": 563753,
+  "tmdb_name": "Marguerite Viby",
+  "tmdb_imdb": "nm0469802",
+  "tmdb_wikidata": "Q5922059",
+  "tmdb_credits": 48,
+  "wikidata_credits_on_tmdb_works": 42,
+  "already_on_tmdb": 41,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "740956",
+    "title": "Beware of the Girls",
+    "year": "1930",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 40,
+  "qid": "Q6004557",
+  "imdb": "nm0764202",
+  "name": "María Santos",
+  "status": "present_without_imdb",
+  "tmdb_id": 1916590,
+  "tmdb_name": "María Santos",
+  "tmdb_imdb": null,
+  "tmdb_wikidata": null,
+  "tmdb_credits": 39,
+  "wikidata_credits_on_tmdb_works": 42,
+  "already_on_tmdb": 36,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "456353",
+    "title": "El hijo del barrio",
+    "year": "1940",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "532828",
+    "title": "Canción de Cuna",
+    "year": "1941",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "935060",
+    "title": "Hay que casar a Ernesto",
+    "year": "1941",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "526054",
+    "title": "La pequeña señora de Pérez",
+    "year": "1944",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "632055",
+    "title": "Anguish of a Secret",
+    "year": "1959",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "tv",
+    "tmdb_id": "302477",
+    "title": "El secreto",
+    "year": "2001",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 41,
+  "qid": "Q7787584",
+  "imdb": "nm0072872",
+  "name": "Thomas Bentley",
+  "status": "present_with_imdb",
+  "tmdb_id": 106967,
+  "tmdb_name": "Thomas Bentley",
+  "tmdb_imdb": "nm0072873",
+  "tmdb_wikidata": null,
+  "tmdb_credits": 43,
+  "wikidata_credits_on_tmdb_works": 41,
+  "already_on_tmdb": 40,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "772991",
+    "title": "No Monkey Business",
+    "year": "1935",
+    "job": "Directing / Director",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 42,
+  "qid": "Q23581929",
+  "imdb": "nm0059341",
+  "name": "Felix Bartsch",
+  "status": "present_without_imdb",
+  "tmdb_id": 1758839,
+  "tmdb_name": "Felix Bartsch",
+  "tmdb_imdb": null,
+  "tmdb_wikidata": null,
+  "tmdb_credits": 4,
+  "wikidata_credits_on_tmdb_works": 41,
+  "already_on_tmdb": 3,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "631544",
+    "title": "Claire",
+    "year": "1924",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "625830",
+    "title": "Orphan of Lowood",
+    "year": "1924",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "698323",
+    "title": "Taras Bulba",
+    "year": "1924",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "527067",
+    "title": "The Circus Princess",
+    "year": "1925",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1674119",
+    "title": "Vorderhaus und Hinterhaus",
+    "year": "1925",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "516221",
+    "title": "Annemarie und ihr Ulan",
+    "year": "1926",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "516225",
+    "title": "Der Hauptmann von Köpenick",
+    "year": "1926",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "513120",
+    "title": "Der Jüngling aus der Konfektion",
+    "year": "1926",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "516213",
+    "title": "Der lachende Ehemann",
+    "year": "1926",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "527011",
+    "title": "Deutsche Herzen am deutschen Rhein",
+    "year": "1926",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "656111",
+    "title": "Die geschiedene Frau",
+    "year": "1926",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "516358",
+    "title": "Familie Schimek",
+    "year": "1926",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "516357",
+    "title": "Frauen der Leidenschaft",
+    "year": "1926",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "517864",
+    "title": "Küssen ist keine Sünd'",
+    "year": "1926",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "876320",
+    "title": "Les voleurs de gloire",
+    "year": "1926",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "516218",
+    "title": "Wien, wie es weint und lacht",
+    "year": "1926",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "516172",
+    "title": "An der Weser",
+    "year": "1927",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "773729",
+    "title": "Bismarck 1862 - 1898",
+    "year": "1927",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "511000",
+    "title": "Das Heiratsnest",
+    "year": "1927",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1241094",
+    "title": "Der Fluch der Vererbung",
+    "year": "1927",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "731853",
+    "title": "Die Ausgestoßenen",
+    "year": "1927",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "671365",
+    "title": "Die Geliebte des Gouverneurs",
+    "year": "1927",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "512676",
+    "title": "Die leichte Isabell",
+    "year": "1927",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "513118",
+    "title": "Die Lorelei",
+    "year": "1927",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "515966",
+    "title": "Die raffinierteste Frau Berlins",
+    "year": "1927",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "398467",
+    "title": "Die Villa im Tiergarten",
+    "year": "1927",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "516171",
+    "title": "Ein rheinisches Mädchen beim rheinischen Wein",
+    "year": "1927",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "495749",
+    "title": "Ein Tag der Rosen im August..",
+    "year": "1927",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "494150",
+    "title": "Liebeshandel",
+    "year": "1927",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "494051",
+    "title": "Liebesreigen",
+    "year": "1927",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1405589",
+    "title": "Make Up",
+    "year": "1927",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "363783",
+    "title": "Rinaldo Rinaldini",
+    "year": "1927",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "537222",
+    "title": "The Women of the Folies Bergères",
+    "year": "1927",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "510999",
+    "title": "Weekend Magic",
+    "year": "1927",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "494048",
+    "title": "Der größte Gauner des Jahrhunderts",
+    "year": "1928",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "513109",
+    "title": "Dragonerliebchen",
+    "year": "1928",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "521578",
+    "title": "Fair Game",
+    "year": "1928",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "513107",
+    "title": "Mein Freund Harry",
+    "year": "1928",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 43,
+  "qid": "Q5969631",
+  "imdb": "nm0539118",
+  "name": "Lalo Malcolm",
+  "status": "present_without_imdb",
+  "tmdb_id": 1917390,
+  "tmdb_name": "Lalo Malcolm",
+  "tmdb_imdb": null,
+  "tmdb_wikidata": null,
+  "tmdb_credits": 40,
+  "wikidata_credits_on_tmdb_works": 41,
+  "already_on_tmdb": 35,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "647309",
+    "title": "Cándida, la mujer del año",
+    "year": "1943",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "199482",
+    "title": "Emergency Ward",
+    "year": "1952",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "535902",
+    "title": "Estrellas de Buenos Aires",
+    "year": "1956",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "775695",
+    "title": "¡Qué noche de casamiento!",
+    "year": "1969",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "613337",
+    "title": "Deliciosamente amoral",
+    "year": "1969",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "612902",
+    "title": "Kuma-Ching",
+    "year": "1969",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 44,
+  "qid": "Q3530914",
+  "imdb": "nm0909398",
+  "name": "Tom Walls",
+  "status": "present_with_imdb",
+  "tmdb_id": 64121,
+  "tmdb_name": "Tom Walls",
+  "tmdb_imdb": "nm0906470",
+  "tmdb_wikidata": null,
+  "tmdb_credits": 38,
+  "wikidata_credits_on_tmdb_works": 41,
+  "already_on_tmdb": 34,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "65300",
+    "title": "Endangered Species",
+    "year": "1982",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "12309",
+    "title": "Bachelor Party",
+    "year": "1984",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "10179",
+    "title": "The Ice Pirates",
+    "year": "1984",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "31462",
+    "title": "Moving Violations",
+    "year": "1985",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "20196",
+    "title": "Mac and Me",
+    "year": "1988",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "180162",
+    "title": "Breaking the Rules",
+    "year": "1992",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "16097",
+    "title": "House Party 3",
+    "year": "1994",
+    "job": "Editing / Editor",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 45,
+  "qid": "Q15117297",
+  "imdb": "nm0394742",
+  "name": "E.D. Horkheimer",
+  "status": "present_without_imdb",
+  "tmdb_id": 4922406,
+  "tmdb_name": "E.D. Horkheimer",
+  "tmdb_imdb": null,
+  "tmdb_wikidata": null,
+  "tmdb_credits": 21,
+  "wikidata_credits_on_tmdb_works": 40,
+  "already_on_tmdb": 13,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "1384550",
+    "title": "All on Account of Polly",
+    "year": "1914",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "940541",
+    "title": "Gypsy Love",
+    "year": "1914",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "810383",
+    "title": "The Coveted Heritage",
+    "year": "1914",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "300329",
+    "title": "The Human Soul",
+    "year": "1914",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "954097",
+    "title": "The Nemesis",
+    "year": "1914",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "940547",
+    "title": "The Test of Manhood",
+    "year": "1914",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1011941",
+    "title": "The Unexpected",
+    "year": "1914",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1384549",
+    "title": "Won by a Nose",
+    "year": "1914",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "322801",
+    "title": "In Humble Guise",
+    "year": "1915",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "954851",
+    "title": "Neal of the Navy",
+    "year": "1915",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1444765",
+    "title": "Should a Wife Forgive?",
+    "year": "1915",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1444759",
+    "title": "The Adventures of a Madcap",
+    "year": "1915",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "810388",
+    "title": "The Maid of the Wild",
+    "year": "1915",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "903959",
+    "title": "The Purple Night",
+    "year": "1915",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "174197",
+    "title": "Toil and Tyranny",
+    "year": "1915",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "540364",
+    "title": "Who Pays?",
+    "year": "1915",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "408891",
+    "title": "Little Mary Sunshine",
+    "year": "1916",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "753562",
+    "title": "Spellbound",
+    "year": "1916",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "607625",
+    "title": "The Grip of Evil",
+    "year": "1916",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "301973",
+    "title": "The Matrimonial Martyr",
+    "year": "1916",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "954873",
+    "title": "The Sultana",
+    "year": "1916",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "614394",
+    "title": "The Alien Blood",
+    "year": "1917",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "662801",
+    "title": "The Devil's Bait",
+    "year": "1917",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "343762",
+    "title": "The Inspirations of Harry Larrabee",
+    "year": "1917",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1062858",
+    "title": "The Lady in the Library",
+    "year": "1917",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "701249",
+    "title": "The Neglected Wife",
+    "year": "1917",
+    "job": "Production / Producer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "611130",
+    "title": "Twin Kiddies",
+    "year": "1917",
+    "job": "Production / Producer",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 46,
+  "qid": "Q3429974",
+  "imdb": "nm0710550",
+  "name": "Ghantasala Venkateswara Rao",
+  "status": "present_without_imdb",
+  "tmdb_id": 1139299,
+  "tmdb_name": "Ghantasala",
+  "tmdb_imdb": null,
+  "tmdb_wikidata": null,
+  "tmdb_credits": 79,
+  "wikidata_credits_on_tmdb_works": 40,
+  "already_on_tmdb": 24,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "307819",
+    "title": "Swapna Sundari",
+    "year": "1950",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "307573",
+    "title": "Palletooru",
+    "year": "1952",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "307324",
+    "title": "Livelihood",
+    "year": "1953",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "300744",
+    "title": "Cherupukura Chedevu",
+    "year": "1955",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "690107",
+    "title": "Jayam Manade",
+    "year": "1956",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "395741",
+    "title": "Pellinaati Pramanalu",
+    "year": "1958",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "307385",
+    "title": "Bhaktha Raghunath",
+    "year": "1960",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "319797",
+    "title": "Sabash Raja",
+    "year": "1961",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "319827",
+    "title": "Tiger Ramudu",
+    "year": "1963",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1396412",
+    "title": "Valmiki",
+    "year": "1963",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1403464",
+    "title": "Gudi Gantalu",
+    "year": "1964",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "307826",
+    "title": "Varasatwam",
+    "year": "1964",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1687910",
+    "title": "C.I.D",
+    "year": "1965",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "274282",
+    "title": "Paramanandayya Sishyula Katha",
+    "year": "1966",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "307224",
+    "title": "Govula Gopanna",
+    "year": "1968",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "307834",
+    "title": "Vijayam Manade",
+    "year": "1970",
+    "job": "Sound / Original Music Composer",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 47,
+  "qid": "Q7357181",
+  "imdb": "nm0648617",
+  "name": "Rodolfo Onetto",
+  "status": "present_without_imdb",
+  "tmdb_id": 1813618,
+  "tmdb_name": "Rodolfo Onetto",
+  "tmdb_imdb": null,
+  "tmdb_wikidata": null,
+  "tmdb_credits": 46,
+  "wikidata_credits_on_tmdb_works": 40,
+  "already_on_tmdb": 37,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "639446",
+    "title": "El televisor",
+    "year": "1962",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "521630",
+    "title": "Los viciosos",
+    "year": "1962",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "642140",
+    "title": "Las locuras del profesor",
+    "year": "1979",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 48,
+  "qid": "Q6414811",
+  "imdb": "nm0474820",
+  "name": "Kiran Kumar",
+  "status": "present_without_imdb",
+  "tmdb_id": 232828,
+  "tmdb_name": "Kiran Kumar",
+  "tmdb_imdb": "",
+  "tmdb_wikidata": null,
+  "tmdb_credits": 159,
+  "wikidata_credits_on_tmdb_works": 40,
+  "already_on_tmdb": 26,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "505682",
+    "title": "Karamdaata",
+    "year": "1986",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "305852",
+    "title": "Parda Hai Parda",
+    "year": "1992",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "306422",
+    "title": "Kohra",
+    "year": "1993",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "305877",
+    "title": "Zakhmo Ka Hisaab",
+    "year": "1993",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "463316",
+    "title": "Bewafa Sanam",
+    "year": "1995",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "303364",
+    "title": "Rangbaaz",
+    "year": "1996",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "936626",
+    "title": "Kaalia",
+    "year": "1997",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "888852",
+    "title": "Sar Utha Ke Jiyo",
+    "year": "1998",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "499245",
+    "title": "Yamraaj",
+    "year": "1998",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "433979",
+    "title": "Jwalamukhi",
+    "year": "2000",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1062251",
+    "title": "Dil Ne Phir Yaad Kiya",
+    "year": "2001",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "41337",
+    "title": "Kedi",
+    "year": "2010",
+    "job": "Directing / Director",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "1182410",
+    "title": "Trauma",
+    "year": "2010",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "222420",
+    "title": "Young Malang",
+    "year": "2013",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 49,
+  "qid": "Q4790711",
+  "imdb": "nm1908800",
+  "name": "Arindam Sil",
+  "status": "present_without_imdb",
+  "tmdb_id": 1377009,
+  "tmdb_name": "Arindam Sil",
+  "tmdb_imdb": null,
+  "tmdb_wikidata": null,
+  "tmdb_credits": 78,
+  "wikidata_credits_on_tmdb_works": 40,
+  "already_on_tmdb": 38,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "556211",
+    "title": "Tolly Lights",
+    "year": "2008",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "552259",
+    "title": "Bidai Byomkesh",
+    "year": "2018",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   }
+  ]
+ },
+ {
+  "rank": 50,
+  "qid": "Q10857806",
+  "imdb": "nm0274534",
+  "name": "Aurelia Ferrer",
+  "status": "present_without_imdb",
+  "tmdb_id": 1886056,
+  "tmdb_name": "Aurelia Ferrer",
+  "tmdb_imdb": null,
+  "tmdb_wikidata": null,
+  "tmdb_credits": 39,
+  "wikidata_credits_on_tmdb_works": 40,
+  "already_on_tmdb": 36,
+  "missing": [
+   {
+    "type": "movie",
+    "tmdb_id": "768283",
+    "title": "El canillita y la dama",
+    "year": "1938",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "485380",
+    "title": "I Knew That Woman",
+    "year": "1942",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "492312",
+    "title": "Cinco gallinas y el cielo",
+    "year": "1957",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   },
+   {
+    "type": "movie",
+    "tmdb_id": "143536",
+    "title": "Masterworks of Terror",
+    "year": "1960",
+    "job": "Acting / Actor",
+    "character": "NULL"
+   }
+  ]
+ }
+]

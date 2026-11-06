@@ -15,6 +15,8 @@ Statuses: present_with_imdb (TMDb has an IMDb id, compare it with Wikidata's),
 present_without_imdb (found by name, confirmed by shared credits), absent
 (no IMDb match and no name candidate sharing a credit: a creation candidate).
 First run 2026-11-05 on the top 50: 49 present, 1 absent; result in archive/.
+Next step: data-contribution-003-tmdb-id-precheck.py; full procedure and edit log in
+doc/data-contribution-003-tmdb-persons.md.
 """
 import json
 import re

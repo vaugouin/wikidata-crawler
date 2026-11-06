@@ -9,6 +9,7 @@ Rules and traps for agents. Everything descriptive lives elsewhere, read it ther
 - @WIKIDATA.md: conceptual data model (statement / typed value / qualifier layers, tables, award modeling).
 - @wikidata_dump_etl_README.md: ETL pass internals and manual single-pass runs.
 - `doc/sql/*.sql`: reference DDL, read-only unless the user asks to edit schema documentation.
+- `doc/data-contribution-003-tmdb-persons.md`: TMDb contributions drawn from this base (selection queries, live TMDb API checks, Chrome entry procedure, log of the persons edited). Never create a TMDb person without checking the live API first, and log every edit there.
 - Header comments of `run-if-new-dump.sh`, `check_new_dump.py`, `backup-after-run.sh`, and the docstrings of `wikidata_dump_etl.py`, carry the why of each mechanism.
 
 Update `README.md` for any user-facing behavior change; update this file only when agent workflow or safety context changes.
@@ -77,8 +78,8 @@ Use it to explore, never to decide:
 
 ---
 
-**Last Updated**: 2026-10-31
-**Current Version**: 1.1.20
+**Last Updated**: 2026-11-06
+**Current Version**: 1.1.21
 
 ## Backlog (Nestor second-brain)
 

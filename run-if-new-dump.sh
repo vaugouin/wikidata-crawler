@@ -112,6 +112,57 @@ if [ -n "$(docker ps -q -f name="^${CONTENEUR}$" 2>/dev/null)" ]; then
 fi
 
 # --------------------------------------------------------------------------
+# ALERTE D'ECHEC DISCORD (demande de Philippe du 2026-11-08).
+# backup-after-run.sh ne previent qu'apres un run reussi et sauvegarde. Un run en
+# echec ne produit pas de sauvegarde, donc pas de message, et l'attente des
+# evaluations deviendrait sans fin. Le conteneur est arrete a ce stade (garde 2) :
+# on relit le journal du dernier run, tenu par f_runlogged de wikidata-crawler.sh.
+#   - derniere ligne « exited with status N », N > 0 : run en echec ;
+#   - pas de ligne « exited » du tout : run interrompu (redemarrage du VPS,
+#     processus tue), le bloc qui l'aurait ecrite est mort avec lui.
+# Le marqueur garde le nom du journal deja signale : une alerte par run, pas une
+# par passage horaire. Un envoi rate n'ecrit pas le marqueur et sera retente.
+# --------------------------------------------------------------------------
+JOURNAL_RUN=$(readlink -f /home/debian/docker/shared_data/logs/wikidata-crawler/latest.log 2>/dev/null)
+MARQUEUR_ECHEC="$STACK/.last-failure-notified"
+WEBHOOK_FICHIER="${DISCORD_WEBHOOK_FILE:-$STACK/.discord-webhook}"
+if [ -n "$JOURNAL_RUN" ] && [ -f "$JOURNAL_RUN" ] \
+   && [ "$(cat "$MARQUEUR_ECHEC" 2>/dev/null)" != "$JOURNAL_RUN" ]; then
+  FIN_RUN=$(grep -E '^=== wikidata-crawler exited with status [0-9]+ at ' "$JOURNAL_RUN" | tail -1)
+  CODE_RUN=$(printf '%s' "$FIN_RUN" | sed -nE 's/.*exited with status ([0-9]+) at.*/\1/p')
+  CAUSE=""
+  if [ -z "$FIN_RUN" ]; then
+    CAUSE="run interrompu, sans ligne de fin dans le journal"
+  elif [ "${CODE_RUN:-0}" != "0" ]; then
+    CAUSE="run en echec, code de sortie $CODE_RUN"
+  fi
+  if [ -n "$CAUSE" ]; then
+    echo "ALERTE : $CAUSE ($JOURNAL_RUN)."
+    if [ "$DRY_RUN" = "1" ]; then
+      echo "--dry-run : j'enverrais l'alerte Discord, sans ecrire $MARQUEUR_ECHEC."
+    elif [ -s "$WEBHOOK_FICHIER" ]; then
+      # Les dernieres lignes du journal, rendues sures pour une chaine JSON :
+      # barres obliques inverses puis guillemets echappes, tabulations en espaces, caracteres de controle
+      # retires, lignes jointes par \n. 6 lignes de 120 caracteres, meme doublees par
+      # l'echappement, restent sous la limite de 2000 caracteres de Discord.
+      EXTRAIT=$(grep -vE '^=== wikidata-crawler ' "$JOURNAL_RUN" | tail -n 6 | cut -c1-120 \
+        | tr '\t' ' ' | tr -d '\000-\010\013-\037' | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
+      MESSAGE="**wikidata-crawler : ${CAUSE}.** Pas de sauvegarde, les evaluations attendent.\\nJournal : ${JOURNAL_RUN}\\nCause en base : variable strwikidatacrawlerlasterror\\n\`\`\`\\n${EXTRAIT}\\n\`\`\`"
+      WEBHOOK_URL=$(head -1 "$WEBHOOK_FICHIER" | tr -d '[:space:]')
+      if curl -fsS -m 20 -H 'Content-Type: application/json' \
+           -d "{\"content\": \"${MESSAGE}\"}" "$WEBHOOK_URL" >/dev/null; then
+        echo "$JOURNAL_RUN" > "$MARQUEUR_ECHEC"
+        echo "  alerte Discord envoyee."
+      else
+        echo "AVERTISSEMENT : l'envoi de l'alerte Discord a echoue, nouvel essai au passage suivant."
+      fi
+    else
+      echo "  pas de $WEBHOOK_FICHIER : aucune alerte Discord envoyee."
+    fi
+  fi
+fi
+
+# --------------------------------------------------------------------------
 # SAUVEGARDE DE LA BASE, si un run reussi l'attend.
 # Placee ICI, avant la verification du dump, et ce n'est pas un detail d'ordre :
 # si le dump est nouveau, la suite de ce script efface le volume partage et lance

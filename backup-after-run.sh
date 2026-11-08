@@ -244,3 +244,30 @@ fi
 
 echo "$LOT" > "$MARQUEUR"
 echo "=== $(date -u '+%Y-%m-%d %H:%M:%S UTC') : sauvegarde terminee pour le lot $LOT ==="
+
+# --------------------------------------------------------------------------
+# NOTIFICATION DISCORD (demande de Philippe du 2026-11-08). C'est le moment qu'il
+# attend pour lancer ses campagnes d'evaluation : le run est fini ET la base est
+# copiee. Placee apres l'ecriture du marqueur, elle part donc une fois par lot.
+#
+# L'URL du webhook vit dans $STACK/.discord-webhook (une ligne, hors git, 600),
+# pas dans .env : .env est passe au conteneur, qui n'a pas a la connaitre.
+# Fichier absent : rien n'est envoye, on le dit dans le journal. Un echec d'envoi
+# ne fait pas echouer la sauvegarde, qui est faite.
+# --------------------------------------------------------------------------
+WEBHOOK_FICHIER="${DISCORD_WEBHOOK_FILE:-$STACK/.discord-webhook}"
+if [ -s "$WEBHOOK_FICHIER" ]; then
+  WEBHOOK_URL=$(head -1 "$WEBHOOK_FICHIER" | tr -d '[:space:]')
+  MESSAGE="**wikidata-crawler termine, base sauvegardee.** Les evaluations peuvent partir.\\nLot : ${LOT}\\nFin du run : ${FIN:-?}\\nSauvegarde : ${FICHIER:-?} (${TAILLE:-?} octets)"
+  # Les valeurs viennent de la sentinelle et de la sortie du script de sauvegarde :
+  # on echappe les guillemets pour garder un JSON valide (les \n sont voulus).
+  MESSAGE_JSON=$(printf '%s' "$MESSAGE" | sed -e 's/"/\\"/g')
+  if curl -fsS -m 20 -H 'Content-Type: application/json' \
+       -d "{\"content\": \"${MESSAGE_JSON}\"}" "$WEBHOOK_URL" >/dev/null; then
+    echo "  notification Discord envoyee."
+  else
+    echo "AVERTISSEMENT : l'envoi de la notification Discord a echoue."
+  fi
+else
+  echo "  pas de $WEBHOOK_FICHIER : aucune notification Discord envoyee."
+fi

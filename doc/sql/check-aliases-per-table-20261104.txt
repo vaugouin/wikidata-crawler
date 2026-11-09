@@ -1,0 +1,62 @@
+-- check-aliases-per-table.sql
+-- run on vaugouindb (container damp-vaugouin-com-mariadb-1) at 2026-11-04 20:39:11 +0100
+--
++---------------------+
+| NOW_                |
++---------------------+
+| 2026-11-04 20:39:11 |
++---------------------+
++-----------+--------+------------+--------------+---------+---------+------------+------------+
+| TBL       | ROWS_  | COL_FILLED | WITH_ALIASES | WITH_FR | WITH_EN | ALIASES_FR | ALIASES_EN |
++-----------+--------+------------+--------------+---------+---------+------------+------------+
+| MOVIE     | 443701 |     443701 |        94352 |   28994 |   79462 |      44079 |     100630 |
+| SERIE     | 168060 |     168060 |        18970 |    4911 |   15969 |       8181 |      24903 |
+| SEASON    |  28544 |      28544 |         3693 |     780 |    3064 |       1640 |       4766 |
+| EPISODE   | 189589 |     189589 |         9507 |    1902 |    8079 |       2391 |      28637 |
+| PERSON    | 792963 |     792963 |       258188 |   68388 |  244628 |     104059 |     418623 |
+| CHARACTER | 125813 |     125813 |        32954 |    6217 |   30407 |      10126 |      52339 |
+| ITEM      | 852225 |     852225 |       313075 |  115284 |  279287 |     229796 |     603313 |
++-----------+--------+------------+--------------+---------+---------+------------+------------+
++------------+-----------------------+---------+---------+---------+
+| ALIAS_ROWS | DISTINCT_PERSON_ALIAS | PERSONS | ROWS_FR | ROWS_EN |
++------------+-----------------------+---------+---------+---------+
+|     238544 |                206125 |  121325 |   48268 |  190276 |
++------------+-----------------------+---------+---------+---------+
++-------------------------------+----------------+---------+
+| STATUS_                       | PERSON_ALIASES | PERSONS |
++-------------------------------+----------------+---------+
+| 1 same as TMDb NAME           |          30528 |   30528 |
+| 2 in alias table, same string |          48933 |   38224 |
+| 3 in alias table, same key    |           5884 |    5003 |
+| 4 same key as TMDb NAME       |              1 |       1 |
+| 5 new                         |         120779 |   78601 |
++-------------------------------+----------------+---------+
++-----------+------------------+------------+------+--------------------------+
+| ID_PERSON | NAME             | POPULARITY | LANG | ALIAS                    |
++-----------+------------------+------------+------+--------------------------+
+|   1748272 | Lena Paul        |    140.272 | en   | Pauline Elizabeth GIbson |
+|   1882835 | Rebecca Volpetti |      98.39 | en   | Anna Italyanka           |
+|   1882835 | Rebecca Volpetti |      98.39 | en   | Catia A.                 |
+|   1882835 | Rebecca Volpetti |      98.39 | en   | Rebecca                  |
+|   1882835 | Rebecca Volpetti |      98.39 | en   | Rebecca Monin            |
+|   1882835 | Rebecca Volpetti |      98.39 | en   | Rebecca Volpeti          |
+|   1882835 | Rebecca Volpetti |      98.39 | en   | Rebecca's Clips          |
+|   1247604 | Agnez Mo         |    68.1367 | en   | Indonesian singer        |
+|    137866 | Ryan Keely       |      55.15 | en   | Ryan Kely                |
+|    137866 | Ryan Keely       |      55.15 | en   | Sarrah Moans             |
+|   1081095 | Diana Pang Dan   |    53.7206 | en   | Pang Dan                 |
+|   1426267 | Abigaile Johnson |     52.939 | en   | Doreen                   |
+|   1426267 | Abigaile Johnson |     52.939 | en   | Gail                     |
+|   1426267 | Abigaile Johnson |     52.939 | en   | Petty                    |
+|   1778482 | Clea Gaultier    |     51.268 | fr   | Cléa Gauthier            |
+|   1183234 | Gan Tingting     |    48.2985 | en   | Bobo Gan                 |
+|     54725 | Jenna Haze       |      40.34 | en   | Jackie                   |
+|     54725 | Jenna Haze       |      40.34 | en   | Jena Haze                |
+|     54725 | Jenna Haze       |      40.34 | en   | Jenna                    |
+|     54725 | Jenna Haze       |      40.34 | en   | Jenna Hace               |
+|     54725 | Jenna Haze       |      40.34 | en   | Jennifer                 |
+|     54725 | Jenna Haze       |      40.34 | en   | Jennifer Corrales        |
+|     54725 | Jenna Haze       |      40.34 | en   | Jennifer Maria Corrales  |
+|   3115096 | Thasorn Klinnium |    38.6923 | en   | Emi                      |
+|    105276 | Tera Patrick     |     36.395 | en   | Brooke                   |
++-----------+------------------+------------+------+--------------------------+

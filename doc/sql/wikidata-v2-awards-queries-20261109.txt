@@ -1,0 +1,218 @@
+-- wikidata-v2-awards-queries.sql
+-- run on vaugouindb (container damp-vaugouin-com-mariadb-1) at 2026-11-09 16:06:44 +0100
+--
++-----------------------------------------------------+
+| section                                             |
++-----------------------------------------------------+
+| === Q1 . les prix de Katharine Hepburn (Q56016) === |
++-----------------------------------------------------+
++------------------------------------------------------------------------------+-------+------------------------------+---------------------+
+| recompense                                                                   | annee | pour_l_oeuvre                | ceremonie           |
++------------------------------------------------------------------------------+-------+------------------------------+---------------------+
+| Kennedy Center Honors                                                        |  NULL | NULL                         | NULL                |
+| Primetime Emmy Award for Outstanding Lead Actress in a Miniseries or a Movie |  NULL | NULL                         | NULL                |
+| Cannes Film Festival Award for Best Actress                                  |  NULL | NULL                         | NULL                |
+| David di Donatello for Best Foreign Actress                                  |  NULL | NULL                         | NULL                |
+| star on Hollywood Walk of Fame                                               |  NULL | NULL                         | NULL                |
+| BAFTA Award for Best Actress in a Leading Role                               |  NULL | NULL                         | NULL                |
+| Volpi Cup for Best Actress                                                   |  NULL | NULL                         | NULL                |
+| SAG-AFTRA Life Achievement Award                                             |  NULL | NULL                         | NULL                |
+| Academy Award for Best Actress                                               |  1934 | Morning Glory                | 6th Academy Awards  |
+| Hasty Pudding Woman of the Year                                              |  1958 | NULL                         | NULL                |
+| Academy Award for Best Actress                                               |  1968 | Guess Who's Coming to Dinner | 40th Academy Awards |
+| Academy Award for Best Actress                                               |  1969 | The Lion in Winter           | 41st Academy Awards |
+| Ladies' Home Journal Women of the Year                                       |  1974 | NULL                         | NULL                |
+| Academy Award for Best Actress                                               |  1982 | On Golden Pond               | 54th Academy Awards |
+| CFDA Lifetime Achievement Award                                              |  1985 | NULL                         | NULL                |
+| Connecticut Women's Hall of Fame                                             |  1994 | NULL                         | NULL                |
++------------------------------------------------------------------------------+-------+------------------------------+---------------------+
++---------------------------------------------------------------------------------+
+| section                                                                         |
++---------------------------------------------------------------------------------+
+| === Q2 . nombre d Oscars, par la hierarchie P31 -> Q19020 (VIDE avant -020) === |
++---------------------------------------------------------------------------------+
++-------------------+-----------+
+| personne          | nb_oscars |
++-------------------+-----------+
+| Katharine Hepburn |         4 |
+| Walt Disney       |        20 |
++-------------------+-----------+
++-----------------------------------------------------+
+| section                                             |
++-----------------------------------------------------+
+| === Q2-bis . le detail, categorie par categorie === |
++-----------------------------------------------------+
++-------------------+----------------------------------------------------+-------+
+| personne          | categorie                                          | annee |
++-------------------+----------------------------------------------------+-------+
+| Katharine Hepburn | Academy Award for Best Actress                     |  1934 |
+| Katharine Hepburn | Academy Award for Best Actress                     |  1968 |
+| Katharine Hepburn | Academy Award for Best Actress                     |  1969 |
+| Katharine Hepburn | Academy Award for Best Actress                     |  1982 |
+| Walt Disney       | Irving G. Thalberg Memorial Award                  |  NULL |
+| Walt Disney       | Academy Honorary Award                             |  1932 |
+| Walt Disney       | Special Achievement Academy Award                  |  1932 |
+| Walt Disney       | Academy Award for Best Animated Short Film         |  1932 |
+| Walt Disney       | Academy Award for Best Animated Short Film         |  1934 |
+| Walt Disney       | Academy Award for Best Animated Short Film         |  1935 |
+| Walt Disney       | Academy Award for Best Animated Short Film         |  1936 |
+| Walt Disney       | Academy Award for Best Animated Short Film         |  1937 |
+| Walt Disney       | Academy Award for Best Animated Short Film         |  1938 |
+| Walt Disney       | Special Achievement Academy Award                  |  1939 |
+| Walt Disney       | Academy Award for Best Animated Short Film         |  1939 |
+| Walt Disney       | Academy Award for Best Animated Short Film         |  1940 |
+| Walt Disney       | Academy Award for Best Animated Short Film         |  1942 |
+| Walt Disney       | Academy Award for Best Animated Short Film         |  1943 |
+| Walt Disney       | Academy Award for Best Documentary (Short Subject) |  1954 |
+| Walt Disney       | Academy Award for Best Animated Short Film         |  1954 |
+| Walt Disney       | Academy Award for Best Documentary Feature Film    |  1954 |
+| Walt Disney       | Academy Award for Best Documentary Feature Film    |  1955 |
+| Walt Disney       | Academy Award for Best Documentary (Short Subject) |  1956 |
+| Walt Disney       | Academy Award for Best Animated Short Film         |  1969 |
++-------------------+----------------------------------------------------+-------+
++---------------------------------------------------------------------+
+| section                                                             |
++---------------------------------------------------------------------+
+| === Q2-ter . LA PREUVE : la categorie de prix est-elle muette ? === |
++---------------------------------------------------------------------+
++------------------------------------------+--------------------------------+---------------+-------------------------+
+| categorie                                | libelle_en_cache               | nb_statements | nb_statements_du_parent |
++------------------------------------------+--------------------------------+---------------+-------------------------+
+| Q103618 (Academy Award for Best Actress) | Academy Award for Best Actress |             3 |                       4 |
++------------------------------------------+--------------------------------+---------------+-------------------------+
++-----------------------------------------------------------------+
+| section                                                         |
++-----------------------------------------------------------------+
+| === Q2-quater . PALLIATIF par le libelle, en attendant -020 === |
++-----------------------------------------------------------------+
++-------------------+------------------+
+| personne          | nb_oscars_approx |
++-------------------+------------------+
+| Katharine Hepburn |                4 |
+| Walt Disney       |               22 |
++-------------------+------------------+
++----------------------------------------------+
+| section                                      |
++----------------------------------------------+
+| === Q3 . actrices ayant plusieurs Oscars === |
++----------------------------------------------+
++----------------------+-----------+
+| actrice              | nb_oscars |
++----------------------+-----------+
+| Edith Head           |         8 |
+| Irene Sharaff        |         5 |
+| Catherine Martin     |         4 |
+| Colleen Atwood       |         4 |
+| Katharine Hepburn    |         4 |
+| Milena Canonero      |         4 |
+| Dorothy Jeakins      |         3 |
+| Frances McDormand    |         3 |
+| Francesca Lo Schiavo |         3 |
+| Ingrid Bergman       |         3 |
+| Jenny Beavan         |         3 |
+| Marilyn Bergman      |         3 |
+| Meryl Streep         |         3 |
+| Sandy Powell         |         3 |
+| Thelma Schoonmaker   |         3 |
+| Ve Neill             |         3 |
+| Ann Roth             |         2 |
+| Anne V. Coates       |         2 |
+| Barbara Kopple       |         2 |
+| Barbra Streisand     |         2 |
+| Bette Davis          |         2 |
+| Billie Eilish        |         2 |
+| Cate Blanchett       |         2 |
+| Deanna Durbin        |         2 |
+| Dianne Wiest         |         2 |
+| Elizabeth Haffenden  |         2 |
+| Elizabeth Taylor     |         2 |
+| Emma Stone           |         2 |
+| Emma Thompson        |         2 |
+| Faith Hubley         |         2 |
+| Fran Walsh           |         2 |
+| Frances Marion       |         2 |
+| Glenda Jackson       |         2 |
+| Hayley Mills         |         2 |
+| Helen Hayes          |         2 |
+| Helen Rose           |         2 |
+| Hilary Swank         |         2 |
+| Jane Fonda           |         2 |
+| Jessica Lange        |         2 |
+| Jodie Foster         |         2 |
++----------------------+-----------+
++---------------------------------------------------------------+
+| section                                                       |
++---------------------------------------------------------------+
+| === Q4 . les laureats du Cesar du meilleur film (Q645595) === |
++---------------------------------------------------------------+
++-------+--------------------------+
+| annee | laureat                  |
++-------+--------------------------+
+|  2024 | Anatomy of a Fall        |
+|  2024 | David Thion              |
+|  2023 | The Night of the 12th    |
+|  2022 | Lost Illusions           |
+|  2021 | Bye Bye Morons           |
+|  2020 | Les Misérables           |
+|  2018 | Robin Campillo           |
+|  2018 | BPM (Beats per Minute)   |
+|  2016 | Fatima                   |
+|  2016 | Yasmina Nini-Faucon      |
+|  2016 | Paul Verhoeven           |
+|  2014 | Me, Myself and Mum       |
+|  2014 | Marguerite Abouet        |
+|  2012 | The Artist               |
+|  2012 | Thomas Langmann          |
+|  2011 | Of Gods and Men          |
+|  2010 | Jacques Audiard          |
+|  2010 | A Prophet                |
+|  2008 | Claude Berri             |
+|  2008 | Abdellatif Kechiche      |
+|  2007 | Pascale Ferran           |
+|  2006 | Jacques Audiard          |
+|  2005 | Abdellatif Kechiche      |
+|  2005 | Games of Love and Chance |
+|  2004 | The Barbarian Invasions  |
+|  1999 | Venus Beauty Institute   |
+|  1998 | Alain Resnais            |
+|  1997 | Patrice Leconte          |
+|  1995 | Wild Reeds               |
+|  1995 | André Téchiné            |
+|  1994 | Alain Resnais            |
+|  1993 | Cyril Collard            |
+|  1992 | Tous les Matins du Monde |
+|  1992 | Alain Corneau            |
+|  1991 | Jean-Paul Rappeneau      |
+|  1989 | Camille Claudel          |
+|  1988 | Louis Malle              |
+|  1987 | Alain Cavalier           |
+|  1984 | Maurice Pialat           |
+|  1984 | À Nos Amours             |
++-------+--------------------------+
++-----------------------------------------------------+
+| section                                             |
++-----------------------------------------------------+
+| === Q5 . les prix lies a un film, les deux sens === |
++-----------------------------------------------------+
++-------------------+----------------------------------------------------+-------+----------------+
+| sens              | recompense                                         | annee | laureat        |
++-------------------+----------------------------------------------------+-------+----------------+
+| recu POUR le film | Independent Spirit Award for Best Lead Performance |  2023 | Jeffrey Wright |
+| recu POUR le film | Academy Award for Best Writing, Adapted Screenplay |  2024 | Cord Jefferson |
++-------------------+----------------------------------------------------+-------+----------------+
++---------------------------------------------------------------+
+| section                                                       |
++---------------------------------------------------------------+
+| === Q6 . les nominations sans victoire, pour une personne === |
++---------------------------------------------------------------+
++------------------------------------------+-------+---------------+
+| nomme_pour                               | annee | pour_l_oeuvre |
++------------------------------------------+-------+---------------+
+| Tony Award for Best Actress in a Musical |  1970 | NULL          |
+| Tony Award for Best Actress in a Play    |  1982 | NULL          |
++------------------------------------------+-------+---------------+
++---------------------------+
+| section                   |
++---------------------------+
+| ========== FIN ========== |
++---------------------------+

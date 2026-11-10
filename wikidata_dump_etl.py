@@ -104,6 +104,8 @@ P_COUNTRY = "P17"
 P_AUTHOR = "P50"
 P_FORM_OF_CREATIVE_WORK = "P7937"
 P_COORDINATE_LOCATION = "P625"
+P_PART_OF = "P361"
+P_HAS_PARTS = "P527"
 # WIKIDATA-CRAWLER-031: P1476 "title", a monolingualtext (text + language), the one
 # monolingualtext property ingested. It lands in T_WC_WIKIDATA_STRING_VALUE with the text in
 # VALUE_STRING and the language in LANG_CODE (VALUE_TYPE 'string', WIKIDATA_DATATYPE
@@ -122,8 +124,13 @@ P_FORMATTER_URL = "P1630"
 # "based on" tables of TMDB-MOVIE-PREPROCESS-055 (added 2026-10-09, same ticket,
 # one replay for the four). P625 gives a cached place its coordinates, the only
 # property here of the coordinate type (WIKIDATA-CRAWLER-028, added 2026-10-19 ahead of
-# a dump so it rides the normal weekly run). Adding a property here costs a 23 h replay
-# of step 106, so weigh it before extending.
+# a dump so it rides the normal weekly run). P361/P527 tie an award category to its
+# family ("Academy Award for Best Picture" is part of "Academy Awards", and the family
+# lists its parts): a category is a cached entity, and P31 alone reached 1 808 of the
+# 18 117 categories that tmdb-movie-preprocess links, against 4 455 with these two
+# (WIKIDATA-CRAWLER-032, for TMDB-MOVIE-PREPROCESS-071, added 2026-11-10 ahead of a dump,
+# same way). Adding a property here costs a 23 h replay of step 106, so weigh it before
+# extending.
 CACHED_ENTITY_PROPERTIES = (
     P_INSTANCE_OF,       # P31,  class membership, and MOVIE_V1/ITEM_V1.INSTANCE_OF
     P_SUBCLASS_OF,       # P279, class hierarchy
@@ -136,6 +143,8 @@ CACHED_ENTITY_PROPERTIES = (
     P_AUTHOR,            # P50,  author of a source work (-021, -055)
     P_FORM_OF_CREATIVE_WORK,  # P7937, novel / short story / novella... of a source work (-021, -055)
     P_COORDINATE_LOCATION,  # P625, latitude / longitude of a place (-028)
+    P_PART_OF,           # P361, the family an award category belongs to (-032, -071)
+    P_HAS_PARTS,         # P527, the categories an award family lists (-032, -071)
 )
 P_FORMATTER_URI_FOR_RDF = "P3303"
 
@@ -1711,6 +1720,12 @@ class WikidataDumpETL:
         handled because the tuple spans four (item, external_id, time, and coordinate for
         P625 since -028); any other datatype on these properties is malformed and skipped
         rather than guessed at.
+
+        -032 adds P361 and P527, both of the item type, so no branch below changes. They
+        are emitted for EVERY cached entity, not only for awards: the pass has no notion of
+        what a cached entity is, and a filter by class would need the P279 closure here.
+        The target of a P361 is not cached by that fact (item_cache is the last pass);
+        measured on 2026-11-10, 495 of the 531 award families concerned were cached already.
         """
         for property_id in CACHED_ENTITY_PROPERTIES:
             for claim in get_claim_list(doc, property_id):

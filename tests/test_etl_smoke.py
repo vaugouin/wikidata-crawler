@@ -391,7 +391,8 @@ def run() -> int:
     # need. Pinned here because removing one is silent until a downstream table falls
     # empty a week later (location hierarchy for -048, "based on" form and author for -055).
     print("cached entity properties:")
-    for pid in ("P31", "P279", "P131", "P17", "P50", "P7937", "P625"):
+    # WIKIDATA-CRAWLER-032: P361 and P527, the award family of a cached category (-071).
+    for pid in ("P31", "P279", "P131", "P17", "P50", "P7937", "P625", "P361", "P527"):
         check(pid in etl.CACHED_ENTITY_PROPERTIES,
               f"{pid} is emitted for cached entities")
 

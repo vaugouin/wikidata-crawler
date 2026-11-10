@@ -21,6 +21,25 @@ CREATE TABLE `STG_T_WC_WIKIDATA_CHARACTER` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `STG_T_WC_WIKIDATA_COORDINATE_VALUE` (
+  `ID_STG_ROW` bigint(20) NOT NULL AUTO_INCREMENT,
+  `IMPORT_BATCH_ID` varchar(100) DEFAULT NULL,
+  `ID_STATEMENT` bigint(20) NOT NULL,
+  `LATITUDE` double DEFAULT NULL,
+  `LONGITUDE` double DEFAULT NULL,
+  `ALTITUDE` double DEFAULT NULL,
+  `COORDINATE_PRECISION` double DEFAULT NULL,
+  `GLOBE_ID_WIKIDATA` varchar(50) DEFAULT NULL,
+  `ROW_STATUS` varchar(20) DEFAULT 'NEW',
+  `ERROR_MESSAGE` text DEFAULT NULL,
+  `DAT_IMPORT` datetime DEFAULT current_timestamp(),
+  PRIMARY KEY (`ID_STG_ROW`),
+  KEY `IDX_STG_COORDINATE_VALUE_BATCH` (`IMPORT_BATCH_ID`),
+  KEY `IDX_STG_COORDINATE_VALUE_STATEMENT` (`ID_STATEMENT`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `STG_T_WC_WIKIDATA_EPISODE` (
   `ID_STG_ROW` bigint(20) NOT NULL AUTO_INCREMENT,
   `IMPORT_BATCH_ID` varchar(100) DEFAULT NULL,
@@ -324,6 +343,25 @@ CREATE TABLE `STG_T_WC_WIKIDATA_PROPERTY_METADATA` (
   KEY `IDX_STG_PROPERTY_BATCH` (`IMPORT_BATCH_ID`),
   KEY `IDX_STG_PROPERTY_ID` (`ID_PROPERTY`),
   KEY `IDX_STG_PROPERTY_STATUS` (`ROW_STATUS`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `STG_T_WC_WIKIDATA_QUALIFIER_COORDINATE_VALUE` (
+  `ID_STG_ROW` bigint(20) NOT NULL AUTO_INCREMENT,
+  `IMPORT_BATCH_ID` varchar(100) DEFAULT NULL,
+  `ID_STATEMENT_QUALIFIER` bigint(20) NOT NULL,
+  `LATITUDE` double DEFAULT NULL,
+  `LONGITUDE` double DEFAULT NULL,
+  `ALTITUDE` double DEFAULT NULL,
+  `COORDINATE_PRECISION` double DEFAULT NULL,
+  `GLOBE_ID_WIKIDATA` varchar(50) DEFAULT NULL,
+  `ROW_STATUS` varchar(20) DEFAULT 'NEW',
+  `ERROR_MESSAGE` text DEFAULT NULL,
+  `DAT_IMPORT` datetime DEFAULT current_timestamp(),
+  PRIMARY KEY (`ID_STG_ROW`),
+  KEY `IDX_STG_QUALIFIER_COORDINATE_VALUE_BATCH` (`IMPORT_BATCH_ID`),
+  KEY `IDX_STG_QUALIFIER_COORDINATE_VALUE_PARENT` (`ID_STATEMENT_QUALIFIER`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -2169,6 +2207,56 @@ CREATE TABLE `T_WC_GLOBAL_VARIABLE` (
   KEY `ID_USER_UPDATED_2` (`ID_USER_UPDATED`),
   KEY `ID_LANG_2` (`ID_LANG`),
   KEY `VAR_NAME` (`VAR_NAME`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_ICONIC_SCENE` (
+  `ID_ICONIC_SCENE` int(11) NOT NULL AUTO_INCREMENT,
+  `SCENE_KEY` varchar(64) NOT NULL,
+  `STATUS` varchar(20) DEFAULT NULL,
+  `QUOTE` text DEFAULT NULL,
+  `LANG` varchar(5) DEFAULT NULL,
+  `TITLE` varchar(250) DEFAULT NULL,
+  `RELEASE_YEAR` int(5) DEFAULT NULL,
+  `ID_MOVIE` int(11) DEFAULT NULL,
+  `ACTOR_NAME` varchar(250) DEFAULT NULL,
+  `CHARACTER_NAME` varchar(250) DEFAULT NULL,
+  `STILL_PATH` varchar(250) DEFAULT NULL,
+  `STILL_FILE` varchar(250) DEFAULT NULL,
+  `ALT1_FILE` varchar(250) DEFAULT NULL,
+  `ALT2_FILE` varchar(250) DEFAULT NULL,
+  `TIMECODE` varchar(10) DEFAULT NULL,
+  `SECONDS` decimal(9,2) DEFAULT NULL,
+  `SUBTITLE_TEXT` text DEFAULT NULL,
+  `SOURCE` varchar(20) DEFAULT NULL,
+  `MATCH_SCORE` decimal(5,1) DEFAULT NULL,
+  `FACE_COUNT` int(5) DEFAULT NULL,
+  `SHARPNESS` int(11) DEFAULT NULL,
+  `SOURCE_HEIGHT` int(5) DEFAULT NULL,
+  `IS_HDR` int(5) DEFAULT NULL,
+  `COPY_FILE` varchar(500) DEFAULT NULL,
+  `COPY_EDITION` varchar(250) DEFAULT NULL,
+  `COPY_DURATION` decimal(9,2) DEFAULT NULL,
+  `COPY_RUNTIME` varchar(10) DEFAULT NULL,
+  `COPY_RESOLUTION` varchar(20) DEFAULT NULL,
+  `COPY_SIZE` bigint(20) DEFAULT NULL,
+  `COPY_PLEX_KEY` int(11) DEFAULT NULL,
+  `COPY_PART_ID` int(11) DEFAULT NULL,
+  `COPY_COUNT` int(5) DEFAULT NULL,
+  `OTHER_COPIES` text DEFAULT NULL,
+  `DELETED` int(5) DEFAULT 0,
+  `DISPLAY_ORDER` int(5) DEFAULT NULL,
+  `ID_CREATOR` int(5) DEFAULT NULL,
+  `DAT_CREAT` date DEFAULT NULL,
+  `ID_OWNER` int(5) DEFAULT NULL,
+  `TIM_UPDATED` datetime DEFAULT NULL,
+  `ID_USER_UPDATED` int(5) DEFAULT NULL,
+  PRIMARY KEY (`ID_ICONIC_SCENE`),
+  UNIQUE KEY `UK_ICONIC_SCENE_KEY` (`SCENE_KEY`),
+  KEY `ID_MOVIE` (`ID_MOVIE`),
+  KEY `STATUS` (`STATUS`),
+  KEY `DELETED` (`DELETED`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -5652,6 +5740,672 @@ CREATE TABLE `T_WC_OBJ_TYPE` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_OC_BLOCK` (
+  `ID_OC_BLOCK` uuid NOT NULL,
+  `ID_OC_SEGMENT` uuid NOT NULL,
+  `HEADING_RAW` varchar(500) DEFAULT NULL COMMENT 'as on screen; empty for the first cast list',
+  `BLOCK_TYPE` varchar(20) NOT NULL COMMENT 'cast, crew, unit, vendor_staff, songs, thanks, dedication, dubbing, locations, companies, legal, logos',
+  `UNIT` varchar(200) DEFAULT NULL COMMENT 'main, second_unit, additional_photography, aerial, or a place as written',
+  `ID_OC_COMPANY_VENDOR` uuid DEFAULT NULL COMMENT 'the company whose staff the block lists',
+  `VERSION_LANGUAGE` varchar(20) DEFAULT NULL COMMENT 'dubbing blocks',
+  `LINE_IDS` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT 'ID_OC_TEXT_LINE list' CHECK (json_valid(`LINE_IDS`)),
+  `DELETED` int(5) DEFAULT 0,
+  `DISPLAY_ORDER` int(11) NOT NULL COMMENT 'order on screen',
+  `ID_CREATOR` int(5) DEFAULT NULL,
+  `DAT_CREAT` date DEFAULT NULL,
+  `ID_OWNER` int(5) DEFAULT NULL,
+  `TIM_UPDATED` datetime DEFAULT NULL,
+  `ID_USER_UPDATED` int(5) DEFAULT NULL,
+  PRIMARY KEY (`ID_OC_BLOCK`),
+  KEY `ID_OC_SEGMENT` (`ID_OC_SEGMENT`,`DISPLAY_ORDER`),
+  KEY `BLOCK_TYPE` (`BLOCK_TYPE`),
+  KEY `ID_OC_COMPANY_VENDOR` (`ID_OC_COMPANY_VENDOR`),
+  KEY `DELETED` (`DELETED`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='open-credits layer 3a: a heading and the credits under it';
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_OC_COMPANY` (
+  `ID_OC_COMPANY` uuid NOT NULL,
+  `DISPLAY_NAME` varchar(250) NOT NULL,
+  `COMPANY_CLASS` varchar(50) DEFAULT NULL COMMENT 'T_WC_OC_COMPANY_CLASS.CODE',
+  `COUNTRY` char(2) DEFAULT NULL COMMENT 'ISO 3166-1 alpha-2',
+  `ID_COMPANY` int(11) DEFAULT NULL COMMENT 'TMDb company id',
+  `ID_IMDB` varchar(20) DEFAULT NULL COMMENT 'co...',
+  `ID_WIKIDATA` varchar(50) DEFAULT NULL,
+  `DELETED` int(5) DEFAULT 0,
+  `DISPLAY_ORDER` int(5) DEFAULT NULL,
+  `ID_CREATOR` int(5) DEFAULT NULL,
+  `DAT_CREAT` date DEFAULT NULL,
+  `ID_OWNER` int(5) DEFAULT NULL,
+  `TIM_UPDATED` datetime DEFAULT NULL,
+  `ID_USER_UPDATED` int(5) DEFAULT NULL,
+  PRIMARY KEY (`ID_OC_COMPANY`),
+  KEY `DISPLAY_NAME` (`DISPLAY_NAME`),
+  KEY `COMPANY_CLASS` (`COMPANY_CLASS`),
+  KEY `ID_COMPANY` (`ID_COMPANY`),
+  KEY `ID_IMDB` (`ID_IMDB`),
+  KEY `ID_WIKIDATA` (`ID_WIKIDATA`),
+  KEY `DELETED` (`DELETED`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='open-credits layer 3c: a company';
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_OC_COMPANY_CLASS` (
+  `CODE` varchar(50) NOT NULL COMMENT 'film_production_company, vfx_company...',
+  `LABEL_EN` varchar(100) NOT NULL,
+  `ID_WIKIDATA` varchar(50) DEFAULT NULL COMMENT 'empty when Wikidata lacks the class',
+  `DELETED` int(5) DEFAULT 0,
+  `DISPLAY_ORDER` int(5) DEFAULT NULL,
+  `ID_CREATOR` int(5) DEFAULT NULL,
+  `DAT_CREAT` date DEFAULT NULL,
+  `ID_OWNER` int(5) DEFAULT NULL,
+  `TIM_UPDATED` datetime DEFAULT NULL,
+  `ID_USER_UPDATED` int(5) DEFAULT NULL,
+  PRIMARY KEY (`CODE`),
+  KEY `ID_WIKIDATA` (`ID_WIKIDATA`),
+  KEY `DELETED` (`DELETED`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='open-credits layer 5: classes of company entities, mapped to Wikidata';
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_OC_CONSOLIDATED_CREDIT` (
+  `ID_OC_CONSOLIDATED_CREDIT` uuid NOT NULL,
+  `ID_OC_WORK` uuid NOT NULL,
+  `ID_OC_ROLE` uuid DEFAULT NULL,
+  `ENTITY_KIND` varchar(10) NOT NULL COMMENT 'person, company, place, song, work, other',
+  `ID_OC_ENTITY` uuid DEFAULT NULL COMMENT 'by ENTITY_KIND',
+  `NAME_DISPLAY` varchar(500) NOT NULL,
+  `CHARACTER_DISPLAY` varchar(500) DEFAULT NULL,
+  `SUPPORT` int(11) NOT NULL DEFAULT 1 COMMENT 'submissions that carry it',
+  `SUPPORT_COPIES` int(11) NOT NULL DEFAULT 1 COMMENT 'distinct copies that carry it',
+  `SCORE` float DEFAULT NULL COMMENT 'agreement weighted by reputation',
+  `STATUS` varchar(10) NOT NULL DEFAULT 'proposed' COMMENT 'proposed, confirmed, locked, rejected',
+  `SOURCE_CREDIT_IDS` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT 'ID_OC_CREDIT list: the evidence chain' CHECK (json_valid(`SOURCE_CREDIT_IDS`)),
+  `IS_PRIVATE_INDIVIDUAL` tinyint(1) NOT NULL DEFAULT 0,
+  `DELETED` int(5) DEFAULT 0,
+  `DISPLAY_ORDER` int(11) DEFAULT NULL,
+  `ID_CREATOR` int(5) DEFAULT NULL,
+  `DAT_CREAT` date DEFAULT NULL,
+  `ID_OWNER` int(5) DEFAULT NULL,
+  `TIM_UPDATED` datetime DEFAULT NULL,
+  `ID_USER_UPDATED` int(5) DEFAULT NULL,
+  PRIMARY KEY (`ID_OC_CONSOLIDATED_CREDIT`),
+  KEY `ID_OC_WORK` (`ID_OC_WORK`,`DISPLAY_ORDER`),
+  KEY `ID_OC_ROLE` (`ID_OC_ROLE`),
+  KEY `ID_OC_ENTITY` (`ID_OC_ENTITY`),
+  KEY `STATUS` (`STATUS`),
+  KEY `IS_PRIVATE_INDIVIDUAL` (`IS_PRIVATE_INDIVIDUAL`),
+  KEY `DELETED` (`DELETED`),
+  KEY `TIM_UPDATED` (`TIM_UPDATED`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='open-credits layer 4: one distinct credit of a work, computed from the submissions';
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_OC_CONTRIBUTOR` (
+  `ID_OC_CONTRIBUTOR` uuid NOT NULL,
+  `USERNAME` varchar(100) NOT NULL,
+  `REPUTATION` int(11) NOT NULL DEFAULT 0,
+  `ROLE` varchar(20) NOT NULL DEFAULT 'contributor' COMMENT 'contributor, moderator',
+  `TMDB_USERNAME` varchar(100) DEFAULT NULL,
+  `WIKIDATA_USERNAME` varchar(100) DEFAULT NULL,
+  `DELETED` int(5) DEFAULT 0,
+  `DISPLAY_ORDER` int(5) DEFAULT NULL,
+  `ID_CREATOR` int(5) DEFAULT NULL,
+  `DAT_CREAT` date DEFAULT NULL,
+  `ID_OWNER` int(5) DEFAULT NULL,
+  `TIM_UPDATED` datetime DEFAULT NULL,
+  `ID_USER_UPDATED` int(5) DEFAULT NULL,
+  PRIMARY KEY (`ID_OC_CONTRIBUTOR`),
+  UNIQUE KEY `UK_USERNAME` (`USERNAME`),
+  KEY `ROLE` (`ROLE`),
+  KEY `DELETED` (`DELETED`),
+  KEY `TIM_UPDATED` (`TIM_UPDATED`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='open-credits: an account, one per person (authentication not modelled yet)';
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_OC_COPY` (
+  `ID_OC_COPY` uuid NOT NULL,
+  `ID_OC_WORK` uuid NOT NULL,
+  `ID_OC_EDITION` uuid DEFAULT NULL COMMENT 'empty until the copy is grouped',
+  `FINGERPRINT` char(64) NOT NULL COMMENT 'SHA-256 of the lines <opensubtitles_hash>:<file_size> in part order',
+  `PART_COUNT` int(5) NOT NULL,
+  `DURATION_MS` int(11) NOT NULL COMMENT 'sum of the parts',
+  `WIDTH` int(5) DEFAULT NULL,
+  `HEIGHT` int(5) DEFAULT NULL,
+  `FPS` double DEFAULT NULL,
+  `EDITION_HINT` varchar(200) DEFAULT NULL COMMENT 'Plex {edition-...} tag, FILE_EDITION',
+  `VERSION_LANGUAGE` varchar(20) DEFAULT NULL COMMENT 'BCP 47, language of the version the credits come from',
+  `SOURCE` varchar(10) DEFAULT NULL COMMENT 'bluray, remux, dvd, web, tv, vhs, other',
+  `DELETED` int(5) DEFAULT 0,
+  `DISPLAY_ORDER` int(5) DEFAULT NULL,
+  `ID_CREATOR` int(5) DEFAULT NULL,
+  `DAT_CREAT` date DEFAULT NULL,
+  `ID_OWNER` int(5) DEFAULT NULL,
+  `TIM_UPDATED` datetime DEFAULT NULL,
+  `ID_USER_UPDATED` int(5) DEFAULT NULL,
+  PRIMARY KEY (`ID_OC_COPY`),
+  UNIQUE KEY `UK_FINGERPRINT` (`FINGERPRINT`),
+  KEY `ID_OC_WORK` (`ID_OC_WORK`),
+  KEY `ID_OC_EDITION` (`ID_OC_EDITION`),
+  KEY `DELETED` (`DELETED`),
+  KEY `TIM_UPDATED` (`TIM_UPDATED`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='open-credits: one encode of an edition, shared by everyone who holds the same files';
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_OC_CREDIT` (
+  `ID_OC_CREDIT` uuid NOT NULL,
+  `ID_OC_BLOCK` uuid NOT NULL,
+  `ENTITY_KIND` varchar(10) NOT NULL COMMENT 'person, company, place, song, work, other',
+  `NAME_RAW` varchar(1000) NOT NULL COMMENT 'Wikidata P1932, as credited',
+  `ID_OC_ENTITY` uuid DEFAULT NULL COMMENT 'T_WC_OC_PERSON, _COMPANY, _PLACE or _SONG by ENTITY_KIND; empty until resolved',
+  `ROLE_RAW` varchar(500) DEFAULT NULL COMMENT 'Wikidata P13187, as credited',
+  `ID_OC_ROLE` uuid DEFAULT NULL COMMENT 'the base job',
+  `ROLE_MODIFIERS` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'T_WC_OC_ROLE_MODIFIER.CODE list, in on-screen order' CHECK (json_valid(`ROLE_MODIFIERS`)),
+  `ID_OC_PERSON_TARGET` uuid DEFAULT NULL COMMENT 'assistant to, double for',
+  `ID_OC_SONG` uuid DEFAULT NULL COMMENT 'when the credit belongs to a song',
+  `CHARACTER_RAW` varchar(500) DEFAULT NULL COMMENT 'Wikidata P4633',
+  `ID_OC_CHARACTER` uuid DEFAULT NULL COMMENT 'Wikidata P453; no table yet',
+  `LANGUAGE` varchar(20) DEFAULT NULL COMMENT 'Wikidata P407, dubbing',
+  `QUALIFIER_RAW` varchar(250) DEFAULT NULL COMMENT 'as, with the participation of, and',
+  `LINE_IDS` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT 'ID_OC_TEXT_LINE list' CHECK (json_valid(`LINE_IDS`)),
+  `PARSE_CONFIDENCE` float DEFAULT NULL,
+  `IS_PRIVATE_INDIVIDUAL` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'charter decision 10: kept out of public views and contributions',
+  `DELETED` int(5) DEFAULT 0,
+  `DISPLAY_ORDER` int(11) NOT NULL COMMENT 'Wikidata P1545',
+  `ID_CREATOR` int(5) DEFAULT NULL,
+  `DAT_CREAT` date DEFAULT NULL,
+  `ID_OWNER` int(5) DEFAULT NULL,
+  `TIM_UPDATED` datetime DEFAULT NULL,
+  `ID_USER_UPDATED` int(5) DEFAULT NULL,
+  PRIMARY KEY (`ID_OC_CREDIT`),
+  KEY `ID_OC_BLOCK` (`ID_OC_BLOCK`,`DISPLAY_ORDER`),
+  KEY `ID_OC_ENTITY` (`ID_OC_ENTITY`),
+  KEY `ID_OC_ROLE` (`ID_OC_ROLE`),
+  KEY `ID_OC_PERSON_TARGET` (`ID_OC_PERSON_TARGET`),
+  KEY `ID_OC_SONG` (`ID_OC_SONG`),
+  KEY `ENTITY_KIND` (`ENTITY_KIND`),
+  KEY `IS_PRIVATE_INDIVIDUAL` (`IS_PRIVATE_INDIVIDUAL`),
+  KEY `DELETED` (`DELETED`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='open-credits layer 3b: one assertion, an entity in a role, with its on-screen wording';
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_OC_EDITION` (
+  `ID_OC_EDITION` uuid NOT NULL,
+  `ID_OC_WORK` uuid NOT NULL,
+  `LABEL` varchar(20) NOT NULL COMMENT 'theatrical, directors_cut, extended, tv_cut, unrated, other',
+  `LABEL_TEXT` varchar(200) DEFAULT NULL COMMENT 'free text, for other',
+  `NOMINAL_RUNTIME_MS` int(11) DEFAULT NULL,
+  `STATUS` varchar(10) NOT NULL DEFAULT 'proposed' COMMENT 'proposed, confirmed',
+  `DELETED` int(5) DEFAULT 0,
+  `DISPLAY_ORDER` int(5) DEFAULT NULL,
+  `ID_CREATOR` int(5) DEFAULT NULL,
+  `DAT_CREAT` date DEFAULT NULL,
+  `ID_OWNER` int(5) DEFAULT NULL,
+  `TIM_UPDATED` datetime DEFAULT NULL,
+  `ID_USER_UPDATED` int(5) DEFAULT NULL,
+  PRIMARY KEY (`ID_OC_EDITION`),
+  KEY `ID_OC_WORK` (`ID_OC_WORK`),
+  KEY `STATUS` (`STATUS`),
+  KEY `DELETED` (`DELETED`),
+  KEY `TIM_UPDATED` (`TIM_UPDATED`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='open-credits: a cut of a work';
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_OC_FRAME` (
+  `ID_OC_FRAME` uuid NOT NULL,
+  `ID_OC_SEGMENT` uuid NOT NULL,
+  `TIMECODE_MS` int(11) NOT NULL COMMENT 'within the part',
+  `PHASH` char(16) NOT NULL COMMENT '64-bit perceptual hash, hex',
+  `PAGE_OFFSET_PX` int(11) DEFAULT NULL COMMENT 'rolling credits: position on the virtual page',
+  `HAS_TEXT` tinyint(1) NOT NULL DEFAULT 1,
+  `EVIDENCE_PATH` varchar(250) DEFAULT NULL COMMENT 'where the master stores the WebP sent in the bundle, if any',
+  `CROP_X` int(5) DEFAULT NULL,
+  `CROP_Y` int(5) DEFAULT NULL,
+  `CROP_W` int(5) DEFAULT NULL,
+  `CROP_H` int(5) DEFAULT NULL,
+  `DELETED` int(5) DEFAULT 0,
+  `DISPLAY_ORDER` int(5) DEFAULT NULL,
+  `ID_CREATOR` int(5) DEFAULT NULL,
+  `DAT_CREAT` date DEFAULT NULL,
+  `ID_OWNER` int(5) DEFAULT NULL,
+  `TIM_UPDATED` datetime DEFAULT NULL,
+  `ID_USER_UPDATED` int(5) DEFAULT NULL,
+  PRIMARY KEY (`ID_OC_FRAME`),
+  KEY `ID_OC_SEGMENT` (`ID_OC_SEGMENT`,`TIMECODE_MS`),
+  KEY `PHASH` (`PHASH`),
+  KEY `DELETED` (`DELETED`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='open-credits layer 1: one image read by the OCR';
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_OC_HISTORY` (
+  `ID_OC_HISTORY` uuid NOT NULL,
+  `ID_OC_CONSOLIDATED_CREDIT` uuid NOT NULL,
+  `ID_OC_CONTRIBUTOR` uuid NOT NULL,
+  `EDITED_AT` datetime NOT NULL,
+  `VALUE_BEFORE` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'the consolidated credit before the edit' CHECK (json_valid(`VALUE_BEFORE`)),
+  `VALUE_AFTER` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`VALUE_AFTER`)),
+  `REASON` varchar(1000) DEFAULT NULL,
+  `DELETED` int(5) DEFAULT 0,
+  `DISPLAY_ORDER` int(5) DEFAULT NULL,
+  `ID_CREATOR` int(5) DEFAULT NULL,
+  `DAT_CREAT` date DEFAULT NULL,
+  `ID_OWNER` int(5) DEFAULT NULL,
+  `TIM_UPDATED` datetime DEFAULT NULL,
+  `ID_USER_UPDATED` int(5) DEFAULT NULL,
+  PRIMARY KEY (`ID_OC_HISTORY`),
+  KEY `ID_OC_CONSOLIDATED_CREDIT` (`ID_OC_CONSOLIDATED_CREDIT`,`EDITED_AT`),
+  KEY `ID_OC_CONTRIBUTOR` (`ID_OC_CONTRIBUTOR`),
+  KEY `EDITED_AT` (`EDITED_AT`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='open-credits layer 4: every edit of a consolidated credit';
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_OC_PART` (
+  `ID_OC_PART` uuid NOT NULL,
+  `ID_OC_COPY` uuid NOT NULL,
+  `PART_INDEX` int(5) NOT NULL COMMENT '1, 2, 3...',
+  `OPENSUBTITLES_HASH` char(16) NOT NULL COMMENT 'joins T_WC_TMDB_PLEX_MEDIA_PART.OPENSUBTITLE_HASH',
+  `FILE_SIZE` bigint(15) NOT NULL COMMENT 'joins T_WC_TMDB_PLEX_MEDIA_PART.PART_SIZE',
+  `DURATION_MS` int(11) NOT NULL,
+  `OFFSET_MS` int(11) NOT NULL COMMENT 'start in the copy',
+  `DELETED` int(5) DEFAULT 0,
+  `DISPLAY_ORDER` int(5) DEFAULT NULL,
+  `ID_CREATOR` int(5) DEFAULT NULL,
+  `DAT_CREAT` date DEFAULT NULL,
+  `ID_OWNER` int(5) DEFAULT NULL,
+  `TIM_UPDATED` datetime DEFAULT NULL,
+  `ID_USER_UPDATED` int(5) DEFAULT NULL,
+  PRIMARY KEY (`ID_OC_PART`),
+  UNIQUE KEY `UK_COPY_PART` (`ID_OC_COPY`,`PART_INDEX`),
+  KEY `OPENSUBTITLES_HASH` (`OPENSUBTITLES_HASH`,`FILE_SIZE`),
+  KEY `DELETED` (`DELETED`),
+  KEY `TIM_UPDATED` (`TIM_UPDATED`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='open-credits: one file of a copy, identified by its content; the path is never stored';
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_OC_PERSON` (
+  `ID_OC_PERSON` uuid NOT NULL,
+  `DISPLAY_NAME` varchar(250) NOT NULL,
+  `IS_PRIVATE_INDIVIDUAL` tinyint(1) NOT NULL DEFAULT 0,
+  `ID_PERSON` int(11) DEFAULT NULL COMMENT 'TMDb person id',
+  `ID_IMDB` varchar(20) DEFAULT NULL COMMENT 'nm...',
+  `ID_WIKIDATA` varchar(50) DEFAULT NULL,
+  `DELETED` int(5) DEFAULT 0,
+  `DISPLAY_ORDER` int(5) DEFAULT NULL,
+  `ID_CREATOR` int(5) DEFAULT NULL,
+  `DAT_CREAT` date DEFAULT NULL,
+  `ID_OWNER` int(5) DEFAULT NULL,
+  `TIM_UPDATED` datetime DEFAULT NULL,
+  `ID_USER_UPDATED` int(5) DEFAULT NULL,
+  PRIMARY KEY (`ID_OC_PERSON`),
+  KEY `DISPLAY_NAME` (`DISPLAY_NAME`),
+  KEY `ID_PERSON` (`ID_PERSON`),
+  KEY `ID_IMDB` (`ID_IMDB`),
+  KEY `ID_WIKIDATA` (`ID_WIKIDATA`),
+  KEY `DELETED` (`DELETED`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='open-credits layer 3c: a person';
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_OC_PLACE` (
+  `ID_OC_PLACE` uuid NOT NULL,
+  `DISPLAY_NAME` varchar(250) NOT NULL,
+  `PLACE_TYPE` varchar(20) DEFAULT NULL COMMENT 'country, region, city, structure, studio_facility, nature',
+  `ID_WIKIDATA` varchar(50) DEFAULT NULL COMMENT 'P131 gives the hierarchy',
+  `DELETED` int(5) DEFAULT 0,
+  `DISPLAY_ORDER` int(5) DEFAULT NULL,
+  `ID_CREATOR` int(5) DEFAULT NULL,
+  `DAT_CREAT` date DEFAULT NULL,
+  `ID_OWNER` int(5) DEFAULT NULL,
+  `TIM_UPDATED` datetime DEFAULT NULL,
+  `ID_USER_UPDATED` int(5) DEFAULT NULL,
+  PRIMARY KEY (`ID_OC_PLACE`),
+  KEY `DISPLAY_NAME` (`DISPLAY_NAME`),
+  KEY `ID_WIKIDATA` (`ID_WIKIDATA`),
+  KEY `DELETED` (`DELETED`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='open-credits layer 3c: a place (filming location, studio facility)';
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_OC_REPORT` (
+  `ID_OC_REPORT` uuid NOT NULL,
+  `ID_OC_WORK` uuid DEFAULT NULL,
+  `ID_OC_CONSOLIDATED_CREDIT` uuid DEFAULT NULL,
+  `ID_OC_CONTRIBUTOR` uuid NOT NULL COMMENT 'who files it',
+  `REASON` varchar(1000) NOT NULL,
+  `IS_PUBLIC` tinyint(1) NOT NULL DEFAULT 1,
+  `STATUS` varchar(10) NOT NULL DEFAULT 'open' COMMENT 'open, accepted, rejected',
+  `DELETED` int(5) DEFAULT 0,
+  `DISPLAY_ORDER` int(5) DEFAULT NULL,
+  `ID_CREATOR` int(5) DEFAULT NULL,
+  `DAT_CREAT` date DEFAULT NULL,
+  `ID_OWNER` int(5) DEFAULT NULL,
+  `TIM_UPDATED` datetime DEFAULT NULL,
+  `ID_USER_UPDATED` int(5) DEFAULT NULL,
+  PRIMARY KEY (`ID_OC_REPORT`),
+  KEY `ID_OC_WORK` (`ID_OC_WORK`),
+  KEY `ID_OC_CONSOLIDATED_CREDIT` (`ID_OC_CONSOLIDATED_CREDIT`),
+  KEY `ID_OC_CONTRIBUTOR` (`ID_OC_CONTRIBUTOR`),
+  KEY `STATUS` (`STATUS`),
+  KEY `DELETED` (`DELETED`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='open-credits layer 4: a report on a work or a consolidated credit';
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_OC_REVIEW` (
+  `ID_OC_REVIEW` uuid NOT NULL,
+  `SAMPLE` varchar(100) NOT NULL COMMENT 'sample folder name: <work folder>-<engine>-<lang>, e.g. alien-348-paddle-en',
+  `ID_MOVIE` int(11) DEFAULT NULL COMMENT 'TMDb movie id of the title',
+  `TAG` varchar(30) NOT NULL COMMENT 'engine-lang of the run, e.g. paddle-en',
+  `ITEM` int(5) NOT NULL COMMENT 'line number in the sample, 1 to 50',
+  `LINE_TEXT` varchar(500) NOT NULL COMMENT 'text as the client wrote it (after cleaning)',
+  `LINE_RAW` varchar(500) DEFAULT NULL COMMENT 'voted text before cleaning, when cleaning changed it',
+  `LINE_KIND` varchar(10) NOT NULL COMMENT 'roll or card',
+  `WINDOW_NAME` varchar(30) NOT NULL COMMENT 'time window folder, e.g. w6800-6996',
+  `FRAME_T` int(11) NOT NULL COMMENT 'second of the frame the crop comes from',
+  `VERDICT` varchar(10) DEFAULT NULL COMMENT 'exact, minor, wrong, noise; NULL until judged',
+  `NOTE` varchar(500) DEFAULT NULL COMMENT 'what the screen shows, when different',
+  `DELETED` int(5) DEFAULT 0,
+  `DISPLAY_ORDER` int(5) DEFAULT NULL,
+  `ID_CREATOR` int(5) DEFAULT NULL,
+  `DAT_CREAT` date DEFAULT NULL,
+  `ID_OWNER` int(5) DEFAULT NULL,
+  `TIM_UPDATED` datetime DEFAULT NULL,
+  `ID_USER_UPDATED` int(5) DEFAULT NULL,
+  PRIMARY KEY (`ID_OC_REVIEW`),
+  UNIQUE KEY `SAMPLE_ITEM` (`SAMPLE`,`ITEM`),
+  KEY `ID_MOVIE` (`ID_MOVIE`),
+  KEY `VERDICT` (`VERDICT`),
+  KEY `DELETED` (`DELETED`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='open-credits pilot: hand-check verdict on a sampled OCR line';
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_OC_ROLE` (
+  `ID_OC_ROLE` uuid NOT NULL,
+  `CODE` varchar(100) NOT NULL COMMENT 'directing.first_assistant_director',
+  `LABEL_EN` varchar(250) NOT NULL,
+  `APPLIES_TO` varchar(10) NOT NULL COMMENT 'person, company, place, song, work',
+  `ID_OC_ROLE_PARENT` uuid DEFAULT NULL COMMENT 'first assistant director -> assistant director -> director',
+  `TMDB_DEPARTMENT` varchar(50) DEFAULT NULL COMMENT 'as in T_WC_TMDB_PERSON_MOVIE.CREW_DEPARTMENT',
+  `TMDB_JOB` varchar(100) DEFAULT NULL COMMENT 'as in T_WC_TMDB_PERSON_MOVIE.CREW_JOB',
+  `TMDB_CREDIT_COUNT` int(11) DEFAULT NULL COMMENT 'seeding weight: credits using this job in TMDb',
+  `WIKIDATA_PROPERTY` varchar(20) DEFAULT NULL COMMENT 'dedicated property, or P3092',
+  `WIKIDATA_JOB_ITEM` varchar(50) DEFAULT NULL COMMENT 'P3831 value when the property is P3092',
+  `STATUS` varchar(10) NOT NULL DEFAULT 'active' COMMENT 'active, proposed',
+  `DELETED` int(5) DEFAULT 0,
+  `DISPLAY_ORDER` int(5) DEFAULT NULL,
+  `ID_CREATOR` int(5) DEFAULT NULL,
+  `DAT_CREAT` date DEFAULT NULL,
+  `ID_OWNER` int(5) DEFAULT NULL,
+  `TIM_UPDATED` datetime DEFAULT NULL,
+  `ID_USER_UPDATED` int(5) DEFAULT NULL,
+  PRIMARY KEY (`ID_OC_ROLE`),
+  UNIQUE KEY `UK_CODE` (`CODE`),
+  KEY `ID_OC_ROLE_PARENT` (`ID_OC_ROLE_PARENT`),
+  KEY `TMDB_JOB` (`TMDB_DEPARTMENT`,`TMDB_JOB`),
+  KEY `WIKIDATA_JOB_ITEM` (`WIKIDATA_JOB_ITEM`),
+  KEY `STATUS` (`STATUS`),
+  KEY `DELETED` (`DELETED`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='open-credits layer 5: base jobs, company roles and place roles, mapped to TMDb and Wikidata';
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_OC_ROLE_ALIAS` (
+  `ID_OC_ROLE_ALIAS` uuid NOT NULL,
+  `ID_OC_ROLE` uuid NOT NULL,
+  `WORDING` varchar(250) NOT NULL COMMENT 'as seen on screen',
+  `LANGUAGE` varchar(20) NOT NULL COMMENT 'BCP 47',
+  `ROLE_MODIFIERS` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'T_WC_OC_ROLE_MODIFIER.CODE list implied by the wording' CHECK (json_valid(`ROLE_MODIFIERS`)),
+  `DELETED` int(5) DEFAULT 0,
+  `DISPLAY_ORDER` int(5) DEFAULT NULL,
+  `ID_CREATOR` int(5) DEFAULT NULL,
+  `DAT_CREAT` date DEFAULT NULL,
+  `ID_OWNER` int(5) DEFAULT NULL,
+  `TIM_UPDATED` datetime DEFAULT NULL,
+  `ID_USER_UPDATED` int(5) DEFAULT NULL,
+  PRIMARY KEY (`ID_OC_ROLE_ALIAS`),
+  UNIQUE KEY `UK_WORDING` (`WORDING`,`LANGUAGE`),
+  KEY `ID_OC_ROLE` (`ID_OC_ROLE`),
+  KEY `DELETED` (`DELETED`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='open-credits layer 5: the on-screen wordings that map to a role, in every language';
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_OC_ROLE_MODIFIER` (
+  `ID_OC_ROLE_MODIFIER` uuid NOT NULL,
+  `CODE` varchar(50) NOT NULL COMMENT 'key, second, assistant, additional...',
+  `KIND` varchar(10) NOT NULL COMMENT 'rank, unit, scope',
+  `LABEL_EN` varchar(100) NOT NULL,
+  `DELETED` int(5) DEFAULT 0,
+  `DISPLAY_ORDER` int(5) DEFAULT NULL,
+  `ID_CREATOR` int(5) DEFAULT NULL,
+  `DAT_CREAT` date DEFAULT NULL,
+  `ID_OWNER` int(5) DEFAULT NULL,
+  `TIM_UPDATED` datetime DEFAULT NULL,
+  `ID_USER_UPDATED` int(5) DEFAULT NULL,
+  PRIMARY KEY (`ID_OC_ROLE_MODIFIER`),
+  UNIQUE KEY `UK_CODE` (`CODE`),
+  KEY `KIND` (`KIND`),
+  KEY `DELETED` (`DELETED`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='open-credits layer 5: modifiers composed with a base job';
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_OC_SEGMENT` (
+  `ID_OC_SEGMENT` uuid NOT NULL,
+  `ID_OC_SUBMISSION` uuid NOT NULL,
+  `ID_OC_PART` uuid NOT NULL,
+  `KIND` varchar(30) NOT NULL COMMENT 'opening_titles, opening_credits_over_action, closing_credits, post_credits_scene, recap, card',
+  `START_MS` int(11) NOT NULL COMMENT 'within the part',
+  `END_MS` int(11) NOT NULL,
+  `DETECTED_BY` varchar(20) NOT NULL COMMENT 'plex_marker, blackdetect, scene_change, text_detection, manual',
+  `LAYOUT` varchar(10) NOT NULL COMMENT 'rolling, cards, graphic, crawl, mixed',
+  `SCROLL_PX_PER_S` double DEFAULT NULL COMMENT 'rolling credits only',
+  `DELETED` int(5) DEFAULT 0,
+  `DISPLAY_ORDER` int(5) DEFAULT NULL,
+  `ID_CREATOR` int(5) DEFAULT NULL,
+  `DAT_CREAT` date DEFAULT NULL,
+  `ID_OWNER` int(5) DEFAULT NULL,
+  `TIM_UPDATED` datetime DEFAULT NULL,
+  `ID_USER_UPDATED` int(5) DEFAULT NULL,
+  PRIMARY KEY (`ID_OC_SEGMENT`),
+  KEY `ID_OC_SUBMISSION` (`ID_OC_SUBMISSION`),
+  KEY `ID_OC_PART` (`ID_OC_PART`),
+  KEY `KIND` (`KIND`),
+  KEY `DELETED` (`DELETED`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='open-credits layer 1: a stretch of a part that carries credits';
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_OC_SONG` (
+  `ID_OC_SONG` uuid NOT NULL,
+  `TITLE_RAW` varchar(500) NOT NULL COMMENT 'as credited',
+  `ID_WIKIDATA` varchar(50) DEFAULT NULL,
+  `DELETED` int(5) DEFAULT 0,
+  `DISPLAY_ORDER` int(5) DEFAULT NULL,
+  `ID_CREATOR` int(5) DEFAULT NULL,
+  `DAT_CREAT` date DEFAULT NULL,
+  `ID_OWNER` int(5) DEFAULT NULL,
+  `TIM_UPDATED` datetime DEFAULT NULL,
+  `ID_USER_UPDATED` int(5) DEFAULT NULL,
+  PRIMARY KEY (`ID_OC_SONG`),
+  KEY `TITLE_RAW` (`TITLE_RAW`),
+  KEY `ID_WIKIDATA` (`ID_WIKIDATA`),
+  KEY `DELETED` (`DELETED`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='open-credits layer 3c: a song; its own credits point to it through T_WC_OC_CREDIT.ID_OC_SONG';
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_OC_SUBMISSION` (
+  `ID_OC_SUBMISSION` uuid NOT NULL COMMENT 'the client UUID, kept',
+  `ID_OC_CONTRIBUTOR` uuid NOT NULL COMMENT 'from the authenticated upload, never from the bundle',
+  `ID_OC_COPY` uuid NOT NULL,
+  `FORMAT_VERSION` varchar(20) NOT NULL COMMENT 'of submission.json',
+  `CLIENT_NAME` varchar(100) NOT NULL,
+  `CLIENT_VERSION` varchar(50) NOT NULL,
+  `OCR_ENGINE` varchar(100) NOT NULL,
+  `OCR_ENGINE_VERSION` varchar(50) NOT NULL,
+  `OCR_MODELS` varchar(250) DEFAULT NULL,
+  `PARAMETERS` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`PARAMETERS`)),
+  `VOCABULARY_VERSION` varchar(50) DEFAULT NULL,
+  `TITLE_HINT` varchar(250) DEFAULT NULL COMMENT 'as the client found it, kept for the sanity check only',
+  `TITLE_LANGUAGE` varchar(20) DEFAULT NULL,
+  `HAS_EVIDENCE_FRAMES` tinyint(1) NOT NULL DEFAULT 0,
+  `CREATED_AT` datetime NOT NULL COMMENT 'end of the run on the client, UTC',
+  `SUBMITTED_AT` datetime NOT NULL COMMENT 'arrival on the master, UTC',
+  `STATUS` varchar(20) NOT NULL DEFAULT 'received' COMMENT 'received, parsed, published, rolled_back',
+  `LICENCE` varchar(20) NOT NULL DEFAULT 'CC0-1.0',
+  `DELETED` int(5) DEFAULT 0,
+  `DISPLAY_ORDER` int(5) DEFAULT NULL,
+  `ID_CREATOR` int(5) DEFAULT NULL,
+  `DAT_CREAT` date DEFAULT NULL,
+  `ID_OWNER` int(5) DEFAULT NULL,
+  `TIM_UPDATED` datetime DEFAULT NULL,
+  `ID_USER_UPDATED` int(5) DEFAULT NULL,
+  PRIMARY KEY (`ID_OC_SUBMISSION`),
+  KEY `ID_OC_CONTRIBUTOR` (`ID_OC_CONTRIBUTOR`),
+  KEY `ID_OC_COPY` (`ID_OC_COPY`),
+  KEY `STATUS` (`STATUS`),
+  KEY `SUBMITTED_AT` (`SUBMITTED_AT`),
+  KEY `DELETED` (`DELETED`),
+  KEY `TIM_UPDATED` (`TIM_UPDATED`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='open-credits: one run of the client on one copy';
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_OC_TEXT_BOX` (
+  `ID_OC_TEXT_BOX` uuid NOT NULL COMMENT 'generated by the importer: text boxes carry no id in the bundle',
+  `ID_OC_FRAME` uuid NOT NULL,
+  `X` int(5) NOT NULL,
+  `Y` int(5) NOT NULL,
+  `W` int(5) NOT NULL,
+  `H` int(5) NOT NULL,
+  `TEXT` varchar(1000) NOT NULL COMMENT 'as read',
+  `CONFIDENCE` float NOT NULL COMMENT '0 to 1',
+  `FONT_HEIGHT_PX` int(5) DEFAULT NULL,
+  `IS_UPPER_CASE` tinyint(1) DEFAULT NULL,
+  `IS_BOLD` tinyint(1) DEFAULT NULL,
+  `DELETED` int(5) DEFAULT 0,
+  `DISPLAY_ORDER` int(5) DEFAULT NULL COMMENT 'order of the box in the frame',
+  `ID_CREATOR` int(5) DEFAULT NULL,
+  `DAT_CREAT` date DEFAULT NULL,
+  `ID_OWNER` int(5) DEFAULT NULL,
+  `TIM_UPDATED` datetime DEFAULT NULL,
+  `ID_USER_UPDATED` int(5) DEFAULT NULL,
+  PRIMARY KEY (`ID_OC_TEXT_BOX`),
+  KEY `ID_OC_FRAME` (`ID_OC_FRAME`),
+  KEY `DELETED` (`DELETED`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='open-credits layer 2a: one line box read on one frame';
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_OC_TEXT_LINE` (
+  `ID_OC_TEXT_LINE` uuid NOT NULL,
+  `ID_OC_SEGMENT` uuid NOT NULL,
+  `Y_PAGE` int(11) NOT NULL COMMENT 'on the virtual page',
+  `X` int(5) NOT NULL COMMENT 'gives the column',
+  `W` int(5) NOT NULL,
+  `H` int(5) NOT NULL,
+  `TEXT` varchar(1000) NOT NULL COMMENT 'voted reading',
+  `READINGS` int(5) NOT NULL,
+  `AGREEING` int(5) NOT NULL,
+  `CONFIDENCE` float NOT NULL,
+  `FRAME_IDS` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT 'ID_OC_FRAME list: the evidence chain' CHECK (json_valid(`FRAME_IDS`)),
+  `FIRST_MS` int(11) NOT NULL COMMENT 'Wikidata P4895 time index',
+  `LAST_MS` int(11) NOT NULL,
+  `DELETED` int(5) DEFAULT 0,
+  `DISPLAY_ORDER` int(5) DEFAULT NULL,
+  `ID_CREATOR` int(5) DEFAULT NULL,
+  `DAT_CREAT` date DEFAULT NULL,
+  `ID_OWNER` int(5) DEFAULT NULL,
+  `TIM_UPDATED` datetime DEFAULT NULL,
+  `ID_USER_UPDATED` int(5) DEFAULT NULL,
+  PRIMARY KEY (`ID_OC_TEXT_LINE`),
+  KEY `ID_OC_SEGMENT` (`ID_OC_SEGMENT`,`Y_PAGE`),
+  KEY `DELETED` (`DELETED`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='open-credits layer 2b: a line rebuilt across frames, the pivot of the model';
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_OC_WORK` (
+  `ID_OC_WORK` uuid NOT NULL,
+  `KIND` varchar(10) NOT NULL COMMENT 'movie, episode',
+  `ID_MOVIE` int(11) DEFAULT NULL COMMENT 'TMDb movie id, movies only',
+  `ID_SERIE` int(11) DEFAULT NULL COMMENT 'TMDb series id, episodes only',
+  `SEASON_NUMBER` int(5) DEFAULT NULL,
+  `EPISODE_NUMBER` int(5) DEFAULT NULL,
+  `ID_IMDB` varchar(20) DEFAULT NULL COMMENT 'tt...',
+  `ID_WIKIDATA` varchar(50) DEFAULT NULL COMMENT 'Q...',
+  `ORIGINAL_TITLE` varchar(250) DEFAULT NULL COMMENT 'from TMDb, or Wikidata P1476; never from the submission. Episodes: the episode title when it has one',
+  `ORIGINAL_LANGUAGE` varchar(20) DEFAULT NULL COMMENT 'BCP 47',
+  `TITLE_EN` varchar(250) DEFAULT NULL COMMENT 'English title for display',
+  `SERIE_ORIGINAL_NAME` varchar(250) DEFAULT NULL COMMENT 'episodes only',
+  `YEAR` int(5) DEFAULT NULL COMMENT 'release year, or first air date of the episode',
+  `DELETED` int(5) DEFAULT 0,
+  `DISPLAY_ORDER` int(5) DEFAULT NULL,
+  `ID_CREATOR` int(5) DEFAULT NULL,
+  `DAT_CREAT` date DEFAULT NULL,
+  `ID_OWNER` int(5) DEFAULT NULL,
+  `TIM_UPDATED` datetime DEFAULT NULL,
+  `ID_USER_UPDATED` int(5) DEFAULT NULL,
+  PRIMARY KEY (`ID_OC_WORK`),
+  UNIQUE KEY `UK_MOVIE` (`ID_MOVIE`),
+  UNIQUE KEY `UK_EPISODE` (`ID_SERIE`,`SEASON_NUMBER`,`EPISODE_NUMBER`),
+  KEY `KIND` (`KIND`),
+  KEY `ID_IMDB` (`ID_IMDB`),
+  KEY `ID_WIKIDATA` (`ID_WIKIDATA`),
+  KEY `DELETED` (`DELETED`),
+  KEY `DAT_CREAT` (`DAT_CREAT`),
+  KEY `TIM_UPDATED` (`TIM_UPDATED`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='open-credits: a movie or an episode, what the credits belong to';
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_OMDB_TITLE` (
+  `ID_IMDB` varchar(20) NOT NULL,
+  `OMDB_TYPE` varchar(20) DEFAULT NULL,
+  `TITLE` varchar(500) DEFAULT NULL,
+  `YEAR_TEXT` varchar(20) DEFAULT NULL,
+  `RESPONSE_OK` tinyint(1) NOT NULL DEFAULT 0,
+  `ERROR_TEXT` varchar(255) DEFAULT NULL,
+  `RT_SCORE` int(11) DEFAULT NULL,
+  `METACRITIC_SCORE` int(11) DEFAULT NULL,
+  `METASCORE` int(11) DEFAULT NULL,
+  `IMDB_RATING` decimal(3,1) DEFAULT NULL,
+  `IMDB_VOTES` int(11) DEFAULT NULL,
+  `AWARDS` varchar(1000) DEFAULT NULL,
+  `BOX_OFFICE_USD` bigint(20) DEFAULT NULL,
+  `BOX_OFFICE_TEXT` varchar(50) DEFAULT NULL,
+  `RATED` varchar(30) DEFAULT NULL,
+  `PRODUCTION` varchar(500) DEFAULT NULL,
+  `TOTAL_SEASONS` int(11) DEFAULT NULL,
+  `RAW_JSON` mediumtext DEFAULT NULL,
+  `TIM_OMDB_FETCHED` datetime DEFAULT NULL,
+  `DELETED` int(5) DEFAULT NULL,
+  `ID_CREATOR` int(5) DEFAULT NULL,
+  `DAT_CREAT` date DEFAULT NULL,
+  `ID_OWNER` int(5) DEFAULT NULL,
+  `TIM_UPDATED` datetime DEFAULT NULL,
+  `ID_USER_UPDATED` int(5) DEFAULT NULL,
+  PRIMARY KEY (`ID_IMDB`),
+  KEY `RESPONSE_OK` (`RESPONSE_OK`),
+  KEY `RT_SCORE` (`RT_SCORE`),
+  KEY `METACRITIC_SCORE` (`METACRITIC_SCORE`),
+  KEY `METASCORE` (`METASCORE`),
+  KEY `BOX_OFFICE_USD` (`BOX_OFFICE_USD`),
+  KEY `TIM_OMDB_FETCHED` (`TIM_OMDB_FETCHED`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `T_WC_OUTPUT` (
   `ID_OUTPUT` int(5) NOT NULL DEFAULT 0,
   `DESCRIPTION` varchar(50) DEFAULT NULL,
@@ -6643,6 +7397,7 @@ CREATE TABLE `T_WC_T2S_AWARD` (
   `OVERVIEW` mediumtext DEFAULT NULL,
   `AWARD_SOURCE` varchar(20) DEFAULT NULL,
   `AWARD_TYPE` varchar(20) DEFAULT NULL,
+  `ID_AWARD_PARENT` int(11) DEFAULT NULL,
   `LANG` varchar(2) DEFAULT NULL,
   `DELETED` int(5) DEFAULT NULL,
   `DISPLAY_ORDER` int(5) DEFAULT NULL,
@@ -6684,7 +7439,8 @@ CREATE TABLE `T_WC_T2S_AWARD` (
   KEY `POPULARITY` (`POPULARITY`),
   KEY `ID_WIKIDATA` (`ID_WIKIDATA`),
   KEY `IMDB_RATING_WEIGHTED` (`IMDB_RATING_WEIGHTED`),
-  KEY `TIM_WIKIDATA_COMPLETED` (`TIM_WIKIDATA_COMPLETED`)
+  KEY `TIM_WIKIDATA_COMPLETED` (`TIM_WIKIDATA_COMPLETED`),
+  KEY `ID_AWARD_PARENT` (`ID_AWARD_PARENT`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -6721,6 +7477,7 @@ CREATE TABLE `T_WC_T2S_CACHE` (
   `ANSWER` mediumtext DEFAULT NULL,
   `UI_LANGUAGE` varchar(5) DEFAULT NULL,
   `RESULT_ENTITY` varchar(50) DEFAULT NULL,
+  `RESULT_INTENT` varchar(500) DEFAULT NULL,
   PRIMARY KEY (`ID_ROW`),
   KEY `DELETED` (`DELETED`),
   KEY `DISPLAY_ORDER` (`DISPLAY_ORDER`),
@@ -6795,6 +7552,23 @@ CREATE TABLE `T_WC_T2S_CHARACTER` (
   KEY `IMDB_RATING_WEIGHTED` (`IMDB_RATING_WEIGHTED`),
   KEY `TIM_WIKIDATA_COMPLETED` (`TIM_WIKIDATA_COMPLETED`),
   FULLTEXT KEY `ft_cast_character_norm` (`CAST_CHARACTER_NORM`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_T2S_CLAIM_ATTRIBUTE` (
+  `ATTRIBUTE` varchar(40) NOT NULL,
+  `VALUE_KIND` varchar(10) DEFAULT NULL,
+  `COMPARE_MODE` varchar(20) DEFAULT NULL,
+  `DEFAULT_UNIT` varchar(20) DEFAULT NULL,
+  `TOLERANCE_PCT` decimal(6,3) DEFAULT NULL,
+  `IS_SCOPED_PLACE` int(5) DEFAULT NULL,
+  `IS_SCOPED_TIME` int(5) DEFAULT NULL,
+  `LABEL` varchar(100) DEFAULT NULL,
+  `LABEL_FR` varchar(100) DEFAULT NULL,
+  `DELETED` int(5) DEFAULT NULL,
+  `DAT_CREAT` datetime DEFAULT current_timestamp(),
+  PRIMARY KEY (`ATTRIBUTE`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -7123,6 +7897,31 @@ CREATE TABLE `T_WC_T2S_EPISODE_IMAGE` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_T2S_EPISODE_LOCATION` (
+  `ID_ROW` int(11) NOT NULL AUTO_INCREMENT,
+  `ID_EPISODE` int(11) NOT NULL,
+  `ID_LOCATION` int(11) NOT NULL,
+  `LOCATION_ROLE` varchar(20) NOT NULL,
+  `DELETED` int(5) DEFAULT NULL,
+  `DISPLAY_ORDER` int(5) DEFAULT NULL,
+  `ID_CREATOR` int(5) DEFAULT NULL,
+  `DAT_CREAT` date DEFAULT NULL,
+  `ID_OWNER` int(5) DEFAULT NULL,
+  `TIM_UPDATED` datetime DEFAULT NULL,
+  `ID_USER_UPDATED` int(5) DEFAULT NULL,
+  PRIMARY KEY (`ID_ROW`),
+  UNIQUE KEY `UK_T2S_EPISODE_LOCATION` (`ID_EPISODE`,`ID_LOCATION`,`LOCATION_ROLE`),
+  KEY `IDX_LOCATION_ROLE` (`ID_LOCATION`,`LOCATION_ROLE`),
+  KEY `ID_EPISODE` (`ID_EPISODE`),
+  KEY `LOCATION_ROLE` (`LOCATION_ROLE`),
+  KEY `DELETED` (`DELETED`),
+  KEY `DISPLAY_ORDER` (`DISPLAY_ORDER`),
+  KEY `TIM_UPDATED` (`TIM_UPDATED`),
+  KEY `DAT_CREAT` (`DAT_CREAT`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `T_WC_T2S_EPISODE_VIDEO` (
   `ID_ROW` int(11) NOT NULL AUTO_INCREMENT,
   `ID_EPISODE` int(11) NOT NULL,
@@ -7187,6 +7986,7 @@ CREATE TABLE `T_WC_T2S_EVALUATION` (
   `ASSERTIONS_QUERY_RESULT` mediumtext DEFAULT NULL,
   `ASSERTIONS_ENTITY_EXTRACTION` mediumtext DEFAULT NULL,
   `ASSERTIONS_SQL_QUERY` mediumtext DEFAULT NULL,
+  `ASSERTIONS_RESULT_SHAPE` mediumtext DEFAULT NULL COMMENT 'FASTAPI-TEXT2SQL-349 : assertion sur l indice de rendu (result_kind / representation / unit), hors score, lue par check-result-shape.py',
   `ASSERTION_REFRESH_SQL` mediumtext DEFAULT NULL COMMENT 'SQL canonique (SELECT une colonne ID ... ORDER BY ... LIMIT N) rejoue chaque jour pour reconstruire ASSERTIONS_QUERY_RESULT ; NULL = eval statique',
   `ASSERTION_REFRESH_LAST` datetime DEFAULT NULL COMMENT 'Date du dernier passage du job de refresh (fraicheur de l assertion)',
   `RESOLUTION_MODE` varchar(10) DEFAULT NULL COMMENT 'Mode qui doit resoudre la question : standard (sans escalade), complex (escalade indispensable), any (aucune attente). NULL = any.',
@@ -7251,6 +8051,8 @@ CREATE TABLE `T_WC_T2S_EVALUATION_EXECUTION` (
   `COMPLEX_MODEL` varchar(50) DEFAULT NULL,
   `RESULT_ENTITY_MODEL` varchar(50) DEFAULT NULL COMMENT 'Modele de la tache result_entity pour ce passage (-234). NULL = ligne ecrite avant que la colonne existe, pas gpt-4o.',
   `ANSWER_SINGLE_VALUE_MODEL` varchar(50) DEFAULT NULL COMMENT 'Modele de la tache answer_single_value pour ce passage (-234). NULL = ligne ecrite avant que la colonne existe, pas gpt-4o.',
+  `FLEX_PROCESSING` tinyint(1) DEFAULT NULL COMMENT 'Campagne lancee en OpenAI Flex processing (TEXT2SQL-EVAL-002). 1 = Flex ; NULL ou 0 = tarif standard.',
+  `FLEX_FALLBACK_COUNT` smallint(6) DEFAULT NULL COMMENT 'Appels LLM de la requete passes au tarif standard apres echec des essais Flex (TEXT2SQL-EVAL-002). NULL = pas de Flex.',
   `JSON_RESULT` mediumtext DEFAULT NULL,
   `TIM_EXECUTION` datetime DEFAULT NULL,
   `ENTITY_EXTRACTION_COST` double DEFAULT NULL,
@@ -7336,7 +8138,8 @@ CREATE TABLE `T_WC_T2S_EVALUATION_EXECUTION` (
   KEY `LLM_PROMPT_TOKENS` (`LLM_PROMPT_TOKENS`),
   KEY `LLM_CACHED_TOKENS` (`LLM_CACHED_TOKENS`),
   KEY `LLM_COMPLETION_TOKENS` (`LLM_COMPLETION_TOKENS`),
-  KEY `LLM_REASONING_TOKENS` (`LLM_REASONING_TOKENS`)
+  KEY `LLM_REASONING_TOKENS` (`LLM_REASONING_TOKENS`),
+  KEY `FLEX_PROCESSING` (`FLEX_PROCESSING`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -7557,6 +8360,7 @@ CREATE TABLE `T_WC_T2S_LOCATION` (
   `LOCATION_NAME` varchar(250) DEFAULT NULL,
   `LOCATION_NAME_FR` varchar(250) DEFAULT NULL,
   `OVERVIEW` mediumtext DEFAULT NULL,
+  `OVERVIEW_FR` mediumtext DEFAULT NULL,
   `LOCATION_SOURCE` varchar(20) DEFAULT NULL,
   `LOCATION_TYPE` varchar(20) DEFAULT NULL,
   `DELETED` int(5) DEFAULT NULL,
@@ -7568,6 +8372,7 @@ CREATE TABLE `T_WC_T2S_LOCATION` (
   `ID_USER_UPDATED` int(5) DEFAULT NULL,
   `MOVIE_COUNT` int(11) DEFAULT NULL,
   `SERIE_COUNT` int(11) DEFAULT NULL,
+  `EPISODE_COUNT` int(11) DEFAULT NULL,
   `POSTER_PATH` varchar(200) DEFAULT NULL,
   `WIKIPEDIA_IMAGE_PATH` varchar(500) DEFAULT NULL,
   `IMDB_RATING` double DEFAULT NULL,
@@ -7591,7 +8396,20 @@ CREATE TABLE `T_WC_T2S_LOCATION` (
   KEY `POPULARITY` (`POPULARITY`),
   KEY `TIM_WIKIDATA_COMPLETED` (`TIM_WIKIDATA_COMPLETED`),
   KEY `TIM_UPDATED` (`TIM_UPDATED`),
-  KEY `DAT_CREAT` (`DAT_CREAT`)
+  KEY `DAT_CREAT` (`DAT_CREAT`),
+  KEY `EPISODE_COUNT` (`EPISODE_COUNT`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_T2S_LOCATION_ANCESTOR` (
+  `ID_ROW` int(11) NOT NULL AUTO_INCREMENT,
+  `ID_LOCATION` int(11) NOT NULL,
+  `ID_ANCESTOR` int(11) NOT NULL,
+  `DEPTH` int(11) NOT NULL,
+  PRIMARY KEY (`ID_ROW`),
+  UNIQUE KEY `UK_LOCATION_ANCESTOR` (`ID_LOCATION`,`ID_ANCESTOR`),
+  KEY `IDX_ANCESTOR_DEPTH` (`ID_ANCESTOR`,`DEPTH`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -7767,6 +8585,9 @@ CREATE TABLE `T_WC_T2S_MOVIE_AWARD` (
   `ID_ROW` int(11) NOT NULL AUTO_INCREMENT,
   `ID_MOVIE` int(11) NOT NULL,
   `ID_AWARD` int(11) NOT NULL,
+  `ID_STATEMENT` bigint(20) DEFAULT NULL,
+  `AWARD_YEAR` int(11) DEFAULT NULL,
+  `ID_CEREMONY_WIKIDATA` varchar(20) DEFAULT NULL,
   `DELETED` int(5) DEFAULT NULL,
   `DISPLAY_ORDER` int(5) DEFAULT NULL,
   `ID_CREATOR` int(5) DEFAULT NULL,
@@ -7783,7 +8604,9 @@ CREATE TABLE `T_WC_T2S_MOVIE_AWARD` (
   KEY `ID_CREATOR` (`ID_CREATOR`),
   KEY `ID_USER_UPDATED` (`ID_USER_UPDATED`),
   KEY `TIM_UPDATED` (`TIM_UPDATED`),
-  KEY `DAT_CREAT` (`DAT_CREAT`)
+  KEY `DAT_CREAT` (`DAT_CREAT`),
+  KEY `ID_STATEMENT` (`ID_STATEMENT`),
+  KEY `AWARD_YEAR` (`AWARD_YEAR`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -8175,6 +8998,32 @@ CREATE TABLE `T_WC_T2S_MOVIE_TECHNICAL` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_T2S_MOVIE_TITLE_ALIAS` (
+  `ID_ROW` int(11) NOT NULL AUTO_INCREMENT,
+  `ID_MOVIE` int(11) NOT NULL,
+  `TITLE` varchar(500) NOT NULL,
+  `LANG_CODE` varchar(20) DEFAULT NULL,
+  `ALIAS_SOURCE` varchar(10) NOT NULL,
+  `DELETED` int(5) DEFAULT 0,
+  `DISPLAY_ORDER` int(5) DEFAULT NULL,
+  `ID_CREATOR` int(5) DEFAULT NULL,
+  `DAT_CREAT` date DEFAULT NULL,
+  `ID_OWNER` int(5) DEFAULT NULL,
+  `TIM_UPDATED` datetime DEFAULT NULL,
+  `ID_USER_UPDATED` int(5) DEFAULT NULL,
+  `TITLE_NORM` varchar(500) GENERATED ALWAYS AS (lcase(regexp_replace(regexp_replace(`TITLE`,'[^\\p{L}\\p{M}\\p{N} ]+',' '),' +',' '))) STORED,
+  `TITLE_KEY` varchar(500) GENERATED ALWAYS AS (replace(`TITLE_NORM`,' ','')) STORED,
+  PRIMARY KEY (`ID_ROW`),
+  UNIQUE KEY `UQ_T2S_MOVIE_TITLE_ALIAS_TITLE` (`ID_MOVIE`,`TITLE`),
+  KEY `ID_MOVIE` (`ID_MOVIE`),
+  KEY `LANG_CODE` (`LANG_CODE`),
+  KEY `ALIAS_SOURCE` (`ALIAS_SOURCE`),
+  KEY `IDX_T2S_MOVIE_TITLE_ALIAS_TITLE_NORM` (`TITLE_NORM`),
+  KEY `IDX_T2S_MOVIE_TITLE_ALIAS_TITLE_KEY` (`TITLE_KEY`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `T_WC_T2S_MOVIE_TOPIC` (
   `ID_ROW` int(11) NOT NULL AUTO_INCREMENT,
   `ID_MOVIE` int(11) NOT NULL,
@@ -8442,6 +9291,7 @@ CREATE TABLE `T_WC_T2S_PERSON_ALSO_KNOWN_AS` (
   `ID_OWNER` int(5) DEFAULT NULL,
   `TIM_UPDATED` datetime DEFAULT NULL,
   `ID_USER_UPDATED` int(5) DEFAULT NULL,
+  `ALIAS_SOURCE` varchar(10) NOT NULL DEFAULT 'tmdb',
   `PERSON_NAME_NORM` varchar(255) GENERATED ALWAYS AS (lcase(regexp_replace(regexp_replace(`PERSON_NAME`,'[^\\p{L}\\p{M}\\p{N} ]+',' '),' +',' '))) STORED,
   `PERSON_NAME_KEY` varchar(255) GENERATED ALWAYS AS (replace(`PERSON_NAME_NORM`,' ','')) STORED,
   PRIMARY KEY (`ID_ROW`),
@@ -8449,6 +9299,7 @@ CREATE TABLE `T_WC_T2S_PERSON_ALSO_KNOWN_AS` (
   KEY `ID_PERSON` (`ID_PERSON`),
   KEY `DELETED` (`DELETED`),
   KEY `LANGUAGE_FAMILY` (`LANGUAGE_FAMILY`),
+  KEY `ALIAS_SOURCE` (`ALIAS_SOURCE`),
   KEY `PERSON_NAME` (`PERSON_NAME`),
   KEY `IDX_T2S_PERSON_NAME_NORM` (`PERSON_NAME_NORM`),
   KEY `IDX_T2S_PERSON_NAME_KEY` (`PERSON_NAME_KEY`),
@@ -8461,6 +9312,11 @@ CREATE TABLE `T_WC_T2S_PERSON_AWARD` (
   `ID_ROW` int(11) NOT NULL AUTO_INCREMENT,
   `ID_PERSON` int(11) NOT NULL,
   `ID_AWARD` int(11) NOT NULL,
+  `ID_STATEMENT` bigint(20) DEFAULT NULL,
+  `AWARD_YEAR` int(11) DEFAULT NULL,
+  `ID_CEREMONY_WIKIDATA` varchar(20) DEFAULT NULL,
+  `ID_MOVIE_FOR` int(11) DEFAULT NULL,
+  `ID_SERIE_FOR` int(11) DEFAULT NULL,
   `DELETED` int(5) DEFAULT NULL,
   `DISPLAY_ORDER` int(5) DEFAULT NULL,
   `ID_CREATOR` int(5) DEFAULT NULL,
@@ -8477,7 +9333,11 @@ CREATE TABLE `T_WC_T2S_PERSON_AWARD` (
   KEY `ID_CREATOR` (`ID_CREATOR`),
   KEY `ID_USER_UPDATED` (`ID_USER_UPDATED`),
   KEY `TIM_UPDATED` (`TIM_UPDATED`),
-  KEY `DAT_CREAT` (`DAT_CREAT`)
+  KEY `DAT_CREAT` (`DAT_CREAT`),
+  KEY `ID_STATEMENT` (`ID_STATEMENT`),
+  KEY `AWARD_YEAR` (`AWARD_YEAR`),
+  KEY `ID_MOVIE_FOR` (`ID_MOVIE_FOR`),
+  KEY `ID_SERIE_FOR` (`ID_SERIE_FOR`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -9040,6 +9900,9 @@ CREATE TABLE `T_WC_T2S_SERIE_AWARD` (
   `ID_ROW` int(11) NOT NULL AUTO_INCREMENT,
   `ID_SERIE` int(11) NOT NULL,
   `ID_AWARD` int(11) NOT NULL,
+  `ID_STATEMENT` bigint(20) DEFAULT NULL,
+  `AWARD_YEAR` int(11) DEFAULT NULL,
+  `ID_CEREMONY_WIKIDATA` varchar(20) DEFAULT NULL,
   `DELETED` int(5) DEFAULT NULL,
   `DISPLAY_ORDER` int(5) DEFAULT NULL,
   `ID_CREATOR` int(5) DEFAULT NULL,
@@ -9056,7 +9919,9 @@ CREATE TABLE `T_WC_T2S_SERIE_AWARD` (
   KEY `ID_CREATOR` (`ID_CREATOR`),
   KEY `ID_USER_UPDATED` (`ID_USER_UPDATED`),
   KEY `TIM_UPDATED` (`TIM_UPDATED`),
-  KEY `DAT_CREAT` (`DAT_CREAT`)
+  KEY `DAT_CREAT` (`DAT_CREAT`),
+  KEY `ID_STATEMENT` (`ID_STATEMENT`),
+  KEY `AWARD_YEAR` (`AWARD_YEAR`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -9448,6 +10313,32 @@ CREATE TABLE `T_WC_T2S_SERIE_SPOKEN_LANGUAGE` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_T2S_SERIE_TITLE_ALIAS` (
+  `ID_ROW` int(11) NOT NULL AUTO_INCREMENT,
+  `ID_SERIE` int(11) NOT NULL,
+  `TITLE` varchar(500) NOT NULL,
+  `LANG_CODE` varchar(20) DEFAULT NULL,
+  `ALIAS_SOURCE` varchar(10) NOT NULL,
+  `DELETED` int(5) DEFAULT 0,
+  `DISPLAY_ORDER` int(5) DEFAULT NULL,
+  `ID_CREATOR` int(5) DEFAULT NULL,
+  `DAT_CREAT` date DEFAULT NULL,
+  `ID_OWNER` int(5) DEFAULT NULL,
+  `TIM_UPDATED` datetime DEFAULT NULL,
+  `ID_USER_UPDATED` int(5) DEFAULT NULL,
+  `TITLE_NORM` varchar(500) GENERATED ALWAYS AS (lcase(regexp_replace(regexp_replace(`TITLE`,'[^\\p{L}\\p{M}\\p{N} ]+',' '),' +',' '))) STORED,
+  `TITLE_KEY` varchar(500) GENERATED ALWAYS AS (replace(`TITLE_NORM`,' ','')) STORED,
+  PRIMARY KEY (`ID_ROW`),
+  UNIQUE KEY `UQ_T2S_SERIE_TITLE_ALIAS_TITLE` (`ID_SERIE`,`TITLE`),
+  KEY `ID_SERIE` (`ID_SERIE`),
+  KEY `LANG_CODE` (`LANG_CODE`),
+  KEY `ALIAS_SOURCE` (`ALIAS_SOURCE`),
+  KEY `IDX_T2S_SERIE_TITLE_ALIAS_TITLE_NORM` (`TITLE_NORM`),
+  KEY `IDX_T2S_SERIE_TITLE_ALIAS_TITLE_KEY` (`TITLE_KEY`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `T_WC_T2S_SERIE_TOPIC` (
   `ID_ROW` int(11) NOT NULL AUTO_INCREMENT,
   `ID_SERIE` int(11) NOT NULL,
@@ -9514,6 +10405,40 @@ CREATE TABLE `T_WC_T2S_SERIE_VIDEO` (
   KEY `DAT_PUBLISHED` (`DAT_PUBLISHED`),
   KEY `ID_CREDIT` (`ID_CREDIT`),
   KEY `OFFICIAL` (`OFFICIAL`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_T2S_SOURCE_CLAIM` (
+  `ID_CLAIM` bigint(20) NOT NULL AUTO_INCREMENT,
+  `CLAIM_KEY` char(64) DEFAULT NULL,
+  `ENTITY_TYPE` varchar(20) DEFAULT NULL,
+  `ID_WIKIDATA` varchar(20) DEFAULT NULL,
+  `ID_ENTITY` int(11) DEFAULT NULL,
+  `ATTRIBUTE` varchar(40) DEFAULT NULL,
+  `SOURCE` varchar(20) DEFAULT NULL,
+  `PLACE` varchar(20) DEFAULT NULL,
+  `AS_OF` date DEFAULT NULL,
+  `VALUE_QID` varchar(20) DEFAULT NULL,
+  `VALUE_NUM` decimal(20,4) DEFAULT NULL,
+  `VALUE_NUM_MAX` decimal(20,4) DEFAULT NULL,
+  `VALUE_UNIT` varchar(20) DEFAULT NULL,
+  `VALUE_RAW` varchar(500) DEFAULT NULL,
+  `CONFIDENCE` varchar(10) DEFAULT NULL,
+  `COLLECTED_AT` datetime DEFAULT NULL,
+  `DELETED` int(5) DEFAULT NULL,
+  `DAT_CREAT` datetime DEFAULT current_timestamp(),
+  `TIM_UPDATED` datetime DEFAULT NULL,
+  PRIMARY KEY (`ID_CLAIM`),
+  UNIQUE KEY `CLAIM_KEY` (`CLAIM_KEY`),
+  KEY `ENTITY` (`ENTITY_TYPE`,`ID_WIKIDATA`),
+  KEY `ID_WIKIDATA` (`ID_WIKIDATA`),
+  KEY `ATTRIBUTE` (`ATTRIBUTE`),
+  KEY `SOURCE` (`SOURCE`),
+  KEY `VALUE_QID` (`VALUE_QID`),
+  KEY `RECON_SCAN` (`ENTITY_TYPE`,`ID_WIKIDATA`,`ATTRIBUTE`),
+  KEY `COLLECTED_AT` (`COLLECTED_AT`),
+  KEY `DELETED` (`DELETED`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -9808,6 +10733,68 @@ CREATE TABLE `T_WC_T2S_VISION_CACHE` (
   PRIMARY KEY (`ID_ROW`),
   UNIQUE KEY `UK_T2S_VISION_CACHE` (`IMAGE_MD5`,`API_VERSION`),
   KEY `IDX_T2S_VISION_CACHE_REF` (`IMAGE_REF`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_T2S_VOCAB_MAP` (
+  `ID_MAP` int(11) NOT NULL AUTO_INCREMENT,
+  `DIMENSION` varchar(20) DEFAULT NULL,
+  `ID_WIKIDATA` varchar(20) DEFAULT NULL,
+  `CANONICAL_CODE` varchar(20) DEFAULT NULL,
+  `FACTOR_TO_CANONICAL` decimal(20,8) DEFAULT NULL,
+  `LABEL` varchar(100) DEFAULT NULL,
+  `DELETED` int(5) DEFAULT NULL,
+  `DAT_CREAT` datetime DEFAULT current_timestamp(),
+  PRIMARY KEY (`ID_MAP`),
+  UNIQUE KEY `DIM_WIKIDATA` (`DIMENSION`,`ID_WIKIDATA`),
+  KEY `DIMENSION` (`DIMENSION`),
+  KEY `CANONICAL_CODE` (`CANONICAL_CODE`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_T2S_WORK_FINANCE` (
+  `ID_STATEMENT` bigint(20) NOT NULL,
+  `ITEM_TYPE` varchar(10) NOT NULL,
+  `ID_ITEM` int(11) NOT NULL,
+  `ID_WIKIDATA` varchar(20) NOT NULL,
+  `FINANCE_KIND` varchar(20) NOT NULL,
+  `AMOUNT` decimal(30,10) DEFAULT NULL,
+  `ID_CURRENCY` varchar(20) DEFAULT NULL,
+  `CURRENCY_CODE` char(3) DEFAULT NULL,
+  `ID_PLACE_WIKIDATA` varchar(20) DEFAULT NULL,
+  `ID_LOCATION` int(11) DEFAULT NULL,
+  `IS_WORLDWIDE` tinyint(1) NOT NULL DEFAULT 0,
+  `N_PLACES` int(11) NOT NULL DEFAULT 0,
+  `DAT_POINT` date DEFAULT NULL,
+  `POINT_PRECISION` int(11) DEFAULT NULL,
+  `N_POINTS` int(11) NOT NULL DEFAULT 0,
+  `DAT_START` date DEFAULT NULL,
+  `START_PRECISION` int(11) DEFAULT NULL,
+  `DAT_END` date DEFAULT NULL,
+  `END_PRECISION` int(11) DEFAULT NULL,
+  `ID_PERIOD_WIKIDATA` varchar(20) DEFAULT NULL,
+  `CHART_RANK` int(11) DEFAULT NULL,
+  `ID_METHOD_WIKIDATA` varchar(20) DEFAULT NULL,
+  `WIKIDATA_RANK` varchar(20) DEFAULT NULL,
+  `DISPLAY_ORDER` int(11) DEFAULT NULL,
+  `DELETED` int(5) DEFAULT NULL,
+  `ID_CREATOR` int(5) DEFAULT NULL,
+  `DAT_CREAT` date DEFAULT NULL,
+  `ID_OWNER` int(5) DEFAULT NULL,
+  `TIM_UPDATED` datetime DEFAULT NULL,
+  `ID_USER_UPDATED` int(5) DEFAULT NULL,
+  PRIMARY KEY (`ID_STATEMENT`,`ITEM_TYPE`,`ID_ITEM`),
+  KEY `ITEM` (`ITEM_TYPE`,`ID_ITEM`),
+  KEY `ID_WIKIDATA` (`ID_WIKIDATA`),
+  KEY `FINANCE_KIND` (`FINANCE_KIND`),
+  KEY `AMOUNT` (`AMOUNT`),
+  KEY `CURRENCY_CODE` (`CURRENCY_CODE`),
+  KEY `ID_LOCATION` (`ID_LOCATION`),
+  KEY `IS_WORLDWIDE` (`IS_WORLDWIDE`),
+  KEY `DAT_POINT` (`DAT_POINT`),
+  KEY `TIM_UPDATED` (`TIM_UPDATED`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -10569,6 +11556,53 @@ CREATE TABLE `T_WC_TMDB_ID_NOT_FOUND` (
   UNIQUE KEY `UK_TMDB_ID_NOT_FOUND` (`ENTITY_TYPE`,`ID_ENTITY`),
   KEY `IDX_TMDB_ID_NOT_FOUND_RETRY` (`ENTITY_TYPE`,`TIM_RETRY_AFTER`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_TMDB_IMAGE_CAPTION` (
+  `ID_IMAGE_CAPTION` bigint(20) NOT NULL AUTO_INCREMENT,
+  `TABLE_SOURCE` varchar(16) NOT NULL COMMENT 'movie | serie | season | episode | ...',
+  `ID_ROW` bigint(20) NOT NULL COMMENT 'ID_ROW de la ligne T_WC_TMDB_*_IMAGE source',
+  `ID_ENTITY` bigint(20) NOT NULL COMMENT 'ID_MOVIE, ID_SERIE, ... selon TABLE_SOURCE',
+  `IMAGE_PATH` varchar(255) NOT NULL COMMENT 'chemin TMDb, ex. /abc.jpg',
+  `CAPTION` text NOT NULL COMMENT 'phrase descriptive ancrée',
+  `CAPTION_MODEL` varchar(64) NOT NULL COMMENT 'ex. claude-sonnet-5-5',
+  `TIMELINE_START_MIN` smallint(6) DEFAULT NULL COMMENT 'début estimé du plan dans le film, en minutes (NULL : non placé, ex. visuel promotionnel)',
+  `TIMELINE_END_MIN` smallint(6) DEFAULT NULL COMMENT 'fin estimée de l''intervalle, en minutes',
+  `TIMELINE_ORDER` smallint(6) DEFAULT NULL COMMENT 'rang chronologique estimé parmi les images placées du film (1 = première)',
+  `TIMELINE_MODEL` varchar(64) DEFAULT NULL COMMENT 'modèle qui a estimé la chronologie',
+  `TIM_CREATED` timestamp NOT NULL DEFAULT current_timestamp(),
+  `TIM_UPDATED` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
+  PRIMARY KEY (`ID_IMAGE_CAPTION`),
+  UNIQUE KEY `UK_IMAGE_CAPTION` (`TABLE_SOURCE`,`ID_ROW`,`CAPTION_MODEL`),
+  KEY `ID_ENTITY` (`ID_ENTITY`),
+  KEY `TABLE_SOURCE` (`TABLE_SOURCE`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_TMDB_IMAGE_CAPTION_REVIEW` (
+  `ID_IMAGE_CAPTION_REVIEW` bigint(20) NOT NULL AUTO_INCREMENT,
+  `EXPERIMENT` varchar(64) NOT NULL COMMENT 'ex. ab-context-20261025',
+  `TABLE_SOURCE` varchar(16) NOT NULL COMMENT 'movie | serie | season | episode | ...',
+  `ID_ROW` bigint(20) NOT NULL COMMENT 'ID_ROW de la ligne T_WC_TMDB_*_IMAGE source',
+  `ID_ENTITY` bigint(20) NOT NULL COMMENT 'ID_MOVIE, ID_SERIE, ... selon TABLE_SOURCE',
+  `IMAGE_PATH` varchar(255) NOT NULL COMMENT 'chemin TMDb, ex. /abc.jpg',
+  `CAPTION_MODEL` varchar(64) NOT NULL COMMENT 'modèle des captions jugées',
+  `VARIANT_A` varchar(128) NOT NULL COMMENT 'variante A (ou unique), ex. full: 25 cast lines, whole plot',
+  `CAPTION_A` text NOT NULL,
+  `VARIANT_B` varchar(128) DEFAULT NULL,
+  `CAPTION_B` text DEFAULT NULL,
+  `VERDICT` varchar(16) NOT NULL COMMENT 'A | B | EQUAL | BOTH_WRONG | OK | WRONG',
+  `REVIEW_COMMENT` text DEFAULT NULL COMMENT 'remarque libre du relecteur',
+  `REVIEWER` varchar(32) NOT NULL COMMENT 'ex. vaugouin',
+  `TIM_CREATED` timestamp NOT NULL DEFAULT current_timestamp(),
+  `TIM_UPDATED` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
+  PRIMARY KEY (`ID_IMAGE_CAPTION_REVIEW`),
+  UNIQUE KEY `UK_IMAGE_CAPTION_REVIEW` (`EXPERIMENT`,`TABLE_SOURCE`,`ID_ROW`,`REVIEWER`),
+  KEY `ID_ENTITY` (`ID_ENTITY`),
+  KEY `VERDICT` (`VERDICT`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -13673,6 +14707,20 @@ CREATE TABLE `T_WC_WIKIDATA_CHARACTER_V1` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_WIKIDATA_COORDINATE_VALUE` (
+  `ID_STATEMENT` bigint(20) NOT NULL,
+  `LATITUDE` double DEFAULT NULL,
+  `LONGITUDE` double DEFAULT NULL,
+  `ALTITUDE` double DEFAULT NULL,
+  `COORDINATE_PRECISION` double DEFAULT NULL,
+  `GLOBE_ID_WIKIDATA` varchar(50) DEFAULT NULL,
+  PRIMARY KEY (`ID_STATEMENT`),
+  KEY `IDX_T_WC_WIKIDATA_COORDINATE_VALUE_GLOBE` (`GLOBE_ID_WIKIDATA`),
+  CONSTRAINT `FK_T_WC_WIKIDATA_COORDINATE_VALUE_STATEMENT` FOREIGN KEY (`ID_STATEMENT`) REFERENCES `T_WC_WIKIDATA_STATEMENT` (`ID_STATEMENT`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `T_WC_WIKIDATA_EPISODE` (
   `ID_ROW` bigint(20) NOT NULL AUTO_INCREMENT,
   `ID_WIKIDATA` varchar(50) NOT NULL,
@@ -14264,7 +15312,7 @@ CREATE TABLE `T_WC_WIKIDATA_PROPERTY_METADATA` (
   `PROPERTY_LABEL` varchar(500) DEFAULT NULL,
   `PROPERTY_DESCRIPTION` text DEFAULT NULL,
   `WIKIDATA_DATATYPE` varchar(100) DEFAULT NULL,
-  `LOCAL_VALUE_TYPE` enum('item','string','external_id','media','time','quantity') DEFAULT NULL,
+  `LOCAL_VALUE_TYPE` enum('item','string','external_id','media','time','quantity','coordinate') DEFAULT NULL,
   `EXPECTED_CHILD_TABLE` varchar(100) DEFAULT NULL,
   `FORMATTER_URL` text DEFAULT NULL,
   `FORMATTER_URI_FOR_RDF` text DEFAULT NULL,
@@ -14281,6 +15329,19 @@ CREATE TABLE `T_WC_WIKIDATA_PROPERTY_METADATA` (
   KEY `IDX_T_WC_WIKIDATA_PROPERTY_METADATA_IS_SUPPORTED` (`IS_SUPPORTED`),
   KEY `IDX_T_WC_WIKIDATA_PROPERTY_METADATA_IS_ACTIVE` (`IS_ACTIVE`),
   KEY `IDX_T_WC_WIKIDATA_PROPERTY_METADATA_DELETED` (`DELETED`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_WIKIDATA_QUALIFIER_COORDINATE_VALUE` (
+  `ID_STATEMENT_QUALIFIER` bigint(20) NOT NULL,
+  `LATITUDE` double DEFAULT NULL,
+  `LONGITUDE` double DEFAULT NULL,
+  `ALTITUDE` double DEFAULT NULL,
+  `COORDINATE_PRECISION` double DEFAULT NULL,
+  `GLOBE_ID_WIKIDATA` varchar(50) DEFAULT NULL,
+  PRIMARY KEY (`ID_STATEMENT_QUALIFIER`),
+  CONSTRAINT `FK_T_WC_WIKIDATA_QUALIFIER_COORDINATE_VALUE_PARENT` FOREIGN KEY (`ID_STATEMENT_QUALIFIER`) REFERENCES `T_WC_WIKIDATA_STATEMENT_QUALIFIER` (`ID_STATEMENT_QUALIFIER`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -14545,7 +15606,7 @@ CREATE TABLE `T_WC_WIKIDATA_STATEMENT` (
   `ID_PROPERTY` varchar(50) NOT NULL,
   `STATEMENT_GUID` varchar(255) DEFAULT NULL,
   `STATEMENT_HASH` varchar(255) DEFAULT NULL,
-  `VALUE_TYPE` enum('item','string','external_id','media','time','quantity') NOT NULL,
+  `VALUE_TYPE` enum('item','string','external_id','media','time','quantity','coordinate') NOT NULL,
   `WIKIDATA_DATATYPE` varchar(100) DEFAULT NULL,
   `RANK` enum('preferred','normal','deprecated') DEFAULT NULL,
   `IS_BEST_VALUE` tinyint(1) DEFAULT NULL,
@@ -14583,7 +15644,7 @@ CREATE TABLE `T_WC_WIKIDATA_STATEMENT_QUALIFIER` (
   `ID_STATEMENT` bigint(20) NOT NULL,
   `ID_QUALIFIER_PROPERTY` varchar(50) NOT NULL,
   `QUALIFIER_HASH` varchar(255) DEFAULT NULL,
-  `VALUE_TYPE` enum('item','string','external_id','media','time','quantity') NOT NULL,
+  `VALUE_TYPE` enum('item','string','external_id','media','time','quantity','coordinate') NOT NULL,
   `WIKIDATA_DATATYPE` varchar(100) DEFAULT NULL,
   `DISPLAY_ORDER` int(11) DEFAULT NULL,
   `DELETED` tinyint(1) DEFAULT 0,
@@ -14751,7 +15812,8 @@ CREATE TABLE `T_WC_WIKIPEDIA_PAGE_LANG` (
   KEY `WIKIPEDIA_SITE_KEY` (`WIKIPEDIA_SITE_KEY`),
   KEY `HTTP_STATUS` (`HTTP_STATUS`),
   KEY `LAST_CRAWLED_AT` (`LAST_CRAWLED_AT`),
-  KEY `LAST_SUCCESS_AT` (`LAST_SUCCESS_AT`)
+  KEY `LAST_SUCCESS_AT` (`LAST_SUCCESS_AT`),
+  KEY `LANG_WIKIPEDIA_PAGE_TITLE` (`LANG`,`WIKIPEDIA_PAGE_TITLE`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -14803,13 +15865,64 @@ CREATE TABLE `T_WC_WIKIPEDIA_PAGE_LANG_IMAGE` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_WIKIPEDIA_PAGE_LANG_LINK` (
+  `ID_WIKIDATA` varchar(50) NOT NULL,
+  `LANG` varchar(10) NOT NULL,
+  `ITEM_TYPE` varchar(20) DEFAULT NULL,
+  `SECTION_DISPLAY_ORDER` int(5) NOT NULL,
+  `DISPLAY_ORDER` int(5) NOT NULL,
+  `ANCHOR` varchar(500) DEFAULT NULL,
+  `TARGET_TITLE` varchar(300) NOT NULL,
+  `FRAGMENT` varchar(300) DEFAULT NULL,
+  `TARGET_FINAL_TITLE` varchar(300) DEFAULT NULL,
+  `VIA_REDIRECT` tinyint(1) DEFAULT 0,
+  `IS_REDLINK` tinyint(1) DEFAULT 0,
+  `IS_DATE` tinyint(1) DEFAULT 0,
+  `TARGET_ID_WIKIDATA` varchar(50) DEFAULT NULL,
+  `RESOLVED_BY` varchar(20) DEFAULT NULL,
+  `DELETED` int(5) DEFAULT NULL,
+  `ID_CREATOR` int(5) DEFAULT NULL,
+  `DAT_CREAT` date DEFAULT NULL,
+  `ID_OWNER` int(5) DEFAULT NULL,
+  `TIM_UPDATED` datetime DEFAULT NULL,
+  `ID_USER_UPDATED` int(5) DEFAULT NULL,
+  PRIMARY KEY (`ID_WIKIDATA`,`LANG`,`SECTION_DISPLAY_ORDER`,`DISPLAY_ORDER`),
+  KEY `TIM_UPDATED` (`TIM_UPDATED`),
+  KEY `TARGET_LANG_SOURCE` (`TARGET_ID_WIKIDATA`,`LANG`,`ID_WIKIDATA`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_WIKIPEDIA_PAGE_LANG_REFERENCE` (
+  `ID_WIKIDATA` varchar(50) NOT NULL,
+  `LANG` varchar(10) NOT NULL,
+  `ITEM_TYPE` varchar(20) DEFAULT NULL,
+  `SECTION_DISPLAY_ORDER` int(5) NOT NULL,
+  `DISPLAY_ORDER` int(5) NOT NULL,
+  `NOTE_KEY` varchar(300) DEFAULT NULL,
+  `LABEL` varchar(50) DEFAULT NULL,
+  `URL` text DEFAULT NULL,
+  `TITLE` varchar(1000) DEFAULT NULL,
+  `REFERENCE_TEXT` mediumtext /*!100301 COMPRESSED*/ DEFAULT NULL,
+  `DELETED` int(5) DEFAULT NULL,
+  `ID_CREATOR` int(5) DEFAULT NULL,
+  `DAT_CREAT` date DEFAULT NULL,
+  `ID_OWNER` int(5) DEFAULT NULL,
+  `TIM_UPDATED` datetime DEFAULT NULL,
+  `ID_USER_UPDATED` int(5) DEFAULT NULL,
+  PRIMARY KEY (`ID_WIKIDATA`,`LANG`,`SECTION_DISPLAY_ORDER`,`DISPLAY_ORDER`),
+  KEY `TIM_UPDATED` (`TIM_UPDATED`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `T_WC_WIKIPEDIA_PAGE_LANG_SECTION` (
   `ID_ROW` int(11) NOT NULL AUTO_INCREMENT,
   `ID_WIKIDATA` varchar(50) NOT NULL,
   `LANG` varchar(10) DEFAULT NULL,
   `ITEM_TYPE` varchar(20) DEFAULT NULL,
   `TITLE` varchar(300) DEFAULT NULL,
-  `CONTENT` mediumtext DEFAULT NULL,
+  `CONTENT` mediumtext /*!100301 COMPRESSED*/ DEFAULT NULL,
   `DELETED` int(5) DEFAULT NULL,
   `DISPLAY_ORDER` int(5) DEFAULT NULL,
   `ID_CREATOR` int(5) DEFAULT NULL,
@@ -14817,6 +15930,7 @@ CREATE TABLE `T_WC_WIKIPEDIA_PAGE_LANG_SECTION` (
   `ID_OWNER` int(5) DEFAULT NULL,
   `TIM_UPDATED` datetime DEFAULT NULL,
   `ID_USER_UPDATED` int(5) DEFAULT NULL,
+  `CONTENT_MD` mediumtext /*!100301 COMPRESSED*/ DEFAULT NULL,
   PRIMARY KEY (`ID_ROW`),
   UNIQUE KEY `UQ_ID_WIKIDATA_LANG_DISPLAY_ORDER` (`ID_WIKIDATA`,`LANG`,`DISPLAY_ORDER`),
   KEY `DELETED` (`DELETED`),

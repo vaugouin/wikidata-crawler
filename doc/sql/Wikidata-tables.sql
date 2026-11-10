@@ -62,6 +62,20 @@ CREATE TABLE `T_WC_WIKIDATA_CHARACTER_V1` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_WIKIDATA_COORDINATE_VALUE` (
+  `ID_STATEMENT` bigint(20) NOT NULL,
+  `LATITUDE` double DEFAULT NULL,
+  `LONGITUDE` double DEFAULT NULL,
+  `ALTITUDE` double DEFAULT NULL,
+  `COORDINATE_PRECISION` double DEFAULT NULL,
+  `GLOBE_ID_WIKIDATA` varchar(50) DEFAULT NULL,
+  PRIMARY KEY (`ID_STATEMENT`),
+  KEY `IDX_T_WC_WIKIDATA_COORDINATE_VALUE_GLOBE` (`GLOBE_ID_WIKIDATA`),
+  CONSTRAINT `FK_T_WC_WIKIDATA_COORDINATE_VALUE_STATEMENT` FOREIGN KEY (`ID_STATEMENT`) REFERENCES `T_WC_WIKIDATA_STATEMENT` (`ID_STATEMENT`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `T_WC_WIKIDATA_EPISODE` (
   `ID_ROW` bigint(20) NOT NULL AUTO_INCREMENT,
   `ID_WIKIDATA` varchar(50) NOT NULL,
@@ -653,7 +667,7 @@ CREATE TABLE `T_WC_WIKIDATA_PROPERTY_METADATA` (
   `PROPERTY_LABEL` varchar(500) DEFAULT NULL,
   `PROPERTY_DESCRIPTION` text DEFAULT NULL,
   `WIKIDATA_DATATYPE` varchar(100) DEFAULT NULL,
-  `LOCAL_VALUE_TYPE` enum('item','string','external_id','media','time','quantity') DEFAULT NULL,
+  `LOCAL_VALUE_TYPE` enum('item','string','external_id','media','time','quantity','coordinate') DEFAULT NULL,
   `EXPECTED_CHILD_TABLE` varchar(100) DEFAULT NULL,
   `FORMATTER_URL` text DEFAULT NULL,
   `FORMATTER_URI_FOR_RDF` text DEFAULT NULL,
@@ -670,6 +684,19 @@ CREATE TABLE `T_WC_WIKIDATA_PROPERTY_METADATA` (
   KEY `IDX_T_WC_WIKIDATA_PROPERTY_METADATA_IS_SUPPORTED` (`IS_SUPPORTED`),
   KEY `IDX_T_WC_WIKIDATA_PROPERTY_METADATA_IS_ACTIVE` (`IS_ACTIVE`),
   KEY `IDX_T_WC_WIKIDATA_PROPERTY_METADATA_DELETED` (`DELETED`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `T_WC_WIKIDATA_QUALIFIER_COORDINATE_VALUE` (
+  `ID_STATEMENT_QUALIFIER` bigint(20) NOT NULL,
+  `LATITUDE` double DEFAULT NULL,
+  `LONGITUDE` double DEFAULT NULL,
+  `ALTITUDE` double DEFAULT NULL,
+  `COORDINATE_PRECISION` double DEFAULT NULL,
+  `GLOBE_ID_WIKIDATA` varchar(50) DEFAULT NULL,
+  PRIMARY KEY (`ID_STATEMENT_QUALIFIER`),
+  CONSTRAINT `FK_T_WC_WIKIDATA_QUALIFIER_COORDINATE_VALUE_PARENT` FOREIGN KEY (`ID_STATEMENT_QUALIFIER`) REFERENCES `T_WC_WIKIDATA_STATEMENT_QUALIFIER` (`ID_STATEMENT_QUALIFIER`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -934,7 +961,7 @@ CREATE TABLE `T_WC_WIKIDATA_STATEMENT` (
   `ID_PROPERTY` varchar(50) NOT NULL,
   `STATEMENT_GUID` varchar(255) DEFAULT NULL,
   `STATEMENT_HASH` varchar(255) DEFAULT NULL,
-  `VALUE_TYPE` enum('item','string','external_id','media','time','quantity') NOT NULL,
+  `VALUE_TYPE` enum('item','string','external_id','media','time','quantity','coordinate') NOT NULL,
   `WIKIDATA_DATATYPE` varchar(100) DEFAULT NULL,
   `RANK` enum('preferred','normal','deprecated') DEFAULT NULL,
   `IS_BEST_VALUE` tinyint(1) DEFAULT NULL,
@@ -972,7 +999,7 @@ CREATE TABLE `T_WC_WIKIDATA_STATEMENT_QUALIFIER` (
   `ID_STATEMENT` bigint(20) NOT NULL,
   `ID_QUALIFIER_PROPERTY` varchar(50) NOT NULL,
   `QUALIFIER_HASH` varchar(255) DEFAULT NULL,
-  `VALUE_TYPE` enum('item','string','external_id','media','time','quantity') NOT NULL,
+  `VALUE_TYPE` enum('item','string','external_id','media','time','quantity','coordinate') NOT NULL,
   `WIKIDATA_DATATYPE` varchar(100) DEFAULT NULL,
   `DISPLAY_ORDER` int(11) DEFAULT NULL,
   `DELETED` tinyint(1) DEFAULT 0,

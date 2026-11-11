@@ -78,8 +78,8 @@ Use it to explore, never to decide:
 
 ---
 
-**Last Updated**: 2026-11-10
-**Current Version**: 1.1.26
+**Last Updated**: 2026-11-11
+**Current Version**: 1.1.27
 
 ## Backlog (Nestor second-brain)
 

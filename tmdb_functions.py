@@ -180,6 +180,74 @@ def f_tmdbidnotfoundgetsettings():
             "Maximum multiplier applied to the base retry delay of a TMDb id recorded as not found")
     return _lngidnotfoundretrydays, _lngidnotfoundretrymaxfactor
 
+# Social-network ids of TMDb's external_ids (selenium-tmdb fills the empty ones from
+# Wikidata and needs to know which are empty on TMDb). The API already returns them
+# with append_to_response=external_ids; until 1.0.12 only IMDb, Wikidata and TVDB were
+# kept. TIM_EXTERNAL_IDS dates the read, so a NULL id means "not read yet" and an
+# empty string "read, empty on TMDb".
+ARR_TMDB_SOCIAL_COLUMNS = {
+    'person': {'FACEBOOK_ID': 'facebook_id', 'INSTAGRAM_ID': 'instagram_id', 'TWITTER_ID': 'twitter_id',
+               'TIKTOK_ID': 'tiktok_id', 'YOUTUBE_ID': 'youtube_id'},
+    'movie': {'FACEBOOK_ID': 'facebook_id', 'INSTAGRAM_ID': 'instagram_id', 'TWITTER_ID': 'twitter_id'},
+    'serie': {'FACEBOOK_ID': 'facebook_id', 'INSTAGRAM_ID': 'instagram_id', 'TWITTER_ID': 'twitter_id'},
+}
+ARR_TMDB_SOCIAL_TABLES = {'person': 'T_WC_TMDB_PERSON', 'movie': 'T_WC_TMDB_MOVIE', 'serie': 'T_WC_TMDB_SERIE'}
+intsocialcolumnsready = False
+
+
+def f_tmdbsocialensurecolumns():
+    """
+    Add the social-network id columns and TIM_EXTERNAL_IDS to the person, movie and
+    series tables when they are missing (same deployment model as
+    f_tmdbidnotfoundensuretable: no manual migration on the VPS).
+
+    ALGORITHM=INSTANT: on these large tables the change must only touch metadata.
+    If MariaDB cannot do it instantly the ALTER fails instead of copying the table,
+    and the crawler carries on without the social ids.
+
+    Returns:
+    --------
+    bool
+        True when every column is available
+    """
+    global connectioncp
+    global intsocialcolumnsready
+
+    intsocialcolumnsready = False
+    try:
+        cursor2 = connectioncp.cursor()
+        for strentity, arrcolumns in ARR_TMDB_SOCIAL_COLUMNS.items():
+            arradd = [f"ADD COLUMN IF NOT EXISTS `{strcolumn}` varchar(100) DEFAULT NULL" for strcolumn in arrcolumns]
+            arradd.append("ADD COLUMN IF NOT EXISTS `TIM_EXTERNAL_IDS` datetime DEFAULT NULL")
+            cursor2.execute(f"ALTER TABLE `{ARR_TMDB_SOCIAL_TABLES[strentity]}` " + ", ".join(arradd) + ", ALGORITHM=INSTANT")
+        connectioncp.commit()
+        intsocialcolumnsready = True
+    except Exception as err:
+        print(f"Could not add the social-network id columns: {err}")
+    return intsocialcolumnsready
+
+
+def f_tmdbsocialcouples(data, strentity):
+    """
+    The social-network id columns of one person, movie or series, from the
+    external_ids of an API answer. Empty dict when the columns are not available or
+    the answer carries no external_ids, so nothing is written and TIM_EXTERNAL_IDS
+    keeps its previous value.
+    """
+    if not intsocialcolumnsready:
+        return {}
+    arrexternalids = data.get('external_ids') if isinstance(data, dict) else None
+    if not isinstance(arrexternalids, dict):
+        return {}
+    arrcouples = {}
+    for strcolumn, strkey in ARR_TMDB_SOCIAL_COLUMNS[strentity].items():
+        strvalue = arrexternalids.get(strkey)
+        strvalue = str(strvalue).strip() if strvalue not in (None, '') else ''
+        arrcouples[strcolumn] = strvalue[:100]
+    arrcouples['TIM_EXTERNAL_IDS'] = datetime.now(paris_tz).strftime("%Y-%m-%d %H:%M:%S")
+    return arrcouples
+
+
 def f_tmdbidnotfoundensuretable():
     """
     Create T_WC_TMDB_ID_NOT_FOUND when it is missing.
@@ -1446,6 +1514,7 @@ def f_tmdbpersontosql(lngpersonid):
                 arrpersoncouples["KNOWN_FOR_DEPARTMENT"] = strpersonknownfordepartment
                 arrpersoncouples["ADULT"] = intpersonadult
                 arrpersoncouples["ALSO_KNOWN_AS"] = strpersonalsoknownas
+                arrpersoncouples.update(f_tmdbsocialcouples(data, 'person'))
                 
                 strmoviecredits = ""
                 strseriecredits = ""
@@ -2016,6 +2085,7 @@ def f_tmdbmovietosql(lngmovieid):
                 arrmoviecouples["ID_WIKIDATA"] = strmovieidwikidata
             else:
                 arrmoviecouples["ID_WIKIDATA"] = ""
+            arrmoviecouples.update(f_tmdbsocialcouples(data, 'movie'))
             arrmoviecouples["OVERVIEW"] = strmovieoverview
             if strmoviereleasedate:
                 if strmoviereleasedate != "":
@@ -3174,6 +3244,7 @@ def f_tmdbserietosql(lngserieid):
             # ID_TVDB is an int column (mirrors SEASON/EPISODE); only set when present
             if lngserieidtvdb:
                 arrseriecouples["ID_TVDB"] = lngserieidtvdb
+            arrseriecouples.update(f_tmdbsocialcouples(data, 'serie'))
 
             arrseriecouples["OVERVIEW"] = strserieoverview
             

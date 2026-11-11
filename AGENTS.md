@@ -18,7 +18,7 @@ Update `README.md` for any user-facing behavior change; update this file only wh
 
 ## Related repositories (project ecosystem)
 
-Dump-based Wikidata V2 ingestion stage of the **Agent BBB** system (siblings at `C:\Users\vaugo\Code\<repo>` and `github.com/vaugouin/<repo>`; roster in `%USERPROFILE%/Nestor/projets/t2s-backlog/topics/related-repositories.txt`). It **supersedes the SPARQL-driven V1 model** of `sparql-crawler` and `sparql-movies-persons`; its `T_WC_WIKIDATA_*` tables feed `tmdb-movie-preprocess` and `tmdb-front`.
+Dump-based Wikidata V2 ingestion stage of the **Agent BBB** system (siblings at `C:\Users\vaugo\Code\<repo>` and `github.com/vaugouin/<repo>`; roster in `%USERPROFILE%/Nestor/projets/t2s-backlog/topics/related-repositories.txt`). It **supersedes the SPARQL-driven V1 model** of `sparql-crawler` and `sparql-movies-persons`; its `T_WC_WIKIDATA_*` tables feed `tmdb-movie-preprocess` and the web front `t2s-front` (formerly `tmdb-front`).
 
 `sparql-crawler.py`, `sparql-movies-persons.py` and `tmdb_functions.py` are V1-era legacy files the V2 pipeline does not invoke: do not edit them during V2 work unless asked. `tmdb_functions.py` is a byte-identical copy of tmdb-crawler's: change it there first, then here, and compare hashes. `run_etl.sh` is the legacy 3-pass driver, superseded by `wikidata_crawler.py`.
 
@@ -79,7 +79,7 @@ Use it to explore, never to decide:
 ---
 
 **Last Updated**: 2026-11-10
-**Current Version**: 1.1.25
+**Current Version**: 1.1.26
 
 ## Backlog (Nestor second-brain)
 

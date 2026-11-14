@@ -136,8 +136,6 @@ SELECT '=== Q2 . nombre d Oscars, par la famille Q19020 (P31, P361 ou P527 inver
 SELECT p.LABEL_EN AS personne,
        COUNT(*)   AS nb_oscars,
        SUM(fam.PAR_P31) AS dont_par_p31
-SELECT p.LABEL_EN AS personne,
-       COUNT(*)   AS nb_oscars
 FROM   T_WC_WIKIDATA_STATEMENT st
 JOIN   T_WC_WIKIDATA_PERSON p ON p.ID_WIKIDATA = st.ID_WIKIDATA
 JOIN   T_WC_WIKIDATA_ITEM_VALUE iv ON iv.ID_STATEMENT = st.ID_STATEMENT

@@ -44,7 +44,7 @@ UTF-8 everywhere; DB and connections `utf8mb4` / `utf8mb4_unicode_ci`; NDJSON wr
 
 - **`apply_to_live_db.sql`** is applied automatically at steps 108 and 110 and is the only way a new table or column reaches the live DB (`CREATE TABLE IF NOT EXISTS` never alters an existing table, hence its `ADD COLUMN IF NOT EXISTS`). It must stay **`DELIMITER`-free**: the orchestrator splits it on `;`. Its staging definitions duplicate `02_staging_and_triggers.sql` (canonical, and the only file with triggers): change both together. A new entity column means four edits at once: `01_create_schema.sql`, `02_staging_and_triggers.sql`, and both DDL sets in `apply_to_live_db.sql`.
 - **DDL first, emission second.** `load_staging_jsonl.py` derives columns from the first NDJSON line, so a new key travels on its own *only if the staging column exists*; otherwise step 108 dies after a day-long pass.
-- **A new NDJSON file needs a `TableSpec`** in `load_staging_jsonl.py`, or it is written and never loaded (that is how the P279 graph stayed invisible for months).
+- **A new NDJSON file needs a `TableSpec`** in `load_staging_jsonl.py`, or it is written and never loaded (that is how the P279 graph stayed invisible for months). Each spec names ONE pass directory: a file pass2 already loads is not loaded from item_cache without its own spec (-035). The smoke test checks item_cache's outputs against the specs.
 - **Adding a value type** touches every value-table list: `01`, `02`, `03`, `11`, `04`, `05`, `08`, `09`, `10`, `13`, `TABLE_SPECS`, steps 109 and 111 (`06` is a one-off repair, leave it). Three traps: the three `VALUE_TYPE` columns are ENUMs, and `MODIFY` is instant on MariaDB 11.2 only when the new value goes at the END of the list; the live DB has **none** of `02`'s `BEFORE INSERT` value triggers (the one-statement-one-table rule rests on the section-3B purges of `03`), so never hand-run that trigger block on the live DB without measuring the load cost; `emit_class_claims_for_cached_item` has its own per-type branches, so a type added only to `SUPPORTED_LOCAL_VALUE_TYPES` is never emitted for cached items.
 - **`CACHED_ENTITY_PROPERTIES` is closed on purpose**: each added property costs a ~23 h replay of step 106. Keep `emit_class_claims_for_cached_item` a dedicated method (its docstring says why); emission stays gated on the entity row having been written.
 - `ALIASES_JSON` is a blob on the entity tables by design, fr + en only (`ALIAS_LANGUAGES`); after shrinking it, `OPTIMIZE TABLE` on `ITEM` and `PERSON` to reclaim space. See README § aliases.
@@ -78,8 +78,8 @@ Use it to explore, never to decide:
 
 ---
 
-**Last Updated**: 2026-11-11
-**Current Version**: 1.1.27
+**Last Updated**: 2026-11-14
+**Current Version**: 1.1.28
 
 ## Backlog (Nestor second-brain)
 

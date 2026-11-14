@@ -114,6 +114,29 @@ P_HAS_PARTS = "P527"
 P_TITLE = "P1476"
 MONOLINGUAL_PROPERTIES = {P_TITLE}
 P_FORMATTER_URL = "P1630"
+# WIKIDATA-CRAWLER-035: the official name of a place (P1448, monolingualtext) and the dates
+# of a place's names, country and administrative parent (qualifiers P580 start time, P582 end
+# time). Saint Petersburg carries Petrograd 1914-1924 and Leningrad 1924-1991, Chemnitz
+# Karl-Marx-Stadt 1953-1990, Brno its four countries with their dates: what selenium-tmdb needs
+# to write a Place of Birth "as it was at the time of birth" (TMDb's rule, SELENIUM-TMDB-019).
+P_OFFICIAL_NAME = "P1448"
+P_START_TIME = "P580"
+P_END_TIME = "P582"
+# Monolingualtext properties of the cached entities. Only Latin-script values are kept: the
+# names are read to write English place strings, and a city carries its official name in up
+# to twenty scripts (Saint Petersburg: Cyrillic, Armenian, Latin...), the bulk of the volume.
+CACHED_MONOLINGUAL_PROPERTIES = {P_OFFICIAL_NAME}
+# Cached-entity properties whose statements keep their P580 / P582 qualifiers (time values
+# only). Every other cached property is still emitted without qualifiers.
+CACHED_DATED_PROPERTIES = {"P17", "P131", P_OFFICIAL_NAME}
+CACHED_QUALIFIER_PROPERTIES = (P_START_TIME, P_END_TIME)
+_LATIN_TEXT = re.compile(r"^[\u0020-\u024F\u1E00-\u1EFF\u0300-\u036F\u2010-\u2019]+$")
+
+
+def is_latin_text(text: str) -> bool:
+    """True when every character of text is Latin script (accents, punctuation, digits)."""
+    return bool(text) and bool(_LATIN_TEXT.match(text))
+
 # Properties emitted for an entity that exists in the DB only as a cached label.
 # Closed set on purpose, so the added volume stays provable. P31/P279 unlock class
 # grouping (WIKIDATA-CRAWLER-020); the other three restore V1 columns that had no V2
@@ -129,6 +152,10 @@ P_FORMATTER_URL = "P1630"
 # lists its parts): a category is a cached entity, and P31 alone reached 1 808 of the
 # 18 117 categories that tmdb-movie-preprocess links, against 4 455 with these two
 # (WIKIDATA-CRAWLER-032, for TMDB-MOVIE-PREPROCESS-071, added 2026-11-10 ahead of a dump,
+# same way). P1448 gives a cached place its official names, Latin script only, and P17,
+# P131 and P1448 keep their P580 / P582 qualifiers (CACHED_DATED_PROPERTIES): the country and
+# the name of a place at a given date, for the Places of Birth selenium-tmdb writes on TMDb
+# "as they were at the time of birth" (WIKIDATA-CRAWLER-035, added 2026-11-14 ahead of a dump,
 # same way). Adding a property here costs a 23 h replay of step 106, so weigh it before
 # extending.
 CACHED_ENTITY_PROPERTIES = (
@@ -145,6 +172,7 @@ CACHED_ENTITY_PROPERTIES = (
     P_COORDINATE_LOCATION,  # P625, latitude / longitude of a place (-028)
     P_PART_OF,           # P361, the family an award category belongs to (-032, -071)
     P_HAS_PARTS,         # P527, the categories an award family lists (-032, -071)
+    P_OFFICIAL_NAME,     # P1448, the official names of a place, dated (-035, SELENIUM-TMDB-019)
 )
 P_FORMATTER_URI_FOR_RDF = "P3303"
 
@@ -1726,6 +1754,11 @@ class WikidataDumpETL:
         what a cached entity is, and a filter by class would need the P279 closure here.
         The target of a P361 is not cached by that fact (item_cache is the last pass);
         measured on 2026-11-10, 495 of the 531 award families concerned were cached already.
+
+        -035 adds P1448, a monolingualtext stored like P1476 (-031: VALUE_TYPE 'string' with
+        LANG_CODE), Latin-script values only, and the first qualifiers of this emitter: P580 and
+        P582 on P17, P131 and P1448 (emit_dates_of_cached_statement), time values only. The
+        statements themselves and their identity do not change.
         """
         for property_id in CACHED_ENTITY_PROPERTIES:
             for claim in get_claim_list(doc, property_id):
@@ -1733,7 +1766,15 @@ class WikidataDumpETL:
                 local_value_type = WIKIDATA_DATATYPE_TO_LOCAL.get(wikidata_datatype)
                 payload: Optional[Dict[str, Any]] = None
 
-                if local_value_type == "item":
+                if wikidata_datatype == "monolingualtext" and property_id in CACHED_MONOLINGUAL_PROPERTIES:
+                    # -035: stored like P1476 (-031), VALUE_TYPE 'string' with LANG_CODE.
+                    text, lang = extract_monolingual_value(value)
+                    if text is None or not is_latin_text(text):
+                        continue
+                    local_value_type = "string"
+                    payload = {"VALUE_STRING": text, "VALUE_STRING_NORMALIZED": text, "LANG_CODE": lang}
+
+                elif local_value_type == "item":
                     id_item = extract_qid_from_wikibase_value(value)
                     if id_item:
                         payload = {"ID_ITEM": id_item}
@@ -1758,13 +1799,43 @@ class WikidataDumpETL:
                 if payload is None:
                     continue
 
-                self.statement_emitter.emit(
+                statement_id = self.statement_emitter.emit(
                     subject_id=entity_id,
                     property_id=property_id,
                     claim=claim,
                     local_value_type=local_value_type,
                     wikidata_datatype=wikidata_datatype,
                     payload=payload,
+                )
+                if property_id in CACHED_DATED_PROPERTIES:
+                    self.emit_dates_of_cached_statement(statement_id, claim)
+
+    def emit_dates_of_cached_statement(self, statement_id: int, claim: Any) -> None:
+        """-035: the P580 / P582 qualifiers (time values) of a cached statement, so a place's
+        country, parent and official names carry the period they were valid. Nothing else of
+        the qualifiers: the cached emitter stays a closed, provable subset."""
+        qualifiers = claim.get("qualifiers") if isinstance(claim, dict) else None
+        if not isinstance(qualifiers, dict):
+            return
+        for qualifier_property_id in CACHED_QUALIFIER_PROPERTIES:
+            snaks = qualifiers.get(qualifier_property_id)
+            if not isinstance(snaks, list):
+                continue
+            for qualifier_index, snak in enumerate(snaks, start=1):
+                qualifier_datatype, qualifier_value = extract_snak_datatype_and_value(snak)
+                if WIKIDATA_DATATYPE_TO_LOCAL.get(qualifier_datatype) != "time":
+                    continue
+                qualifier_payload = extract_time_payload(qualifier_value)
+                if not qualifier_payload:
+                    continue
+                self.statement_emitter.emit_qualifier(
+                    statement_id=statement_id,
+                    qualifier_property_id=qualifier_property_id,
+                    snak=snak,
+                    local_value_type="time",
+                    wikidata_datatype=qualifier_datatype,
+                    payload=qualifier_payload,
+                    display_order=qualifier_index,
                 )
 
     def emit_claims_for_in_scope_entity(self, doc: Any, entity_id: str) -> None:

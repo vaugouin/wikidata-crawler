@@ -73,9 +73,35 @@ def _globe_snak(lat: float, lon: float, globe: str = "Q2") -> dict:
     }
 
 
+def _time_snak(year: int, prop: str) -> dict:
+    # A P580 / P582 qualifier snak, year precision, Gregorian.
+    return {"snaktype": "value", "property": prop, "hash": f"{prop}-{year}", "datatype": "time",
+            "datavalue": {"type": "time", "value": {
+                "time": f"+{year:04d}-00-00T00:00:00Z", "timezone": 0, "before": 0, "after": 0,
+                "precision": 9, "calendarmodel": "http://www.wikidata.org/entity/Q1985727"}}}
+
+
+def _dated(claim: dict, start=None, end=None, other=None) -> dict:
+    qualifiers = {}
+    if start:
+        qualifiers["P580"] = [_time_snak(start, "P580")]
+    if end:
+        qualifiers["P582"] = [_time_snak(end, "P582")]
+    if other:   # a qualifier the cached emitter must leave out
+        qualifiers["P805"] = [dict(_item_snak(other), property="P805", hash="other")]
+    claim["qualifiers"] = qualifiers
+    return claim
+
+
 def item(qid: str, *, p31=None, p279=None, imdb=None, p2079=None, label="x", aliases=None,
-         p625=None, p915_at=None, p1476=None, p1680=None) -> dict:
+         p625=None, p915_at=None, p1476=None, p1680=None, p1448=None, p17=None) -> dict:
     claims: dict = {}
+    if p1448:   # WIKIDATA-CRAWLER-035: (text, lang, start, end) official names
+        claims["P1448"] = [_dated(_claim(_mono_snak(tx, lg), f"{qid}$P1448-{i}"), s, e)
+                           for i, (tx, lg, s, e) in enumerate(p1448)]
+    if p17:     # WIKIDATA-CRAWLER-035: (country, start, end) dated countries
+        claims["P17"] = [_dated(_claim(_item_snak(q), f"{qid}$P17-{i}"), s, e, other="Q9999")
+                         for i, (q, s, e) in enumerate(p17)]
     if p1476:
         claims["P1476"] = [_claim(_mono_snak(t, lg), f"{qid}$P1476-{i}") for i, (t, lg) in enumerate(p1476)]
     if p1680:   # subtitle, another monolingualtext: must stay out
@@ -139,7 +165,11 @@ ENTITIES = [
     item("Q1005", p31=["Q3464665"], label="A Season"),
     item("Q1006", p31=["Q21191270"], label="An Episode"),
     item("Q1007", p31=["Q95074"], label="A Character"),
-    item("Q1009", p31=["Q515"], label="Irrelevant City", p625=(48.8567, 2.3508)),
+    item("Q1009", p31=["Q515"], label="Irrelevant City", p625=(48.8567, 2.3508),
+         # WIKIDATA-CRAWLER-035: a renamed city (Saint Petersburg's shape) and a dated country.
+         p1448=[("Leningrad", "de", 1924, 1991), ("Ленинград", "ru", 1924, 1991),
+                ("Sankt Petersburg", "de", 1991, None)],
+         p17=[("Q15180", 1922, 1991), ("Q159", 1991, None)]),
     # referenced value, not core: its aliases exercise the item_cache base_row, the
     # second and last place in the repo where an entity row is built.
     item("Q184781", p31=["Q2412849"], label="traditional animation",
@@ -301,6 +331,40 @@ def run() -> int:
 
         # WIKIDATA-CRAWLER-028: a cached place carries its P625 coordinates.
         ic_stmts = read_jsonl(ic / "T_WC_WIKIDATA_STATEMENT.jsonl")
+
+        # WIKIDATA-CRAWLER-035: official names (Latin script only) and the dates of the names
+        # and of the country, P580 / P582 only.
+        names = [s for s in ic_stmts if s["ID_WIKIDATA"] == "Q1009" and s["ID_PROPERTY"] == "P1448"]
+        strings = {r["ID_STATEMENT"]: r for r in read_jsonl(ic / "T_WC_WIKIDATA_STRING_VALUE.jsonl")}
+        name_values = sorted((strings[s["ID_STATEMENT"]]["VALUE_STRING"], strings[s["ID_STATEMENT"]]["LANG_CODE"])
+                             for s in names if s["ID_STATEMENT"] in strings)
+        check(name_values == [("Leningrad", "de"), ("Sankt Petersburg", "de")],
+              "item_cache emits P1448 on a cached place, Latin script only, with its language")
+        check(all(s["VALUE_TYPE"] == "string" for s in names), "P1448 is stored as VALUE_TYPE string")
+        quals = read_jsonl(ic / "T_WC_WIKIDATA_STATEMENT_QUALIFIER.jsonl")
+        by_statement = {}
+        for q in quals:
+            by_statement.setdefault(q["ID_STATEMENT"], set()).add(q["ID_QUALIFIER_PROPERTY"])
+        leningrad = [s for s in names if strings.get(s["ID_STATEMENT"], {}).get("VALUE_STRING") == "Leningrad"]
+        check(bool(leningrad) and by_statement.get(leningrad[0]["ID_STATEMENT"]) == {"P580", "P582"},
+              "the official name keeps its P580 and P582 qualifiers")
+        countries = [s for s in ic_stmts if s["ID_WIKIDATA"] == "Q1009" and s["ID_PROPERTY"] == "P17"]
+        check(len(countries) == 2 and all(by_statement.get(s["ID_STATEMENT"], set()) <= {"P580", "P582"}
+                                          and "P580" in by_statement.get(s["ID_STATEMENT"], set())
+                                          for s in countries),
+              "a cached country keeps P580 / P582 and nothing else (P805 left out)")
+        qtimes = read_jsonl(ic / "T_WC_WIKIDATA_QUALIFIER_TIME_VALUE.jsonl")
+        check(any(r.get("YEAR_VALUE") == 1924 for r in qtimes), "the qualifier time value carries the year")
+        # Every file item_cache writes must have a loader spec, or it is written and never
+        # loaded (how the subclass graph stayed invisible for months, and -035's qualifiers
+        # would have too).
+        import load_staging_jsonl as loader
+        loaded = {s.stg_file_name for s in loader.TABLE_SPECS if s.stg_file_location == "item_cache"}
+        written = {f.name for f in ic.glob("T_WC_WIKIDATA_*.jsonl") if f.stat().st_size > 0}
+        check(written <= loaded, f"every item_cache output has a loader spec (missing: {sorted(written - loaded)})")
+        others = [s for s in ic_stmts if s["ID_WIKIDATA"] == "Q184781"]
+        check(not any(by_statement.get(s["ID_STATEMENT"]) for s in others),
+              "properties outside CACHED_DATED_PROPERTIES keep no qualifier")
         p625 = [s for s in ic_stmts if s["ID_WIKIDATA"] == "Q1009" and s["ID_PROPERTY"] == "P625"]
         check(len(p625) == 1 and p625[0]["VALUE_TYPE"] == "coordinate",
               "item_cache emits P625 on a cached place with VALUE_TYPE coordinate")
@@ -392,7 +456,8 @@ def run() -> int:
     # empty a week later (location hierarchy for -048, "based on" form and author for -055).
     print("cached entity properties:")
     # WIKIDATA-CRAWLER-032: P361 and P527, the award family of a cached category (-071).
-    for pid in ("P31", "P279", "P131", "P17", "P50", "P7937", "P625", "P361", "P527"):
+    # WIKIDATA-CRAWLER-035: P1448, the dated official names of a place (SELENIUM-TMDB-019).
+    for pid in ("P31", "P279", "P131", "P17", "P50", "P7937", "P625", "P361", "P527", "P1448"):
         check(pid in etl.CACHED_ENTITY_PROPERTIES,
               f"{pid} is emitted for cached entities")
 

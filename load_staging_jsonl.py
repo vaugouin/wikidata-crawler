@@ -125,6 +125,13 @@ TABLE_SPECS: List[TableSpec] = [
         table_name="STG_T_WC_WIKIDATA_STRING_VALUE",
         additional_columns={"IMPORT_BATCH_ID": None, "ROW_STATUS": "NEW"},
     ),
+    # P1448, the official names of a cached place, Latin script (WIKIDATA-CRAWLER-035).
+    TableSpec(
+        stg_file_name="T_WC_WIKIDATA_STRING_VALUE.jsonl",
+        stg_file_location="item_cache",
+        table_name="STG_T_WC_WIKIDATA_STRING_VALUE",
+        additional_columns={"IMPORT_BATCH_ID": None, "ROW_STATUS": "NEW"},
+    ),
     TableSpec(
         stg_file_name="T_WC_WIKIDATA_EXTERNAL_ID_VALUE.jsonl",
         stg_file_location="pass2",
@@ -184,6 +191,15 @@ TABLE_SPECS: List[TableSpec] = [
         table_name="STG_T_WC_WIKIDATA_STATEMENT_QUALIFIER",
         additional_columns={"IMPORT_BATCH_ID": None, "SOURCE_FILE": None, "ROW_STATUS": "NEW"},
     ),
+    # WIKIDATA-CRAWLER-035: the P580 / P582 qualifiers of a cached place's P17, P131 and
+    # P1448. Until then item_cache wrote no qualifier, and without these two specs the
+    # files would be written and never loaded.
+    TableSpec(
+        stg_file_name="T_WC_WIKIDATA_STATEMENT_QUALIFIER.jsonl",
+        stg_file_location="item_cache",
+        table_name="STG_T_WC_WIKIDATA_STATEMENT_QUALIFIER",
+        additional_columns={"IMPORT_BATCH_ID": None, "SOURCE_FILE": None, "ROW_STATUS": "NEW"},
+    ),
     TableSpec(
         stg_file_name="T_WC_WIKIDATA_QUALIFIER_ITEM_VALUE.jsonl",
         stg_file_location="pass2",
@@ -211,6 +227,12 @@ TABLE_SPECS: List[TableSpec] = [
     TableSpec(
         stg_file_name="T_WC_WIKIDATA_QUALIFIER_TIME_VALUE.jsonl",
         stg_file_location="pass2",
+        table_name="STG_T_WC_WIKIDATA_QUALIFIER_TIME_VALUE",
+        additional_columns={"IMPORT_BATCH_ID": None, "ROW_STATUS": "NEW"},
+    ),
+    TableSpec(
+        stg_file_name="T_WC_WIKIDATA_QUALIFIER_TIME_VALUE.jsonl",
+        stg_file_location="item_cache",
         table_name="STG_T_WC_WIKIDATA_QUALIFIER_TIME_VALUE",
         additional_columns={"IMPORT_BATCH_ID": None, "ROW_STATUS": "NEW"},
     ),

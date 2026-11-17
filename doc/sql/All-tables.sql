@@ -4830,6 +4830,7 @@ CREATE TABLE `T_WC_T2S_EVALUATION_EXECUTION` (
   `RESULT_ENTITY_MODEL` varchar(50) DEFAULT NULL COMMENT 'Modele de la tache result_entity pour ce passage (-234). NULL = ligne ecrite avant que la colonne existe, pas gpt-4o.',
   `ANSWER_SINGLE_VALUE_MODEL` varchar(50) DEFAULT NULL COMMENT 'Modele de la tache answer_single_value pour ce passage (-234). NULL = ligne ecrite avant que la colonne existe, pas gpt-4o.',
   `VISION_MODEL` varchar(50) DEFAULT NULL COMMENT 'FASTAPI-TEXT2SQL-277 : modele de vision du passage. NULL = evaluation texte ou ligne anterieure a la colonne.',
+  `CACHE_PASS` tinyint(1) DEFAULT NULL COMMENT 'TEXT2SQL-EVAL-007 : 1 = reponse servie par le cache apres un appel de chauffe (--cache-pass). NULL ou 0 = passage normal.',
   `FLEX_PROCESSING` tinyint(1) DEFAULT NULL COMMENT 'Campagne lancee en OpenAI Flex processing (TEXT2SQL-EVAL-002). 1 = Flex ; NULL ou 0 = tarif standard.',
   `FLEX_FALLBACK_COUNT` smallint(6) DEFAULT NULL COMMENT 'Appels LLM de la requete passes au tarif standard apres echec des essais Flex (TEXT2SQL-EVAL-002). NULL = pas de Flex.',
   `JSON_RESULT` mediumtext DEFAULT NULL,

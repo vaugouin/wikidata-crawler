@@ -117,6 +117,8 @@ Use these documents as the main references:
   `python tests/test_etl_smoke.py`
 - `tests/test_entity_prune.py`: no-DB check of the step-114 entity prune guard
   (WIKIDATA-CRAWLER-024). Run: `python tests/test_entity_prune.py`
+- `tests/test_stop_request.py`: no-DB check of the stop request read between steps
+  (WIKIDATA-CRAWLER-036), on fake steps. Run: `python tests/test_stop_request.py`
 
 ### Documentation and scripts
 
@@ -131,6 +133,9 @@ Use these documents as the main references:
   files and staging, and launches `wikidata-crawler.sh` only when a new dump is published
 - `on.sh` / `off.sh` : write or remove the flag file `CRON_OFF`, which makes `wikidata-crawler.sh` and
   `run-if-new-dump.sh` exit at once
+- `crawler-status.sh` (with `crawler_status.py`) : which step is running and what stopping now would cost, read-only
+- `stop-at-step-boundary.sh` : stops the run between two steps, or only says when the next step starts;
+  see "Stopping a run between two steps"
 - `run_etl.sh` : legacy 3-pass driver, superseded by `wikidata_crawler.py`
 - `check_network_speed.sh` : measures the host's inbound network speed (useful during the step `101` download)
 - `backup-after-run.sh` : sauvegarde de la base declenchee par un run reussi, voir
@@ -522,6 +527,42 @@ SOURCE 05_progress_checks.sql;
 ```
 
 Before running it, edit `@IMPORT_BATCH_ID` at the top of the file so it matches the current run.
+
+## Stopping a run between two steps (WIKIDATA-CRAWLER-036)
+
+`docker stop wikidata-crawler` kills the step wherever it is: the process handles no signal, so Docker kills it after 10 s, and a pass (102, 104, 106) then restarts from zero. Since 1.1.33 a run can instead be asked to stop **between two steps**, where nothing is lost.
+
+**Which step is running, and what a stop would cost now** (read-only):
+
+```bash
+bash crawler-status.sh
+```
+
+It prints the status, the step and how long it has run, the pass progress, any pending stop request, and the cost of killing the step now and resuming at its beginning.
+
+**Ask for a stop at the next boundary:**
+
+```bash
+bash stop-at-step-boundary.sh               # stop once the step in progress has finished
+bash stop-at-step-boundary.sh --after 107   # stop once step 107 has finished
+bash stop-at-step-boundary.sh --notify-only # stop nothing: say (terminal, Discord) when the next step starts
+bash stop-at-step-boundary.sh --cancel      # withdraw the request
+nohup bash stop-at-step-boundary.sh > /tmp/stop-at-step-boundary.log 2>&1 &   # detached: a step can last a day
+```
+
+How it works:
+
+- The request is the file `/shared/STOP_AFTER_STEP` (on the host, `/home/debian/docker/shared_data/wikidata-crawler/STOP_AFTER_STEP`): empty to stop after the step in progress, or a step code to stop once that step has finished. The orchestrator reads it only between two steps. When it obeys, it removes the file, records `strwikidatacrawlerstatus = STOPPED`, `strwikidatacrawlerstoppedafterstep` and `strwikidatacrawlerresumestep`, prints the resume command and exits with code 0 (no failure alert). No success sentinel is written, so there is no backup and no purge of the work files. With a 1.1.33+ image, `touch` on that file is enough; the script adds the wait and the report.
+- A container whose image was built before 1.1.33 does not read the file. The script covers it: it watches the run log, and when the line of the next step appears it runs `docker stop` within seconds of that step's start, the cheapest moment to kill one. It marks the run as already reported, so the hourly check sends no failure alert for a stop that was asked for. The status variables then still say `RUNNING` until the resume overwrites them.
+- Either way `stopped_run.json` is left on the shared volume. While it is there, `run-if-new-dump.sh` launches nothing: a newer dump would wipe the shared volume, and with it the pass outputs the resume needs. The resume removes it at launch, along with any leftover request. To give the stopped run up, delete the file.
+
+**Resume** with the same `IMPORT_BATCH_ID`, at the step the stop names:
+
+```bash
+./wikidata-crawler.sh --start-step 105
+```
+
+Cost of killing a step midway instead, for reference: 101 resumes its download (run `bash off.sh` first, the hourly check could otherwise take the dump for a new one); 102, 104 and 106 restart from zero (20 to 33 h each, database untouched); validations cost nothing; 108 restarts from zero and must be resumed at 108, never at 110; 110 is resumable but rolls back its statement in progress and leaves live statements without values until it has rerun; 112 and 115 are resumable; 114 is resumable and must finish before 115.
 
 ## Resuming after a failure
 

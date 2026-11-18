@@ -64,6 +64,46 @@ SUCCESS_SENTINEL_NAME = "last_successful_run.json"
 # when one of these steps will actually execute: a resume at 108 or 110 needs no dump
 # and must never trigger a 102 GB download.
 DUMP_CONSUMING_STEPS = (102, 104, 106)
+# WIKIDATA-CRAWLER-036, stop request. A file of this name on the shared volume asks the
+# run to stop between two steps instead of being killed in the middle of one. Empty:
+# stop once the step in progress has finished. A step code inside (for example 107):
+# stop once that step has finished. The run reads it only between steps, removes it
+# when it obeys, and removes a leftover one at launch, so a resume is never stopped by
+# the request that stopped the previous run.
+STOP_REQUEST_NAME = "STOP_AFTER_STEP"
+# Written on the shared volume when a run stops on request, removed at the next launch.
+# run-if-new-dump.sh reads it: while it is there, the hourly check launches nothing, so
+# a newer dump cannot wipe the work files of a run that is waiting to be resumed.
+STOPPED_MARKER_NAME = "stopped_run.json"
+
+
+def stop_request_applies(content: Optional[str], finished_code: int) -> bool:
+    """Whether a stop request holds once step `finished_code` has finished.
+
+    `content` is the text of the request file, None when there is no file. An empty
+    file, or one that does not hold a step code, asks to stop at the first boundary:
+    an unreadable request is obeyed rather than ignored, since stopping is cheap at a
+    boundary and a missed stop costs a day-long pass. A step code N asks to stop once
+    step N has finished, so it holds from N onward.
+    """
+    if content is None:
+        return False
+    text = content.strip()
+    if not text.isdigit():
+        return True
+    return finished_code >= int(text)
+
+
+def read_stop_request(shared_dir: Path) -> Optional[str]:
+    """Text of the stop request file, None when there is none (or it cannot be read)."""
+    path = shared_dir / STOP_REQUEST_NAME
+    try:
+        return path.read_text(encoding="utf-8", errors="replace")
+    except FileNotFoundError:
+        return None
+    except OSError as exc:
+        print(f"run: WARNING could not read {path}: {exc}")
+        return None
 
 
 @dataclass(frozen=True)
@@ -155,6 +195,8 @@ class WikidataCrawler:
         cp.f_setservervariable(f"{CRAWLER_PREFIX}processesexecuted", self.processes_executed, self.processes_executed_desc, 0)
         cp.f_setservervariable(f"{CRAWLER_PREFIX}startstep", str(self.start_step), "First workflow step executed by the Wikidata dump crawler", 0)
 
+        self._clear_stop_files()
+        stopped_after: Optional[int] = None
         try:
             # A resume that skips step 101 but replays a dump-streaming step still
             # needs the dump resolved. Run 101 for real rather than resolving on the
@@ -164,14 +206,22 @@ class WikidataCrawler:
             if self.start_step > 101 and any(code >= self.start_step for code in DUMP_CONSUMING_STEPS):
                 self._run_step(101, self.steps[101])
 
+            previous_code: Optional[int] = None
             for code, step in self.steps.items():
                 if code < self.start_step:
                     continue
+                # Between two steps, never before the first one of this launch: a
+                # resume has just removed any leftover request.
+                if previous_code is not None and stop_request_applies(read_stop_request(SHARED_DIR), previous_code):
+                    stopped_after = previous_code
+                    self._mark_stopped(previous_code, code, start_time)
+                    break
                 self._run_step(code, step)
+                previous_code = code
         except Exception as exc:
             self._mark_failure(exc, start_time)
             raise
-        else:
+        if stopped_after is None:
             duration = cp.convert_seconds_to_duration(int(time.time() - start_time))
             cp.f_setservervariable(f"{CRAWLER_PREFIX}totalruntime", duration, self.total_runtime_desc, 0)
             cp.f_setservervariable(f"{CRAWLER_PREFIX}status", "SUCCESS", "Overall status of the Wikidata dump crawler", 0)
@@ -190,6 +240,53 @@ class WikidataCrawler:
         step.handler(self)
         cp.f_setservervariable(f"{CRAWLER_PREFIX}step{code}status", "SUCCESS", f"Status of step {code}: {step.label}", 0)
         cp.f_setservervariable(f"{CRAWLER_PREFIX}step{code}finishedat", datetime.now(cp.paris_tz).strftime("%Y-%m-%d %H:%M:%S"), f"End time of step {code}: {step.label}", 0)
+
+    def _clear_stop_files(self) -> None:
+        """At launch, remove a leftover stop request and the marker of a stopped run."""
+        for name in (STOP_REQUEST_NAME, STOPPED_MARKER_NAME):
+            path = SHARED_DIR / name
+            try:
+                path.unlink()
+                print(f"run: removed leftover {path}")
+            except FileNotFoundError:
+                pass
+            except OSError as exc:
+                print(f"run: WARNING could not remove {path}: {exc}")
+
+    def _mark_stopped(self, finished_code: int, next_code: int, start_time: float) -> None:
+        """Record a stop on request between two steps (WIKIDATA-CRAWLER-036).
+
+        Not a success: no sentinel, so no backup and no purge of the work files. Not a
+        failure either: the process exits 0, so the hourly check sends no alert. The
+        marker left on the shared volume keeps that check from launching a new run.
+        """
+        import json
+        strnow = datetime.now(cp.paris_tz).strftime("%Y-%m-%d %H:%M:%S")
+        duration = cp.convert_seconds_to_duration(int(time.time() - start_time))
+        resume = f"./wikidata-crawler.sh --start-step {next_code}"
+        cp.f_setservervariable(f"{CRAWLER_PREFIX}totalruntime", duration, self.total_runtime_desc, 0)
+        cp.f_setservervariable(f"{CRAWLER_PREFIX}status", "STOPPED", "Overall status of the Wikidata dump crawler", 0)
+        cp.f_setservervariable(f"{CRAWLER_PREFIX}currentprocess", f"stopped on request after step {finished_code}, resume at {next_code}", "Current process in the Wikidata dump crawler", 0)
+        cp.f_setservervariable(f"{CRAWLER_PREFIX}stoppedafterstep", str(finished_code), "Last step finished before the Wikidata dump crawler stopped on request", 0)
+        cp.f_setservervariable(f"{CRAWLER_PREFIX}resumestep", str(next_code), "Step to resume the Wikidata dump crawler from after a stop on request", 0)
+        cp.f_setservervariable(f"{CRAWLER_PREFIX}enddatetime", strnow, "Date and time of the last stop on request of the Wikidata dump crawler", 0)
+        payload = {
+            "status": "STOPPED",
+            "import_batch_id": self.import_batch_id,
+            "stopped_after_step": finished_code,
+            "resume_step": next_code,
+            "stopped_at": strnow,
+        }
+        try:
+            (SHARED_DIR / STOPPED_MARKER_NAME).write_text(json.dumps(payload, ensure_ascii=False) + "\n", encoding="utf-8")
+        except OSError as exc:
+            print(f"run: WARNING could not write {SHARED_DIR / STOPPED_MARKER_NAME}: {exc}")
+        try:
+            (SHARED_DIR / STOP_REQUEST_NAME).unlink()
+        except OSError:
+            pass
+        print(f"run: stop requested ({SHARED_DIR / STOP_REQUEST_NAME}), stopped after step {finished_code}: {self.arrwikidatascope[finished_code]}")
+        print(f"run: nothing is lost. Resume with the same IMPORT_BATCH_ID: {resume}")
 
     def _write_success_sentinel(self, duration: str) -> None:
         """Leave, on the shared volume, the one fact the HOST needs after a run.

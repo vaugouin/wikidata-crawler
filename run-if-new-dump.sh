@@ -256,6 +256,21 @@ if [ -f "$SENTINELLE_RUN" ] && [ -f "$MARQUEUR_SAUVEGARDE" ]; then
   fi
 fi
 
+# --------------------------------------------------------------------------
+# RUN ARRETE SUR DEMANDE, EN ATTENTE DE REPRISE (WIKIDATA-CRAWLER-036).
+# Un run arrete entre deux etapes (fichier STOP_AFTER_STEP, ou
+# stop-at-step-boundary.sh) laisse stopped_run.json sur le volume partage. Tant
+# qu'il y est, on ne verifie pas le dump : un dump plus recent ferait table rase
+# du volume et lancerait un run complet, ce qui detruirait les sorties des passes
+# que la reprise attend. La reprise (./wikidata-crawler.sh --start-step N) retire
+# le marqueur a son lancement. Pour abandonner le run arrete : supprimer le fichier.
+# --------------------------------------------------------------------------
+if [ -f "$SHARED/stopped_run.json" ]; then
+  echo "Run arrete sur demande, en attente de reprise : $(head -c 300 "$SHARED/stopped_run.json" | tr -d '\n')"
+  echo "Rien a faire. Reprendre avec ./wikidata-crawler.sh --start-step N, ou supprimer $SHARED/stopped_run.json pour abandonner."
+  exit 0
+fi
+
 # 1. Le guetteur. --network=host et --env-file pour joindre la base (il lit la
 #    taille du dump traite au dernier run) ; --entrypoint parce que l'image en
 #    declare un autre.

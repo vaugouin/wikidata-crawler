@@ -56,6 +56,7 @@ Steps, resume rules and costs: README § "End-to-end workflow". What an agent mu
 - Passes 102, 104 and 106 stream the full 102 GB dump and take 20 to 33 h each; prefer resuming from a later step. Before resuming at one of them, check the dump is still in `/shared` and is the same dump (size vs `strwikidatacrawlerdumpsize`); if not, prefer a full run.
 - **V1 backfill seed (step 106, WIKIDATA-CRAWLER-023): anchor it on V1 alone, never on the difference "in V1, absent from V2".** That difference self-erases after one import, the seed empties, and step 114 then deletes those items under a run reporting SUCCESS. The difference is the *measure* (`--v1-backfill-report`), V1 is the *seed*. Never modify pass2's `referenced_item_ids.txt`; the seed is a separate file.
 - `run-if-new-dump.sh` must wipe `/shared` **from a container** (`docker run ... find /shared -mindepth 1 -delete`): the pass directories belong to root, a host `rm -rf` leaves them behind, and pass1 then silently reuses stale output. Do not "simplify" it to a host-side delete. Likewise `wikidata-crawler.sh` follows logs only on a TTY, so cron does not stay alive for days.
+- **Stopping a run (WIKIDATA-CRAWLER-036):** never advise a bare `docker stop` in the middle of a pass. `bash crawler-status.sh` says which step runs and what a stop costs; `bash stop-at-step-boundary.sh` stops between two steps (request file `/shared/STOP_AFTER_STEP`, read by the orchestrator from 1.1.33; log watch plus `docker stop` at the start of the next step for an older image). A stopped run leaves `/shared/stopped_run.json`, which keeps `run-if-new-dump.sh` from launching over it; the resume removes it. README § "Stopping a run between two steps".
 - `backup-after-run.sh` **verifies the backup itself** (exit code, `Backup failed!` / `Error:` in output, real `.gz` size): do not reduce it to trusting `backupvaugouindb.sh`'s exit code, the VPS copy can lag behind the `tools` repo. History in README § "Ce que fait le script appele".
 - Recursive CTEs on this schema: MariaDB types CTE columns from the non-recursive part alone, and with a multi-branch anchor (`root UNION root UNION recursion`) it keeps only the first branch, silently. Group the roots in a subquery (one anchor branch, one recursive branch), `CAST(... AS CHAR(50))` the id, and give every such query a floor value (842 classes under film, see README § V2 extensions).
 
@@ -78,8 +79,8 @@ Use it to explore, never to decide:
 
 ---
 
-**Last Updated**: 2026-11-14
-**Current Version**: 1.1.32
+**Last Updated**: 2026-11-18
+**Current Version**: 1.1.33
 
 ## Backlog (Nestor second-brain)
 

@@ -79,8 +79,8 @@ Use it to explore, never to decide:
 
 ---
 
-**Last Updated**: 2026-11-18
-**Current Version**: 1.1.33
+**Last Updated**: 2026-11-20
+**Current Version**: 1.1.34
 
 ## Backlog (Nestor second-brain)
 

@@ -1,0 +1,110 @@
+-- check-035-dated-place-names.sql
+-- run on vaugouindb (container damp-vaugouin-com-mariadb-1) at 2026-11-20 11:07:36 +0100
+--
++---------------------------+-----------------------------+
+| CHECK_NAME                | VALUE                       |
++---------------------------+-----------------------------+
+| A0. batch of the last run | wikidata_full_20261117_2217 |
++---------------------------+-----------------------------+
++--------------------------------+-----------------------------+------------+----------+
+| CHECK_NAME                     | IMPORT_BATCH_ID             | STATEMENTS | ENTITIES |
++--------------------------------+-----------------------------+------------+----------+
+| A1. P1448 statements, by batch | wikidata_full_20261117_2217 |      61088 |    46596 |
++--------------------------------+-----------------------------+------------+----------+
++----------------------------------------+-----------+------------+
+| CHECK_NAME                             | LANG_CODE | STATEMENTS |
++----------------------------------------+-----------+------------+
+| A2. P1448 values, by language (top 15) | en        |      20053 |
+| A2. P1448 values, by language (top 15) | fr        |      11298 |
+| A2. P1448 values, by language (top 15) | it        |       4022 |
+| A2. P1448 values, by language (top 15) | cs        |       3880 |
+| A2. P1448 values, by language (top 15) | de        |       3761 |
+| A2. P1448 values, by language (top 15) | es        |       2749 |
+| A2. P1448 values, by language (top 15) | sv        |       1261 |
+| A2. P1448 values, by language (top 15) | nl        |       1207 |
+| A2. P1448 values, by language (top 15) | pl        |       1184 |
+| A2. P1448 values, by language (top 15) | hu        |        961 |
+| A2. P1448 values, by language (top 15) | fi        |        906 |
+| A2. P1448 values, by language (top 15) | mul       |        902 |
+| A2. P1448 values, by language (top 15) | ca        |        850 |
+| A2. P1448 values, by language (top 15) | ro        |        823 |
+| A2. P1448 values, by language (top 15) | sk        |        576 |
++----------------------------------------+-----------+------------+
++-------------------------------------------+-----------------------+------------+------------+----------+
+| CHECK_NAME                                | ID_QUALIFIER_PROPERTY | QUALIFIERS | STATEMENTS | ENTITIES |
++-------------------------------------------+-----------------------+------------+------------+----------+
+| A3. dated P1448 statements (P580 or P582) | P580                  |      12930 |      12921 |     5790 |
+| A3. dated P1448 statements (P580 or P582) | P582                  |       9747 |       9745 |     4942 |
++-------------------------------------------+-----------------------+------------+------------+----------+
++------------------------------------------------------+-------------+-------------+------------+--------------------------+-----------+----------------------------------------------+------------+----------+-----------------------------+
+| CHECK_NAME                                           | ID_WIKIDATA | ID_PROPERTY | RANK       | VALUE                    | LANG_CODE | VALUE_LABEL_EN                               | START_YEAR | END_YEAR | IMPORT_BATCH_ID             |
++------------------------------------------------------+-------------+-------------+------------+--------------------------+-----------+----------------------------------------------+------------+----------+-----------------------------+
+| B. names and countries of the three reference places | Q14960      | P131        | normal     | Q10860596                | NULL      |                                              |       1918 |     1928 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q14960      | P131        | normal     | Q10860593                | NULL      |                                              |       1928 |     1948 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q14960      | P131        | normal     | Q11343779                | NULL      |                                              |       1949 |     1960 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q14960      | P131        | preferred  | Q850531                  | NULL      |                                              |       1960 |     NULL | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q14960      | P131        | preferred  | Q850531                  | NULL      |                                              |       2003 |     NULL | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q14960      | P131        | normal     | Q2670751                 | NULL      | Margraviate of Moravia                       |       NULL |     1918 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q14960      | P1448       | preferred  | Brno                     | cs        |                                              |       NULL |     NULL | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q14960      | P1448       | normal     | Brünn                    | de        |                                              |       NULL |     1918 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q14960      | P1448       | deprecated | Statutární město Brno    | cs        |                                              |       NULL |     NULL | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q14960      | P17         | normal     | Q153136                  | NULL      | Habsburg monarchy                            |       1526 |     1804 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q14960      | P17         | normal     | Q131964                  | NULL      | Austrian Empire                              |       1804 |     1867 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q14960      | P17         | normal     | Q28513                   | NULL      | Austria–Hungary                              |       1867 |     1918 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q14960      | P17         | normal     | Q33946                   | NULL      | Czechoslovakia                               |       1918 |     1939 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q14960      | P17         | normal     | Q152750                  | NULL      | Protectorate of Bohemia and Moravia          |       1939 |     1945 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q14960      | P17         | normal     | Q33946                   | NULL      | Czechoslovakia                               |       1945 |     1992 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q14960      | P17         | preferred  | Q213                     | NULL      | Czech Republic                               |       1993 |     NULL | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q14960      | P17         | normal     | Q686971                  | NULL      | Lands of the Bohemian Crown                  |       NULL |     1526 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q2795       | P131        | normal     | Q15621863                | NULL      |                                              |       1835 |     1874 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q2795       | P131        | normal     | Q481191                  | NULL      |                                              |       1874 |     1900 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q2795       | P131        | normal     | Q1407272                 | NULL      |                                              |       1900 |     1943 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q2795       | P131        | normal     | Q27916522                | NULL      | Saxony                                       |       1945 |     1952 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q2795       | P131        | normal     | Q48072                   | NULL      | Karl-Marx-Stadt District                     |       1952 |     1990 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q2795       | P131        | normal     | Q1202                    | NULL      | Saxony                                       |       1990 |     1991 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q2795       | P131        | normal     | Q24198                   | NULL      |                                              |       1991 |     2008 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q2795       | P131        | preferred  | Q1202                    | NULL      | Saxony                                       |       2012 |     NULL | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q2795       | P131        | normal     | Q1366141                 | NULL      |                                              |       NULL |     1835 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q2795       | P1448       | normal     | Karl-Marks-Ştadt         | az        |                                              |       1953 |     1990 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q2795       | P1448       | normal     | Karl-Marx-Stadt          | de        |                                              |       1953 |     1990 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q2795       | P1448       | preferred  | Chemnitz                 | de        |                                              |       1990 |     NULL | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q2795       | P1448       | normal     | Chemnitz                 | de        |                                              |       NULL |     1953 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q2795       | P1448       | normal     | Kamjenica                | hsb       |                                              |       NULL |     NULL | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q2795       | P17         | normal     | Q156199                  | NULL      | Electorate of Saxony                         |       1423 |     1806 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q2795       | P17         | preferred  | Q183                     | NULL      | Germany                                      |       1871 |     NULL | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q656        | P131        | normal     | Q186096                  | NULL      | Tsardom of Russia                            |       1703 |     1721 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q656        | P131        | normal     | Q34266                   | NULL      | Russian Empire                               |       1721 |     1917 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q656        | P131        | normal     | Q139319                  | NULL      | Russian Republic                             |       1917 |     1917 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q656        | P131        | normal     | Q2305208                 | NULL      | Russian Socialist Federative Soviet Republic |       1917 |     1922 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q656        | P131        | normal     | Q2184                    | NULL      | Russian Soviet Federative Socialist Republic |       1922 |     1991 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q656        | P131        | preferred  | Q159                     | NULL      | Russia                                       |       1991 |     NULL | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q656        | P1448       | normal     | Sankt Petersburg         | de        |                                              |       1703 |     1914 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q656        | P1448       | normal     | Sankt Petersburg         | ro        |                                              |       1703 |     1914 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q656        | P1448       | normal     | Szentpétervár            | hu        |                                              |       1703 |     1914 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q656        | P1448       | normal     | Petrográd                | hu        |                                              |       1914 |     1924 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q656        | P1448       | normal     | Petrograd                | de        |                                              |       1914 |     1924 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q656        | P1448       | normal     | Petrograd                | ro        |                                              |       1914 |     1924 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q656        | P1448       | normal     | Petroqrad                | az        |                                              |       1914 |     1924 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q656        | P1448       | normal     | Leningrad                | ro        |                                              |       1924 |     1991 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q656        | P1448       | normal     | Leningrad                | ca        |                                              |       1924 |     1991 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q656        | P1448       | normal     | Leningrad                | de        |                                              |       1924 |     1991 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q656        | P1448       | normal     | Leningrád                | hu        |                                              |       1924 |     1991 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q656        | P1448       | normal     | Leningrad                | pl        |                                              |       1924 |     1991 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q656        | P1448       | normal     | Leningrado               | es        |                                              |       1924 |     1991 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q656        | P1448       | normal     | Leninqrad                | az        |                                              |       1924 |     1991 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q656        | P1448       | normal     | Petersburg               | pl        |                                              |       1991 |     NULL | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q656        | P1448       | normal     | Sankt Petersburg         | ro        |                                              |       1991 |     NULL | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q656        | P1448       | normal     | Sankt Petersburg         | de        |                                              |       1991 |     NULL | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q656        | P1448       | normal     | Szentpétervár            | hu        |                                              |       1991 |     NULL | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q656        | P17         | normal     | Q186096                  | NULL      | Tsardom of Russia                            |       1703 |     1721 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q656        | P17         | normal     | Q34266                   | NULL      | Russian Empire                               |       1721 |     1917 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q656        | P17         | normal     | Q139319                  | NULL      | Russian Republic                             |       1917 |     1917 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q656        | P17         | normal     | Q2305208                 | NULL      | Russian Socialist Federative Soviet Republic |       1917 |     1922 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q656        | P17         | normal     | Q15180                   | NULL      | Soviet Union                                 |       1922 |     1991 | wikidata_full_20261117_2217 |
+| B. names and countries of the three reference places | Q656        | P17         | preferred  | Q159                     | NULL      | Russia                                       |       1991 |     NULL | wikidata_full_20261117_2217 |
++------------------------------------------------------+-------------+-------------+------------+--------------------------+-----------+----------------------------------------------+------------+----------+-----------------------------+
++------------+----------------+-----------------------+------------------+
+| CHECK_NAME | Q656_LENINGRAD | Q2795_KARL_MARX_STADT | Q14960_DATED_P17 |
++------------+----------------+-----------------------+------------------+
+| C. verdict |              5 |                     1 |                8 |
++------------+----------------+-----------------------+------------------+
